@@ -51,7 +51,7 @@ const ForgotPassword = ({ isAdmin = false }) => {
     setError('');
     setLoading(true);
     try {
-      const res = await api.post('/auth/forgot-password', { email, isAdmin });
+      const res = await api.post('/forgot-password', { email, isAdmin });
       if (res.data.success) {
         setStep(2);
         setTimer(30);
@@ -78,7 +78,7 @@ const ForgotPassword = ({ isAdmin = false }) => {
     setLoading(true);
     try {
       const code = otp.join('');
-      const res = await api.post('/auth/verify-otp', { email, otp: code, isAdmin });
+      const res = await api.post('/verify-otp', { email, otp: code, isAdmin });
       if (res.data.success) {
         setStep(3);
       }
@@ -98,7 +98,7 @@ const ForgotPassword = ({ isAdmin = false }) => {
     setError('');
     setLoading(true);
     try {
-      const res = await api.post('/auth/reset-password', { email, newPassword, isAdmin });
+      const res = await api.post('/reset-password', { email, newPassword, isAdmin });
       if (res.data.success) {
         setStep(4);
       }
