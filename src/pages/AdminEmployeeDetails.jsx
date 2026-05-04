@@ -445,6 +445,7 @@ const AdminEmployeeDetails = () => {
                     <option>Sales</option>
                     <option>Quality Assurance</option>
                     <option>IT Support</option>
+                    <option>Management</option>
                   </select>
                 )}
               </div>

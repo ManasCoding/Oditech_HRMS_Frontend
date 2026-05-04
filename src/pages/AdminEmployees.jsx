@@ -254,6 +254,7 @@ const AdminEmployees = () => {
                         <option>Sales</option>
                         <option>Quality Assurance</option>
                         <option>IT Support</option>
+                        <option>Management</option>
                       </select>
                     </div>
                     <div className="space-y-2">
