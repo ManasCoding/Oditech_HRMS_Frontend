@@ -50,7 +50,11 @@ const AppRouter = () => {
 
   const user = JSON.parse(localStorage.getItem('user')) || {};
   const isSuperAdmin = user.role === 'admin' && user.email === 'gumansingh.oditechglobal@gmail.com';
-  const isAdminLoginPath = location.pathname === '/admin/login' || location.pathname === '/admin/forgot-password';
+  const isPublicPath = location.pathname === '/' || 
+                       location.pathname === '/login' || 
+                       location.pathname === '/forgot-password' || 
+                       location.pathname === '/admin/login' || 
+                       location.pathname === '/admin/forgot-password';
 
   if (loadingSettings) {
     return (
@@ -60,7 +64,7 @@ const AppRouter = () => {
     );
   }
 
-  if (maintenance && !isSuperAdmin && !isAdminLoginPath) {
+  if (maintenance && !isSuperAdmin && !isPublicPath) {
     return <MaintenanceMode />;
   }
 
