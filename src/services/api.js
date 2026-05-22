@@ -1,6 +1,10 @@
 import axios from 'axios';
 
-const API_BASE_URL = import.meta.env.VITE_API_URL || 'https://oditech-hrms-backend-2.onrender.com/api';
+const API_BASE_URL = import.meta.env.VITE_API_URL;
+
+if (!API_BASE_URL) {
+  console.error("Missing VITE_API_URL environment variable.");
+}
 
 const api = axios.create({
   baseURL: API_BASE_URL,
