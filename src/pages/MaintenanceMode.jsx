@@ -205,9 +205,9 @@ const MaintenanceMode = () => {
           <div className="bg-white p-8 rounded-[24px] border border-slate-100 shadow-sm flex flex-col justify-between">
             <div className="flex items-center gap-3 mb-6">
               <div className="w-8 h-8 bg-blue-50 text-blue-600 rounded-lg flex items-center justify-center">
-                <Check size={16} strokeWidth={3} />
+                <Code size={16} strokeWidth={2.5} />
               </div>
-              <h3 className="font-extrabold text-slate-800 text-sm uppercase tracking-wider">Work in Progress</h3>
+              <h3 className="font-bold text-slate-800 text-[15px] tracking-tight">Work in Progress</h3>
             </div>
             
             <ul className="space-y-4">
@@ -219,15 +219,16 @@ const MaintenanceMode = () => {
                 { text: 'Almost ready...', completed: false }
               ].map((task, idx) => (
                 <li key={idx} className="flex items-center justify-between">
-                  <span className={`text-xs font-semibold ${task.completed ? 'text-slate-400 line-through' : 'text-slate-700'}`}>
-                    {task.text}
-                  </span>
+                  <div className="flex items-center gap-3">
+                    <div className="w-1.5 h-1.5 rounded-full bg-slate-300"></div>
+                    <span className="text-[13px] font-medium text-slate-500">
+                      {task.text}
+                    </span>
+                  </div>
                   {task.completed ? (
-                    <div className="w-5 h-5 rounded-full bg-emerald-50 border border-emerald-100 flex items-center justify-center text-emerald-500">
-                      <Check size={12} strokeWidth={3} />
-                    </div>
+                    <Check size={16} strokeWidth={3} className="text-emerald-500" />
                   ) : (
-                    <div className="w-5 h-5 border-2 border-indigo-500 border-t-transparent rounded-full animate-spin"></div>
+                    <div className="w-4 h-4 border-2 border-slate-300 border-t-blue-500 rounded-full animate-spin"></div>
                   )}
                 </li>
               ))}
@@ -238,22 +239,20 @@ const MaintenanceMode = () => {
           <div className="bg-white p-8 rounded-[24px] border border-slate-100 shadow-sm flex flex-col justify-between">
             <div className="flex items-center gap-3 mb-6">
               <div className="w-8 h-8 bg-rose-50 text-rose-500 rounded-lg flex items-center justify-center">
-                <Heart size={16} />
+                <Heart size={16} fill="currentColor" className="text-rose-400" />
               </div>
-              <h3 className="font-extrabold text-slate-800 text-sm uppercase tracking-wider">Why You'll Love It</h3>
+              <h3 className="font-bold text-slate-800 text-[15px] tracking-tight">Why You'll Love It</h3>
             </div>
             
             <ul className="space-y-4">
               {[
-                { text: 'Beautiful & Modern UI', icon: <Heart size={14} className="text-rose-500" /> },
-                { text: 'Fast & Optimized', icon: <Check size={14} className="text-blue-500" /> },
-                { text: 'Secure & Reliable', icon: <Shield size={14} className="text-emerald-500" /> },
-                { text: 'Built with Latest Tech', icon: <Cloud size={14} className="text-[#3b82f6]" /> }
+                { text: 'Beautiful & Modern UI', icon: <div className="w-5 h-5 rounded-full bg-purple-100 text-purple-600 flex items-center justify-center"><Heart size={10} /></div> },
+                { text: 'Fast & Optimized', icon: <div className="w-5 h-5 rounded-full bg-blue-100 text-blue-600 flex items-center justify-center"><Check size={10} strokeWidth={3}/></div> },
+                { text: 'Secure & Reliable', icon: <div className="w-5 h-5 rounded-full bg-emerald-100 text-emerald-600 flex items-center justify-center"><Shield size={10} /></div> },
+                { text: 'Built with Latest Tech', icon: <div className="w-5 h-5 rounded-full bg-sky-100 text-sky-600 flex items-center justify-center"><Cloud size={10} /></div> }
               ].map((item, idx) => (
-                <li key={idx} className="flex items-center gap-3 text-xs font-semibold text-slate-700">
-                  <div className="w-5 h-5 rounded-full bg-slate-50 flex items-center justify-center">
-                    {item.icon}
-                  </div>
+                <li key={idx} className="flex items-center gap-3 text-[13px] font-medium text-slate-600">
+                  {item.icon}
                   {item.text}
                 </li>
               ))}
@@ -261,45 +260,49 @@ const MaintenanceMode = () => {
           </div>
 
           {/* Designed & Developed credits card */}
-          <div className="bg-[#0b1426] text-white p-8 rounded-[24px] border border-slate-800 shadow-lg relative overflow-hidden flex flex-col justify-between">
-            {/* Swoosh background styling */}
-            <div className="absolute top-0 right-0 w-32 h-32 bg-white/5 rounded-full -mr-16 -mt-16 pointer-events-none"></div>
-
-            <div className="flex items-start gap-4 relative z-10">
+          <div className="bg-white p-8 rounded-[24px] border border-slate-100 shadow-sm flex flex-col justify-between">
+            
+            <div className="flex items-start gap-4">
               <img 
                 src="/demo/emp1.png" 
                 alt="Manas Kumar Gumansingh" 
-                className="w-14 h-14 rounded-full object-cover border-2 border-white/20"
+                className="w-14 h-14 rounded-full object-cover border border-slate-200"
                 onError={(e) => {
                   e.target.src = "https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?w=100&h=100&fit=crop";
                 }}
               />
-              <div>
-                <p className="text-[10px] font-black text-blue-400 uppercase tracking-widest mb-1">Designed & Developed by</p>
-                <h4 className="text-base font-extrabold text-white leading-none">Manas Kumar Gumansingh</h4>
-                <p className="text-[10px] text-slate-400 font-bold uppercase mt-1">Full Stack Developer</p>
+              <div className="mt-1">
+                <p className="text-[11px] font-medium text-slate-500 mb-0.5">Designed & Developed by</p>
+                <h4 className="text-[15px] font-bold text-slate-800 leading-none">Manas Kumar gumansingh</h4>
+                <p className="text-[11px] text-slate-500 font-medium mt-1.5">Full Stack Developer</p>
               </div>
             </div>
 
-            {/* Badges */}
-            <div className="flex flex-wrap gap-2 mt-6 relative z-10">
-              {['HTML5', 'CSS3', 'JS', 'React', 'NodeJS', 'MongoDB'].map((badge, idx) => (
-                <span 
+            {/* Tech Badges */}
+            <div className="flex flex-wrap gap-2 mt-6">
+              {[
+                { name: 'HTML5', bg: 'bg-orange-500', text: 'text-white' },
+                { name: 'CSS3', bg: 'bg-blue-600', text: 'text-white' },
+                { name: 'JS', bg: 'bg-yellow-400', text: 'text-slate-900' },
+                { name: 'React', bg: 'bg-white', text: 'text-cyan-400', border: 'border border-slate-200' },
+                { name: 'NodeJS', bg: 'bg-white', text: 'text-emerald-500', border: 'border border-slate-200' }
+              ].map((badge, idx) => (
+                <div 
                   key={idx} 
-                  className="px-2 py-1 bg-white/5 border border-white/10 rounded-lg text-[9px] font-black tracking-wider text-slate-300 uppercase hover:bg-white/10 hover:text-white transition-all cursor-default"
+                  className={`px-2.5 py-1 ${badge.bg} ${badge.text} ${badge.border || ''} rounded-md text-[10px] font-black tracking-wide uppercase flex items-center justify-center`}
                 >
-                  {badge}
-                </span>
+                  {badge.name}
+                </div>
               ))}
             </div>
 
             {/* Social Links */}
-            <div className="flex items-center gap-4 mt-6 pt-4 border-t border-white/5 relative z-10">
-              <a href="https://linkedin.com" target="_blank" rel="noreferrer" className="text-slate-400 hover:text-[#0077b5] transition-colors"><Globe size={16} /></a>
-              <a href="https://youtube.com" target="_blank" rel="noreferrer" className="text-slate-400 hover:text-[#ff0000] transition-colors"><Globe size={16} /></a>
-              <a href="https://twitter.com" target="_blank" rel="noreferrer" className="text-slate-400 hover:text-[#1da1f2] transition-colors"><Globe size={16} /></a>
-              <a href="https://instagram.com" target="_blank" rel="noreferrer" className="text-slate-400 hover:text-[#e1306c] transition-colors"><Globe size={16} /></a>
-              <a href="https://google.com" target="_blank" rel="noreferrer" className="text-slate-400 hover:text-[#2563eb] transition-colors"><Globe size={16} /></a>
+            <div className="flex items-center gap-3 mt-6 pt-5 border-t border-slate-100">
+              {['linkedin', 'youtube', 'twitter', 'instagram', 'globe'].map((social, i) => (
+                <a key={i} href="#" className="w-8 h-8 rounded-[10px] border border-slate-200 flex items-center justify-center text-slate-500 hover:bg-slate-50 hover:text-blue-600 transition-colors">
+                  <Globe size={14} />
+                </a>
+              ))}
             </div>
           </div>
 
