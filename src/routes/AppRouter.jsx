@@ -1,5 +1,5 @@
-import React from 'react';
-import { Routes, Route } from 'react-router-dom';
+import React, { useEffect, useState } from 'react';
+import { Routes, Route, useLocation } from 'react-router-dom';
 import LandingPage from '../pages/LandingPage';
 import LoginPage from '../pages/LoginPage';
 import ForgotPassword from '../pages/ForgotPassword';
@@ -24,7 +24,46 @@ import AdminEmployeeDetails from '../pages/AdminEmployeeDetails';
 import EmployeePaySlip from '../pages/EmployeePaySlip';
 import EmployeeApplyLeave from '../pages/EmployeeApplyLeave';
 
+import MaintenanceMode from '../pages/MaintenanceMode';
+import api from '../services/api';
+
 const AppRouter = () => {
+  const location = useLocation();
+  const [maintenance, setMaintenance] = useState(null);
+  const [loadingSettings, setLoadingSettings] = useState(true);
+
+  useEffect(() => {
+    const fetchSettings = async () => {
+      try {
+        const res = await api.get('/settings');
+        if (res.data.success && res.data.settings) {
+          setMaintenance(res.data.settings.maintenance_mode === 'true' || res.data.settings.maintenance_mode === true);
+        }
+      } catch (err) {
+        console.error('Error fetching settings in AppRouter:', err);
+      } finally {
+        setLoadingSettings(false);
+      }
+    };
+    fetchSettings();
+  }, [location.pathname]); // Re-verify settings on navigation to be responsive to changes
+
+  const user = JSON.parse(localStorage.getItem('user')) || {};
+  const isSuperAdmin = user.role === 'admin' && user.email === 'gumansingh.oditechglobal@gmail.com';
+  const isAdminLoginPath = location.pathname === '/admin/login' || location.pathname === '/admin/forgot-password';
+
+  if (loadingSettings) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-[#f8fafc]">
+        <div className="w-8 h-8 border-4 border-slate-200 border-t-blue-600 rounded-full animate-spin"></div>
+      </div>
+    );
+  }
+
+  if (maintenance && !isSuperAdmin && !isAdminLoginPath) {
+    return <MaintenanceMode />;
+  }
+
   return (
     <Routes>
       <Route path="/" element={<LandingPage />} />
