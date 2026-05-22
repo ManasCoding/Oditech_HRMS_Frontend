@@ -46,7 +46,9 @@ const AdminSettings = () => {
     sick_leave: '10',
     office_lat: '20.296142',
     office_lng: '85.833122',
-    geofence_radius: '50'
+    geofence_radius: '50',
+    maintenance_mode: 'false',
+    maintenance_message: 'System will be offline for 2 hours.'
   });
   
   const [loading, setLoading] = useState(false);
@@ -188,6 +190,59 @@ const AdminSettings = () => {
 
         {/* Sections */}
         <div className="space-y-12">
+          {/* Maintenance Mode Section */}
+          <section className="bg-slate-50 border border-slate-200/80 rounded-[32px] p-8 shadow-sm relative overflow-hidden">
+            <div className="flex flex-col md:flex-row md:items-center justify-between gap-6">
+              <div className="flex items-center gap-4">
+                <div className="w-12 h-12 bg-amber-100 text-amber-600 rounded-2xl flex items-center justify-center">
+                  <Clock size={24} className="animate-spin duration-1000" style={{ animationDuration: '8s' }} />
+                </div>
+                <div>
+                  <h4 className="text-lg font-black text-[#1e293b] uppercase tracking-widest">Maintenance Mode</h4>
+                  <p className="text-slate-500 text-xs font-medium mt-1">Restrict employee access to the portal while developers perform system work.</p>
+                </div>
+              </div>
+              
+              <div className="flex items-center gap-4">
+                <button
+                  type="button"
+                  onClick={() => setSettings(prev => ({ 
+                    ...prev, 
+                    maintenance_mode: prev.maintenance_mode === 'true' || prev.maintenance_mode === true ? 'false' : 'true' 
+                  }))}
+                  className={`w-14 h-8 rounded-full transition-colors relative focus:outline-none ${
+                    settings.maintenance_mode === 'true' || settings.maintenance_mode === true 
+                      ? 'bg-amber-500 shadow-lg shadow-amber-500/20' 
+                      : 'bg-slate-300'
+                  }`}
+                >
+                  <span className={`absolute top-1 left-1 w-6 h-6 bg-white rounded-full transition-transform shadow-md ${
+                    settings.maintenance_mode === 'true' || settings.maintenance_mode === true
+                      ? 'translate-x-6'
+                      : 'translate-x-0'
+                  }`} />
+                </button>
+                <span className="text-xs font-black text-[#1e293b] uppercase tracking-wider min-w-[70px]">
+                  {settings.maintenance_mode === 'true' || settings.maintenance_mode === true ? 'Enabled' : 'Disabled'}
+                </span>
+              </div>
+            </div>
+
+            {(settings.maintenance_mode === 'true' || settings.maintenance_mode === true) && (
+              <div className="mt-6 pt-6 border-t border-slate-200/60 animate-in slide-in-from-top-3 duration-300">
+                <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">Maintenance Notification Message</label>
+                <input 
+                  type="text"
+                  name="maintenance_message"
+                  value={settings.maintenance_message || ''}
+                  onChange={handleChange}
+                  placeholder="System will be offline for 2 hours."
+                  className="w-full mt-2 p-4 bg-white border border-slate-200 rounded-2xl focus:outline-none focus:ring-4 focus:ring-amber-500/10 focus:border-amber-500 transition-all font-medium text-[#1e293b]"
+                />
+              </div>
+            )}
+          </section>
+
           {/* Timing Section */}
           <section>
             <div className="flex items-center gap-3 mb-6 px-4">

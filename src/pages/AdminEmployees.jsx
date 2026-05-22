@@ -5,6 +5,47 @@ import { UserPlus, X, Edit2, Trash2, CheckCircle2 } from 'lucide-react';
 import api from '../services/api';
 import SearchHeader from '../components/SearchHeader';
 
+const generateNextEmpCode = (existingEmployees) => {
+  if (!existingEmployees || existingEmployees.length === 0) {
+    return 'OG1001';
+  }
+  
+  const codes = existingEmployees
+    .map(emp => emp.empCode)
+    .filter(code => typeof code === 'string' && code.trim() !== '');
+    
+  if (codes.length === 0) {
+    return 'OG1001';
+  }
+  
+  let maxNum = -1;
+  let detectedPrefix = 'OG';
+  
+  for (const code of codes) {
+    // Match letters/symbols followed by numbers, e.g., "OG2523" or "OD-001" or "EMP101"
+    const match = code.match(/^([a-zA-Z\-_]+)?(\d+)$/);
+    if (match) {
+      const prefix = match[1] || '';
+      const num = parseInt(match[2], 10);
+      if (num > maxNum) {
+        maxNum = num;
+        detectedPrefix = prefix;
+      }
+    }
+  }
+  
+  if (maxNum !== -1) {
+    const nextNum = maxNum + 1;
+    const matchedCode = codes.find(c => c.endsWith(maxNum.toString()));
+    const numStr = matchedCode?.match(/\d+$/)?.[0] || '';
+    const padding = numStr.length;
+    const nextNumStr = String(nextNum).padStart(padding, '0');
+    return `${detectedPrefix}${nextNumStr}`;
+  }
+  
+  return 'OG1001';
+};
+
 const AdminEmployees = () => {
   const [employees, setEmployees] = useState([]);
   const [searchTerm, setSearchTerm] = useState('');
@@ -103,7 +144,11 @@ const AdminEmployees = () => {
     <AdminLayout title="Employee Management" subtitle="Add, edit, or deactivate employee profiles.">
       <div className="mb-6 flex justify-end">
         <button 
-          onClick={() => setIsModalOpen(true)}
+          onClick={() => {
+            const nextCode = generateNextEmpCode(employees);
+            setFormData(prev => ({ ...prev, empCode: nextCode }));
+            setIsModalOpen(true);
+          }}
           className="flex items-center gap-2 px-6 py-3 bg-primary text-white rounded-2xl text-sm font-bold hover:bg-primary-hover transition-all shadow-lg shadow-primary/10"
         >
           <UserPlus size={18} />
