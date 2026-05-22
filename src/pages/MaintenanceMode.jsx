@@ -2,7 +2,7 @@ import React, { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { 
   Clock, Heart, Shield, Cloud, Check, LogOut, Bell, Code,
-  Linkedin, Youtube, Twitter, Instagram, Globe
+  Globe
 } from 'lucide-react';
 import api from '../services/api';
 
@@ -295,10 +295,10 @@ const MaintenanceMode = () => {
 
             {/* Social Links */}
             <div className="flex items-center gap-4 mt-6 pt-4 border-t border-white/5 relative z-10">
-              <a href="https://linkedin.com" target="_blank" rel="noreferrer" className="text-slate-400 hover:text-[#0077b5] transition-colors"><Linkedin size={16} /></a>
-              <a href="https://youtube.com" target="_blank" rel="noreferrer" className="text-slate-400 hover:text-[#ff0000] transition-colors"><Youtube size={16} /></a>
-              <a href="https://twitter.com" target="_blank" rel="noreferrer" className="text-slate-400 hover:text-[#1da1f2] transition-colors"><Twitter size={16} /></a>
-              <a href="https://instagram.com" target="_blank" rel="noreferrer" className="text-slate-400 hover:text-[#e1306c] transition-colors"><Instagram size={16} /></a>
+              <a href="https://linkedin.com" target="_blank" rel="noreferrer" className="text-slate-400 hover:text-[#0077b5] transition-colors"><Globe size={16} /></a>
+              <a href="https://youtube.com" target="_blank" rel="noreferrer" className="text-slate-400 hover:text-[#ff0000] transition-colors"><Globe size={16} /></a>
+              <a href="https://twitter.com" target="_blank" rel="noreferrer" className="text-slate-400 hover:text-[#1da1f2] transition-colors"><Globe size={16} /></a>
+              <a href="https://instagram.com" target="_blank" rel="noreferrer" className="text-slate-400 hover:text-[#e1306c] transition-colors"><Globe size={16} /></a>
               <a href="https://google.com" target="_blank" rel="noreferrer" className="text-slate-400 hover:text-[#2563eb] transition-colors"><Globe size={16} /></a>
             </div>
           </div>
