@@ -44,6 +44,7 @@ const AdminSettings = () => {
     max_work_hours: '9.0',
     casual_leave: '12',
     sick_leave: '10',
+    Holidays: '13',
     office_lat: '20.296142',
     office_lng: '85.833122',
     geofence_radius: '50',
@@ -270,6 +271,7 @@ const AdminSettings = () => {
             <div className="grid grid-cols-2 md:grid-cols-3 gap-6 max-w-4xl">
               <SettingCard label="Casual Leave" name="casual_leave" value={settings.casual_leave} onChange={handleChange} suffix="DAYS" type="number" colorClass="bg-violet-500" />
               <SettingCard label="Sick Leave" name="sick_leave" value={settings.sick_leave} onChange={handleChange} suffix="DAYS" type="number" colorClass="bg-violet-500" />
+              <SettingCard label="Sick Leave" name="sick_leave" value={settings.Holidays} onChange={handleChange} suffix="DAYS" type="number" colorClass="bg-violet-500" />
             </div>
           </section>
 
