@@ -12,7 +12,8 @@ import {
   ShieldCheck,
   LogOut,
   Menu,
-  X
+  X,
+  FileSignature
 } from 'lucide-react';
 
 const EmployeeLayout = ({ children, title, subtitle }) => {
@@ -33,8 +34,9 @@ const EmployeeLayout = ({ children, title, subtitle }) => {
     { name: 'Directory', icon: <User size={18} />, path: `/employee/${slug}/directory` },
     { name: 'Check In', icon: <CheckSquare size={18} />, path: `/employee/${slug}/check-in` },
     { name: 'Attendance', icon: <ClipboardList size={18} />, path: `/employee/${slug}/attendance` },
-    { name: 'Pay Slip', icon: <FileText size={18} />, path: `/employee/${slug}/payslip` },
-    { name: 'Apply Leave', icon: <Calendar size={18} />, path: `/employee/${slug}/apply-leave` },
+    { name: 'Leave', icon: <Calendar size={18} />, path: `/employee/${slug}/apply-leave` },
+    { name: 'Resignation', icon: <FileSignature size={18} />, path: `/employee/${slug}/resignation` },
+    { name: 'Payslip', icon: <FileText size={18} />, path: `/employee/${slug}/payslip` },
     { name: 'Company Policy', icon: <ShieldCheck size={18} />, path: `/employee/${slug}/policy` },
   ];
 
@@ -122,9 +124,23 @@ const EmployeeLayout = ({ children, title, subtitle }) => {
       {/* Main Content */}
       <main className="flex-1 h-screen overflow-y-auto bg-[#f1f5f9] p-4 md:p-8 lg:p-10">
         {title && (
-          <header className="mb-8">
-            <h1 className="text-3xl font-black text-[#1e293b] leading-tight">{title}</h1>
-            {subtitle && <p className="text-slate-400 text-sm mt-1 font-medium">{subtitle}</p>}
+          <header className="flex flex-col sm:flex-row sm:items-center justify-between mb-8 md:mb-10 gap-6">
+            <div>
+              <h1 className="text-3xl font-black text-[#1e293b] leading-tight">{title}</h1>
+              {subtitle && <p className="text-slate-400 text-sm mt-1 font-medium">{subtitle}</p>}
+            </div>
+            <div className="flex items-center justify-between sm:justify-end gap-4 border-t sm:border-t-0 pt-4 sm:pt-0 border-slate-200">
+              <button className="relative p-2.5 bg-white text-slate-400 rounded-xl border border-slate-200 hover:bg-slate-50 transition-all shadow-sm">
+                <Bell size={20} />
+                <span className="absolute top-2 right-2.5 w-2 h-2 bg-rose-500 rounded-full border-2 border-white"></span>
+              </button>
+              <div className="flex items-center gap-3 pl-4 border-l border-slate-200">
+                <div className="text-right hidden lg:block">
+                  <p className="text-sm font-bold text-[#1e293b]">{user.name}</p>
+                  <p className="text-xs text-slate-400">Employee</p>
+                </div>
+              </div>
+            </div>
           </header>
         )}
         <div className="animate-in fade-in slide-in-from-bottom-4 duration-500">

@@ -23,6 +23,8 @@ import AdminExEmployees from '../pages/AdminExEmployees';
 import AdminEmployeeDetails from '../pages/AdminEmployeeDetails';
 import EmployeePaySlip from '../pages/EmployeePaySlip';
 import EmployeeApplyLeave from '../pages/EmployeeApplyLeave';
+import EmployeeResignation from '../pages/EmployeeResignation';
+import EmployeeResignationDetails from '../pages/EmployeeResignationDetails';
 
 import MaintenanceMode from '../pages/MaintenanceMode';
 import api from '../services/api';
@@ -85,6 +87,8 @@ const AppRouter = () => {
       <Route path="/employee/:employeeSlug/directory" element={<EmployeeDirectory />} />
       <Route path="/employee/:employeeSlug/apply-leave" element={<EmployeeApplyLeave />} />
       <Route path="/employee/:employeeSlug/schedule" element={<EmployeeSchedule />} />
+      <Route path="/employee/:employeeSlug/resignation" element={<EmployeeResignation />} />
+      <Route path="/employee/:employeeSlug/resignation/:id" element={<EmployeeResignationDetails />} />
 
 
       

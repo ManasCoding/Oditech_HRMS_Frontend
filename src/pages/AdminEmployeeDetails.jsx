@@ -74,6 +74,16 @@ const AdminEmployeeDetails = () => {
     }
   }, [id, currentMonth, currentYear]);
 
+  useEffect(() => {
+    if (activeTab === 'Messages' && id && employeeNotes.length === 0 && !notesLoading) {
+      setNotesLoading(true);
+      api.get(`/admin/notes/${id}`)
+        .then(res => { if (res.data.success) setEmployeeNotes(res.data.notes); })
+        .catch(err => console.error(err))
+        .finally(() => setNotesLoading(false));
+    }
+  }, [activeTab, id]);
+
   const fetchEmployeeDetails = async () => {
     try {
       const res = await api.get(`/admin/employees`);
@@ -102,6 +112,8 @@ const AdminEmployeeDetails = () => {
   const [loginLogs, setLoginLogs] = useState([]);
   const [hourlyReports, setHourlyReports] = useState([]);
   const [showWeeklyDetail, setShowWeeklyDetail] = useState(false);
+  const [employeeNotes, setEmployeeNotes] = useState([]);
+  const [notesLoading, setNotesLoading] = useState(false);
 
   const fetchRealStats = async () => {
     try {
@@ -279,7 +291,7 @@ const AdminEmployeeDetails = () => {
     </AdminLayout>
   );
 
-  const tabs = ['Overview', 'Attendance', 'Leaves', 'Late Marks', 'Login History', 'Document', 'Timesheet'];
+  const tabs = ['Overview', 'Attendance', 'Leaves', 'Late Marks', 'Login History', 'Document', 'Timesheet', 'Messages'];
 
   return (
     <AdminLayout title="Profile Deep-Dive" hideHeader={true}>
@@ -1301,6 +1313,92 @@ const AdminEmployeeDetails = () => {
             <div className="p-8 border-t border-slate-50 text-center">
               <button className="text-[10px] font-black text-primary uppercase tracking-widest hover:underline">View All Login History</button>
             </div>
+          </div>
+        </div>
+      )}
+
+      {activeTab === 'Messages' && (
+        <div className="animate-in fade-in slide-in-from-bottom-4 duration-500">
+          <div className="bg-white rounded-[40px] border border-border shadow-sm overflow-hidden">
+            <div className="p-10 border-b border-slate-50 flex items-center justify-between">
+              <div>
+                <h3 className="text-xl font-black text-slate-800">Employee Messages</h3>
+                <p className="text-xs text-slate-400 font-bold mt-1">Messages sent by {employee?.fullName?.split(' ')[0]} from the mobile app</p>
+              </div>
+              <button
+                onClick={async () => {
+                  setNotesLoading(true);
+                  try {
+                    const res = await api.get(`/admin/notes/${id}`);
+                    if (res.data.success) setEmployeeNotes(res.data.notes);
+                  } catch (e) { console.error(e); }
+                  finally { setNotesLoading(false); }
+                }}
+                className="flex items-center gap-2 px-5 py-2.5 bg-violet-50 text-violet-600 rounded-2xl text-[10px] font-black uppercase tracking-widest hover:bg-violet-100 border border-violet-100 transition-all"
+              >
+                {notesLoading ? (
+                  <div className="w-4 h-4 border-2 border-violet-400/30 border-t-violet-500 rounded-full animate-spin" />
+                ) : (
+                  <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}><path strokeLinecap="round" strokeLinejoin="round" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" /></svg>
+                )}
+                Refresh
+              </button>
+            </div>
+
+            {notesLoading ? (
+              <div className="flex items-center justify-center py-20">
+                <div className="w-10 h-10 border-4 border-violet-200 border-t-violet-500 rounded-full animate-spin" />
+              </div>
+            ) : employeeNotes.length === 0 ? (
+              <div className="py-24 text-center">
+                <div className="w-20 h-20 bg-slate-50 rounded-full flex items-center justify-center mx-auto mb-6">
+                  <svg xmlns="http://www.w3.org/2000/svg" width="32" height="32" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5} className="text-slate-300"><path strokeLinecap="round" strokeLinejoin="round" d="M7.5 8.25h9m-9 3H12m-9.75 1.51c0 1.6 1.123 2.994 2.707 3.227 1.129.166 2.27.293 3.423.379.35.026.67.21.865.501L12 21l2.755-4.133a1.14 1.14 0 01.865-.501 48.172 48.172 0 003.423-.379c1.584-.233 2.707-1.626 2.707-3.228V6.741c0-1.602-1.123-2.995-2.707-3.228A48.394 48.394 0 0012 3c-2.392 0-4.744.175-7.043.513C3.373 3.746 2.25 5.14 2.25 6.741v6.018z" /></svg>
+                </div>
+                <p className="text-sm font-black text-slate-400 uppercase tracking-widest">No messages yet</p>
+                <p className="text-xs text-slate-300 mt-2">Messages sent by the employee from the mobile app will appear here</p>
+              </div>
+            ) : (
+              <div className="divide-y divide-slate-50">
+                {employeeNotes.map((note, idx) => (
+                  <div key={note._id || idx} className="p-8 hover:bg-slate-50/40 transition-colors group">
+                    <div className="flex items-start gap-5">
+                      <div className="w-10 h-10 rounded-2xl bg-violet-50 flex items-center justify-center flex-shrink-0 border border-violet-100">
+                        <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2} className="text-violet-500"><path strokeLinecap="round" strokeLinejoin="round" d="M8.625 9.75a.375.375 0 11-.75 0 .375.375 0 01.75 0zm0 0H8.25m4.125 0a.375.375 0 11-.75 0 .375.375 0 01.75 0zm0 0H12m4.125 0a.375.375 0 11-.75 0 .375.375 0 01.75 0zm0 0h-.375m-13.5 3.01c0 1.6 1.123 2.994 2.707 3.227 1.129.166 2.27.293 3.423.379.35.026.67.21.865.501L12 21l2.755-4.133a1.14 1.14 0 01.865-.501 48.172 48.172 0 003.423-.379c1.584-.233 2.707-1.626 2.707-3.228V6.741c0-1.602-1.123-2.995-2.707-3.228A48.394 48.394 0 0012 3c-2.392 0-4.744.175-7.043.513C3.373 3.746 2.25 5.14 2.25 6.741v6.018z" /></svg>
+                      </div>
+                      <div className="flex-1">
+                        <div className="flex items-center justify-between mb-3">
+                          <div className="flex items-center gap-3">
+                            <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest">
+                              {new Date(note.createdAt).toLocaleString('en-GB', {
+                                day: '2-digit', month: 'short', year: 'numeric',
+                                hour: '2-digit', minute: '2-digit', hour12: true
+                              })}
+                            </span>
+                            {note.isRead && (
+                              <span className="flex items-center gap-1 px-2 py-0.5 bg-emerald-50 text-emerald-600 rounded-full text-[9px] font-black uppercase tracking-widest border border-emerald-100">
+                                <svg xmlns="http://www.w3.org/2000/svg" width="10" height="10" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={3}><path strokeLinecap="round" strokeLinejoin="round" d="M4.5 12.75l6 6 9-13.5" /></svg>
+                                Seen
+                              </span>
+                            )}
+                          </div>
+                          <span className="text-[9px] font-black text-slate-300 uppercase tracking-widest">#{idx + 1}</span>
+                        </div>
+                        <p className="text-sm text-slate-700 font-medium leading-relaxed bg-slate-50 rounded-2xl px-5 py-4 border border-slate-100">
+                          {note.message}
+                        </p>
+                      </div>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )}
+
+            {employeeNotes.length > 0 && (
+              <div className="p-8 border-t border-slate-50 flex items-center justify-between">
+                <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest">{employeeNotes.length} message{employeeNotes.length !== 1 ? 's' : ''} total</span>
+                <span className="text-[10px] font-black text-emerald-500 uppercase tracking-widest">{employeeNotes.filter(n => n.isRead).length} read • {employeeNotes.filter(n => !n.isRead).length} unread</span>
+              </div>
+            )}
           </div>
         </div>
       )}

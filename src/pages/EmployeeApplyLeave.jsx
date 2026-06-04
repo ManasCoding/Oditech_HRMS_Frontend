@@ -40,7 +40,7 @@ const EmployeeApplyLeave = () => {
     try {
       const [statsRes, leavesRes] = await Promise.all([
         api.get(`/employee/stats/${employeeId}`),
-        api.get('/admin/leaves') // Filtered by employee below
+        api.get(`/employee/leaves/${employeeId}`)
       ]);
 
       if (statsRes.data.success) {
@@ -48,9 +48,7 @@ const EmployeeApplyLeave = () => {
       }
 
       if (leavesRes.data.success) {
-        // Filter only current employee's leaves
-        const userLeaves = leavesRes.data.leaves.filter(l => l.employeeId?._id === employeeId);
-        setLeaves(userLeaves);
+        setLeaves(leavesRes.data.leaves);
       }
     } catch (err) {
       console.error('Error fetching data:', err);
@@ -130,7 +128,7 @@ const EmployeeApplyLeave = () => {
                   </div>
                 </div>
 
-                <div className="grid grid-cols-2 gap-4">
+                <div className="grid grid-cols-3 gap-4">
                   <div className="p-4 bg-emerald-50 rounded-2xl border border-emerald-100 text-center">
                     <p className="text-[9px] font-black text-emerald-600 uppercase tracking-widest mb-1">Approved</p>
                     <p className="text-xl font-black text-emerald-700">{stats?.leavesTakenYearly || 0}</p>
@@ -138,6 +136,10 @@ const EmployeeApplyLeave = () => {
                   <div className="p-4 bg-amber-50 rounded-2xl border border-amber-100 text-center">
                     <p className="text-[9px] font-black text-amber-600 uppercase tracking-widest mb-1">Pending</p>
                     <p className="text-xl font-black text-amber-700">{stats?.pendingLeaves || 0}</p>
+                  </div>
+                  <div className="p-4 bg-rose-50 rounded-2xl border border-rose-100 text-center">
+                    <p className="text-[9px] font-black text-rose-600 uppercase tracking-widest mb-1">Rejected</p>
+                    <p className="text-xl font-black text-rose-700">{stats?.rejectedLeaves || 0}</p>
                   </div>
                 </div>
               </div>
