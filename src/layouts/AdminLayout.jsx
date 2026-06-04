@@ -13,7 +13,8 @@ import {
   Bell,
   BookOpen,
   Menu,
-  X
+  X,
+  FileMinus
 } from 'lucide-react';
 
 const AdminLayout = ({ children, title, subtitle, hideHeader = false }) => {
@@ -39,6 +40,7 @@ const AdminLayout = ({ children, title, subtitle, hideHeader = false }) => {
     { name: 'Reports', icon: <FileText size={18} />, path: '/admin/reports' },
     { name: 'System Settings', icon: <Settings size={18} />, path: '/admin/settings' },
     { name: 'Company Policy', icon: <BookOpen size={18} />, path: '/admin/policy' },
+    { name: 'Resignations', icon: <FileMinus size={18} />, path: '/admin/resignations' },
     { name: 'Activity Logs', icon: <ShieldAlert size={18} />, path: '/admin/logs' },
     { name: 'Backup and Restore', icon: <Database size={18} />, path: '/admin/backup' },
   ];
