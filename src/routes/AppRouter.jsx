@@ -26,6 +26,7 @@ import EmployeeApplyLeave from '../pages/EmployeeApplyLeave';
 import EmployeeResignation from '../pages/EmployeeResignation';
 import EmployeeResignationDetails from '../pages/EmployeeResignationDetails';
 import AdminResignation from '../pages/AdminResignation';
+import AdminResignationDetails from '../pages/AdminResignationDetails';
 
 import MaintenanceMode from '../pages/MaintenanceMode';
 import api from '../services/api';
@@ -104,6 +105,7 @@ const AppRouter = () => {
       <Route path="/admin/reports" element={<AdminReports />} />
       <Route path="/admin/policy" element={<AdminPolicy />} />
       <Route path="/admin/resignations" element={<AdminResignation />} />
+      <Route path="/admin/resignations/:id" element={<AdminResignationDetails />} />
 
       
       {/* Fallback for other pages while they are being built */}

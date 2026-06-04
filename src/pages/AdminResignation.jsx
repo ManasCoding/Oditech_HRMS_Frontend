@@ -15,9 +15,11 @@ import {
   ChevronLeft,
   ChevronRight
 } from 'lucide-react';
+import { useNavigate } from 'react-router-dom';
 
 const AdminResignation = () => {
   const [searchTerm, setSearchTerm] = useState('');
+  const navigate = useNavigate();
   
   // Real data mimicking the screenshot
   const mockResignations = [
@@ -215,7 +217,10 @@ const AdminResignation = () => {
                     </td>
                     <td className="px-6 py-4">
                       <div className="flex items-center justify-center gap-2">
-                        <button className="w-8 h-8 rounded-lg bg-blue-50 text-blue-500 flex items-center justify-center hover:bg-blue-100 transition-colors">
+                        <button 
+                          onClick={() => navigate(`/admin/resignations/RES-000${req.id}`)}
+                          className="w-8 h-8 rounded-lg bg-blue-50 text-blue-500 flex items-center justify-center hover:bg-blue-100 transition-colors"
+                        >
                           <Eye size={16} />
                         </button>
                         {req.status === 'PENDING' ? (
@@ -228,7 +233,10 @@ const AdminResignation = () => {
                             </button>
                           </>
                         ) : (
-                          <button className="w-8 h-8 rounded-lg bg-slate-50 text-slate-400 flex items-center justify-center hover:bg-slate-100 transition-colors">
+                          <button 
+                            onClick={() => navigate(`/admin/resignations/RES-000${req.id}`)}
+                            className="w-8 h-8 rounded-lg bg-slate-50 text-slate-400 flex items-center justify-center hover:bg-slate-100 transition-colors"
+                          >
                             <Eye size={16} className="opacity-50" />
                           </button>
                         )}
