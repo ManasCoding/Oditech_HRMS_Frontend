@@ -87,10 +87,27 @@ const AdminEmployeeDetails = () => {
 
   const fetchEmployeeDetails = async () => {
     try {
+      // Try active employees first
       const res = await api.get(`/admin/employees`);
+      let found = null;
+
       if (res.data.success) {
-        const found = res.data.employees.find(emp => emp._id === id) ||
-          (await api.get('/admin/employees/ex')).data.employees.find(emp => emp._id === id);
+        found = res.data.employees.find(emp => emp._id === id);
+      }
+
+      // If not found in active, try ex-employees
+      if (!found) {
+        try {
+          const exRes = await api.get('/admin/employees/ex');
+          if (exRes.data.success) {
+            found = exRes.data.employees.find(emp => emp._id === id);
+          }
+        } catch (exErr) {
+          console.warn('Could not fetch ex-employees:', exErr.message);
+        }
+      }
+
+      if (found) {
         setEmployee(found);
         setEditForm({
           fullName: found.fullName || '',
@@ -101,9 +118,11 @@ const AdminEmployeeDetails = () => {
           password: found.password || '',
           status: found.status || 'Active'
         });
+      } else {
+        console.error('Profile fetch error: employee not found for id', id);
       }
     } catch (err) {
-      console.error('Error fetching employee:', err);
+      console.error('Profile fetch error:', err);
     } finally {
       setLoading(false);
     }

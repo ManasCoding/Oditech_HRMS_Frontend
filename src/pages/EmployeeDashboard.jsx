@@ -3,7 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import EmployeeLayout from '../layouts/EmployeeLayout';
 import api from '../services/api';
 import { 
-  Calendar, CheckCircle, XCircle, 
+  Calendar, CheckCircle, XCircle, Clock,
   AlertCircle, ChevronRight, ChevronLeft, LayoutDashboard,
   ClipboardList, UserCheck, Bell, ArrowRight, PieChart
 } from 'lucide-react';
