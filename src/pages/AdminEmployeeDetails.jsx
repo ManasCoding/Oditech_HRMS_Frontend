@@ -65,6 +65,7 @@ const AdminEmployeeDetails = () => {
   
   const [attendanceStats, setAttendanceStats] = useState(null);
   const [attendanceRecords, setAttendanceRecords] = useState([]);
+  const [editingCheckIn, setEditingCheckIn] = useState({ date: null, time: '' });
   const [leaveRecords, setLeaveRecords] = useState([]);
 
   useEffect(() => {
@@ -128,7 +129,34 @@ const AdminEmployeeDetails = () => {
       ]);
 
       if (statsRes.data.success) setAttendanceStats(statsRes.data.stats);
-      if (logsRes.data.success) setAttendanceRecords(logsRes.data.records);
+      if (logsRes.data.success) {
+        const records = logsRes.data.records || [];
+        const filledRecords = [];
+        const now = new Date();
+        const isCurrentMonth = now.getFullYear() === currentYear && now.getMonth() === currentMonth;
+        const maxDay = isCurrentMonth ? now.getDate() : new Date(currentYear, currentMonth + 1, 0).getDate();
+
+        for (let i = maxDay; i >= 1; i--) {
+          const currentDate = new Date(currentYear, currentMonth, i, 12, 0, 0);
+          const existing = records.find(r => {
+             const rDate = new Date(r.date);
+             return rDate.getDate() === i && rDate.getMonth() === currentMonth && rDate.getFullYear() === currentYear;
+          });
+
+          if (existing) {
+             filledRecords.push(existing);
+          } else {
+             filledRecords.push({
+               date: currentDate.toISOString(),
+               status: currentDate.getDay() === 0 ? 'Weekend' : 'Absent',
+               checkIn: null,
+               checkOut: null,
+               workHours: '0h 0m'
+             });
+          }
+        }
+        setAttendanceRecords(filledRecords);
+      }
       if (leavesRes.data.success) {
         // Filter leaves for this employee
         const myLeaves = leavesRes.data.leaves.filter(l => l.employeeId?._id === id || l.employeeId === id);
@@ -249,25 +277,53 @@ const AdminEmployeeDetails = () => {
     }
   };
 
+  const handleSaveCheckIn = async (rawDate) => {
+    try {
+      const d = new Date(rawDate);
+      const formattedDate = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+
+      await api.put('/admin/attendance/checkin', {
+        employeeId: employee._id,
+        date: formattedDate,
+        checkInTime: editingCheckIn.time
+      });
+      setEditingCheckIn({ date: null, time: '' });
+      fetchRealStats();
+    } catch (err) {
+      alert(err.response?.data?.message || 'Failed to update check-in');
+    }
+  };
+
   const monthNames = ["January", "February", "March", "April", "May", "June", "July", "August", "September", "October", "November", "December"];
 
   const getDisplayStats = () => {
     if (!attendanceStats) return {
-      present: 0, absent: 0, late: 0, leave: 0, workingDays: 0, rate: 0, 
+      present: 0, absent: 0, halfDay: 0, leave: 0, workingDays: 0, rate: 0,
       leavesTotal: 0, leavesApproved: 0, leavesPending: 0, leavesRejected: 0, leavesBalance: 0
     };
 
+    const present    = attendanceStats.presentDays   ?? 0;
+    const absent     = attendanceRecords ? attendanceRecords.filter(r => r.status === 'Absent').length : (attendanceStats.absentDays ?? 0);
+    const halfDay    = attendanceStats.halfDays       ?? 0;
+    const leave      = attendanceStats.leavesTaken   ?? 0;
+    const workingDays= attendanceStats.workingDays   ?? 0;
+    // Rate: only full-day present counts; half-days are excluded
+    const rate       = Math.round((present / (workingDays || 1)) * 100);
+
+    const late       = attendanceRecords ? attendanceRecords.filter(r => r.status === 'Late').length : 0;
+
     return {
-      present: attendanceStats.presentDays,
-      absent: attendanceStats.absentDays,
-      late: attendanceStats.lateComings,
-      leave: attendanceStats.leavesTaken,
-      workingDays: attendanceStats.workingDays,
-      rate: Math.round((attendanceStats.presentDays / (attendanceStats.workingDays || 1)) * 100),
-      leavesTotal: attendanceStats.totalLeaveQuota,
-      leavesTakenYearly: attendanceStats.leavesTakenYearly,
-      leavesPending: attendanceStats.pendingLeaves,
-      leavesBalance: attendanceStats.availableLeaves
+      present,
+      absent,
+      halfDay,
+      leave,
+      late,
+      workingDays,
+      rate,
+      leavesTotal: attendanceStats.totalLeaveQuota    ?? 0,
+      leavesTakenYearly: attendanceStats.leavesTakenYearly ?? 0,
+      leavesPending: attendanceStats.pendingLeaves    ?? 0,
+      leavesBalance: attendanceStats.availableLeaves  ?? 0
     };
   };
 
@@ -529,11 +585,11 @@ const AdminEmployeeDetails = () => {
                     <p className="text-lg font-black text-slate-800">{dynamicStats.leave} <span className="text-xs text-slate-400">Day</span></p>
                   </div>
                 </div>
-                <div className="p-4 bg-orange-50/50 rounded-3xl border border-orange-50 flex items-center gap-4">
-                  <div className="w-10 h-10 bg-orange-500 text-white rounded-full flex items-center justify-center shadow-md shadow-orange-200"><Clock size={20} /></div>
+                <div className="p-4 bg-teal-50/50 rounded-3xl border border-teal-50 flex items-center gap-4">
+                  <div className="w-10 h-10 bg-teal-500 text-white rounded-full flex items-center justify-center shadow-md shadow-teal-200"><Clock size={20} /></div>
                   <div>
-                    <p className="text-[10px] font-black text-orange-600 uppercase tracking-widest">Late Marks</p>
-                    <p className="text-lg font-black text-slate-800">{dynamicStats.late} <span className="text-xs text-slate-400">Day</span></p>
+                    <p className="text-[10px] font-black text-teal-600 uppercase tracking-widest">Half Day</p>
+                    <p className="text-lg font-black text-slate-800">{dynamicStats.halfDay} <span className="text-xs text-slate-400">Day</span></p>
                   </div>
                 </div>
               </div>
@@ -542,44 +598,47 @@ const AdminEmployeeDetails = () => {
             <div className="bg-white rounded-[40px] border border-border shadow-sm p-10 flex flex-col">
               <h3 className="text-lg font-black text-slate-800 mb-8">Monthly Attendance Overview</h3>
               <div className="flex-1 flex items-center gap-4">
-                <div className="w-1/2 h-48">
-                  <ResponsiveContainer width="100%" height="100%">
-                    <PieChart>
-                      <Pie
-                        data={[
-                          { name: 'Present', value: dynamicStats.present, color: '#10b981' },
-                          { name: 'Absent', value: dynamicStats.absent, color: '#ef4444' },
-                          { name: 'Late', value: dynamicStats.late, color: '#f59e0b' },
-                          { name: 'Leave', value: dynamicStats.leave, color: '#8b5cf6' },
-                        ]}
-                        innerRadius={55}
-                        outerRadius={75}
-                        paddingAngle={5}
-                        dataKey="value"
-                      >
-                        {[
-                          { name: 'Present', value: dynamicStats.present, color: '#10b981' },
-                          { name: 'Absent', value: dynamicStats.absent, color: '#ef4444' },
-                          { name: 'Late', value: dynamicStats.late, color: '#f59e0b' },
-                          { name: 'Leave', value: dynamicStats.leave, color: '#8b5cf6' },
-                        ].map((entry, index) => (
-                          <Cell key={`cell-${index}`} fill={entry.color} />
-                        ))}
-                      </Pie>
-                    </PieChart>
-                  </ResponsiveContainer>
-                </div>
-                <div className="w-1/2 space-y-4">
-                  {['Present', 'Absent', 'Late', 'Leave'].map((name, i) => (
-                    <div key={name} className="flex items-center justify-between group">
-                      <div className="flex items-center gap-2">
-                        <div className="w-2.5 h-2.5 rounded-full" style={{ backgroundColor: ['#10b981', '#ef4444', '#f59e0b', '#8b5cf6'][i] }}></div>
-                        <span className="text-xs font-black text-slate-500 uppercase tracking-tighter">{name}</span>
+                {(() => {
+                  const total = (dynamicStats.present + dynamicStats.absent + dynamicStats.halfDay + dynamicStats.leave) || 1;
+                  const chartData = [
+                    { name: 'Present',  value: dynamicStats.present,  color: '#10b981', pct: Math.round((dynamicStats.present  / total) * 100) },
+                    { name: 'Absent',   value: dynamicStats.absent,   color: '#ef4444', pct: Math.round((dynamicStats.absent   / total) * 100) },
+                    { name: 'Half Day', value: dynamicStats.halfDay,  color: '#14b8a6', pct: Math.round((dynamicStats.halfDay  / total) * 100) },
+                    { name: 'Leave',    value: dynamicStats.leave,    color: '#8b5cf6', pct: Math.round((dynamicStats.leave    / total) * 100) },
+                  ];
+                  return (
+                    <>
+                      <div className="w-1/2 h-48">
+                        <ResponsiveContainer width="100%" height="100%">
+                          <PieChart>
+                            <Pie
+                              data={chartData}
+                              innerRadius={55}
+                              outerRadius={75}
+                              paddingAngle={5}
+                              dataKey="value"
+                            >
+                              {chartData.map((entry, index) => (
+                                <Cell key={`cell-${index}`} fill={entry.color} />
+                              ))}
+                            </Pie>
+                          </PieChart>
+                        </ResponsiveContainer>
                       </div>
-                      <span className="text-xs font-black text-slate-800">{(i === 0 ? 75 : i === 1 ? 15 : 5)}%</span>
-                    </div>
-                  ))}
-                </div>
+                      <div className="w-1/2 space-y-4">
+                        {chartData.map((item) => (
+                          <div key={item.name} className="flex items-center justify-between group">
+                            <div className="flex items-center gap-2">
+                              <div className="w-2.5 h-2.5 rounded-full" style={{ backgroundColor: item.color }}></div>
+                              <span className="text-xs font-black text-slate-500 uppercase tracking-tighter">{item.name}</span>
+                            </div>
+                            <span className="text-xs font-black text-slate-800">{item.pct}%</span>
+                          </div>
+                        ))}
+                      </div>
+                    </>
+                  );
+                })()}
               </div>
             </div>
 
@@ -596,19 +655,21 @@ const AdminEmployeeDetails = () => {
                 <ChevronRight className="text-slate-200 group-hover:text-primary transition-colors" />
               </div>
 
-              <div className="bg-white rounded-[32px] border border-border shadow-sm p-8 flex items-center justify-between group hover:border-emerald-500 transition-all">
+              <div className={`bg-white rounded-[32px] border border-border shadow-sm p-8 flex items-center justify-between group transition-all ${dynamicStats.rate >= 90 ? 'hover:border-emerald-500' : dynamicStats.rate >= 75 ? 'hover:border-blue-500' : dynamicStats.rate >= 50 ? 'hover:border-orange-500' : 'hover:border-rose-500'}`}>
                 <div className="flex items-center gap-5">
-                  <div className="w-14 h-14 bg-emerald-100 rounded-2xl flex items-center justify-center text-emerald-600 transition-all group-hover:scale-110 shadow-lg shadow-emerald-50"><TrendingUp size={28} /></div>
+                  <div className={`w-14 h-14 rounded-2xl flex items-center justify-center transition-all group-hover:scale-110 shadow-lg ${dynamicStats.rate >= 90 ? 'bg-emerald-100 text-emerald-600 shadow-emerald-50' : dynamicStats.rate >= 75 ? 'bg-blue-100 text-blue-600 shadow-blue-50' : dynamicStats.rate >= 50 ? 'bg-orange-100 text-orange-600 shadow-orange-50' : 'bg-rose-100 text-rose-600 shadow-rose-50'}`}><TrendingUp size={28} /></div>
                   <div>
                     <p className="text-xs font-black text-slate-400 uppercase tracking-widest">Attendance Rate</p>
-                    <p className="text-2xl font-black text-emerald-600">{dynamicStats.rate}%</p>
+                    <p className={`text-2xl font-black ${dynamicStats.rate >= 90 ? 'text-emerald-600' : dynamicStats.rate >= 75 ? 'text-blue-600' : dynamicStats.rate >= 50 ? 'text-orange-600' : 'text-rose-600'}`}>{dynamicStats.rate}%</p>
                     <div className="flex items-center gap-1.5 mt-1.5">
-                      <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse"></span>
-                      <span className="text-[10px] font-black text-emerald-500 bg-emerald-50 px-2.5 py-1 rounded-lg uppercase tracking-widest">Performance: GOOD</span>
+                      <span className={`w-2 h-2 rounded-full animate-pulse ${dynamicStats.rate >= 90 ? 'bg-emerald-500' : dynamicStats.rate >= 75 ? 'bg-blue-500' : dynamicStats.rate >= 50 ? 'bg-orange-500' : 'bg-rose-500'}`}></span>
+                      <span className={`text-[10px] font-black px-2.5 py-1 rounded-lg uppercase tracking-widest ${dynamicStats.rate >= 90 ? 'text-emerald-500 bg-emerald-50' : dynamicStats.rate >= 75 ? 'text-blue-500 bg-blue-50' : dynamicStats.rate >= 50 ? 'text-orange-500 bg-orange-50' : 'text-rose-500 bg-rose-50'}`}>
+                        Performance: {dynamicStats.rate >= 90 ? 'EXCELLENT' : dynamicStats.rate >= 75 ? 'GOOD' : dynamicStats.rate >= 50 ? 'AVERAGE' : 'NEEDS IMPROVEMENT'}
+                      </span>
                     </div>
                   </div>
                 </div>
-                <ChevronRight className="text-slate-200 group-hover:text-emerald-500 transition-colors" />
+                <ChevronRight className={`text-slate-200 group-hover:transition-colors ${dynamicStats.rate >= 90 ? 'group-hover:text-emerald-500' : dynamicStats.rate >= 75 ? 'group-hover:text-blue-500' : dynamicStats.rate >= 50 ? 'group-hover:text-orange-500' : 'group-hover:text-rose-500'}`} />
               </div>
             </div>
           </div>
@@ -617,7 +678,7 @@ const AdminEmployeeDetails = () => {
 
       {activeTab === 'Attendance' && (
         <div className="animate-in fade-in slide-in-from-bottom-4 duration-500">
-          <div className="grid grid-cols-1 md:grid-cols-5 gap-6 mb-8">
+          <div className="grid grid-cols-1 md:grid-cols-6 gap-6 mb-8">
             <div className="bg-white p-6 rounded-[32px] border border-border shadow-sm group hover:border-emerald-200 transition-all">
               <div className="flex items-center gap-4">
                 <div className="w-12 h-12 bg-emerald-50 text-emerald-500 rounded-2xl flex items-center justify-center shadow-inner group-hover:scale-110 transition-transform"><Calendar size={22} /></div>
@@ -638,9 +699,19 @@ const AdminEmployeeDetails = () => {
                 </div>
               </div>
             </div>
+            <div className="bg-white p-6 rounded-[32px] border border-border shadow-sm group hover:border-teal-200 transition-all">
+              <div className="flex items-center gap-4">
+                <div className="w-12 h-12 bg-teal-50 text-teal-500 rounded-2xl flex items-center justify-center shadow-inner group-hover:scale-110 transition-transform"><Clock size={22} /></div>
+                <div>
+                  <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Half Day</p>
+                  <p className="text-xl font-black text-slate-800">{dynamicStats.halfDay} Days</p>
+                  <p className="text-[10px] font-bold text-teal-500">{Math.round((dynamicStats.halfDay / (dynamicStats.workingDays || 1)) * 100)}%</p>
+                </div>
+              </div>
+            </div>
             <div className="bg-white p-6 rounded-[32px] border border-border shadow-sm group hover:border-orange-200 transition-all">
               <div className="flex items-center gap-4">
-                <div className="w-12 h-12 bg-orange-50 text-orange-500 rounded-2xl flex items-center justify-center shadow-inner group-hover:scale-110 transition-transform"><Clock size={22} /></div>
+                <div className="w-12 h-12 bg-orange-50 text-orange-500 rounded-2xl flex items-center justify-center shadow-inner group-hover:scale-110 transition-transform"><AlertCircle size={22} /></div>
                 <div>
                   <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Late</p>
                   <p className="text-xl font-black text-slate-800">{dynamicStats.late} Days</p>
@@ -681,11 +752,41 @@ const AdminEmployeeDetails = () => {
                 {['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'].map(day => (
                   <span key={day} className="text-[10px] font-black text-slate-400 uppercase tracking-widest">{day}</span>
                 ))}
-                {[...Array(30)].map((_, i) => (
-                  <div key={i} className="flex flex-col items-center">
-                    <div className={`w-10 h-10 rounded-full flex items-center justify-center text-sm font-black transition-all ${[1,2,3,4,7,8,9,14,15,16,17,20,22,23,24,25,29,30].includes(i+1) ? 'bg-emerald-50 text-emerald-600' : [10].includes(i+1) ? 'bg-orange-50 text-orange-600' : [21].includes(i+1) ? 'bg-violet-50 text-violet-600' : [18].includes(i+1) ? 'bg-rose-50 text-rose-600' : 'text-slate-200'}`}>{i+1}</div>
-                  </div>
-                ))}
+                {(() => {
+                  const daysInMonth = new Date(currentYear, currentMonth + 1, 0).getDate();
+                  const firstDayOfMonth = new Date(currentYear, currentMonth, 1).getDay();
+                  const paddingDays = Array(firstDayOfMonth).fill(null);
+                  const monthDays = Array.from({ length: daysInMonth }, (_, i) => i + 1);
+                  
+                  return (
+                    <>
+                      {paddingDays.map((_, i) => <div key={`pad-${i}`}></div>)}
+                      {monthDays.map((day) => {
+                        const record = attendanceRecords.find(r => {
+                          const rDate = new Date(r.date);
+                          return rDate.getDate() === day && rDate.getMonth() === currentMonth && rDate.getFullYear() === currentYear;
+                        });
+                        const status = record?.status;
+                        
+                        let colorClass = 'text-slate-200';
+                        if (status === 'Present') colorClass = 'bg-emerald-50 text-emerald-600';
+                        else if (status === 'Late') colorClass = 'bg-orange-50 text-orange-600';
+                        else if (status === 'Leave' || status === 'On Leave') colorClass = 'bg-violet-50 text-violet-600';
+                        else if (status === 'Absent') colorClass = 'bg-rose-50 text-rose-600';
+                        else if (status === 'Half Day') colorClass = 'bg-sky-50 text-sky-600';
+                        else if (status === 'Weekend') colorClass = 'bg-slate-50 text-slate-400';
+
+                        return (
+                          <div key={day} className="flex flex-col items-center">
+                            <div className={`w-10 h-10 rounded-full flex items-center justify-center text-sm font-black transition-all ${colorClass}`}>
+                              {day}
+                            </div>
+                          </div>
+                        );
+                      })}
+                    </>
+                  );
+                })()}
               </div>
               <div className="flex flex-wrap items-center justify-center gap-x-6 gap-y-4 pt-8 border-t border-slate-50">
                 {['Present', 'Absent', 'Late', 'Leave'].map((st, i) => (
@@ -725,13 +826,42 @@ const AdminEmployeeDetails = () => {
                               row.status === 'Present' ? 'bg-emerald-50 text-emerald-600 border-emerald-100' : 
                               row.status === 'Late' ? 'bg-orange-50 text-orange-600 border-orange-100' :
                               row.status === 'Half Day' ? 'bg-sky-50 text-sky-600 border-sky-100' :
+                              row.status === 'Weekend' ? 'bg-slate-50 text-slate-500 border-slate-200' :
                               'bg-rose-50 text-rose-600 border-rose-100'
                             }`}>
                               {row.status}
                             </span>
                           </td>
                           <td className="px-10 py-1.5 text-[11px] font-black text-slate-700">
-                            {row.checkIn ? new Date(row.checkIn).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) : '--:--'}
+                            {editingCheckIn.date === row.date ? (
+                              <div className="flex items-center gap-2">
+                                <input 
+                                  type="time" 
+                                  value={editingCheckIn.time}
+                                  onChange={(e) => setEditingCheckIn({ ...editingCheckIn, time: e.target.value })}
+                                  className="border border-slate-200 rounded px-2 py-1 text-xs outline-none focus:border-primary"
+                                  autoFocus
+                                />
+                                <button onClick={() => handleSaveCheckIn(row.date)} className="text-emerald-500 hover:text-emerald-600 bg-emerald-50 p-1 rounded-md"><CheckCircle2 size={14}/></button>
+                                <button onClick={() => setEditingCheckIn({ date: null, time: '' })} className="text-slate-400 hover:text-slate-600 bg-slate-50 p-1 rounded-md"><X size={14}/></button>
+                              </div>
+                            ) : (
+                              <div className="flex items-center gap-2">
+                                <span>{row.checkIn ? new Date(row.checkIn).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) : '--:--'}</span>
+                                {(row.status === 'Absent' || row.status === 'Late') && (
+                                  <button 
+                                    onClick={() => setEditingCheckIn({ 
+                                      date: row.date, 
+                                      time: row.checkIn ? new Date(row.checkIn).toLocaleTimeString('en-US', {hour12: false, hour: '2-digit', minute: '2-digit'}) : '09:00' 
+                                    })}
+                                    className="text-slate-300 hover:text-primary opacity-0 group-hover:opacity-100 transition-opacity"
+                                    title="Edit Check-In Time"
+                                  >
+                                    <Edit3 size={14} />
+                                  </button>
+                                )}
+                              </div>
+                            )}
                           </td>
                           <td className="px-10 py-1.5 text-[11px] font-black text-slate-700">
                             {row.checkOut ? new Date(row.checkOut).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) : '--:--'}

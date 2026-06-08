@@ -3,7 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import EmployeeLayout from '../layouts/EmployeeLayout';
 import api from '../services/api';
 import { 
-  Calendar, Clock, CheckCircle, XCircle, 
+  Calendar, CheckCircle, XCircle, 
   AlertCircle, ChevronRight, ChevronLeft, LayoutDashboard,
   ClipboardList, UserCheck, Bell, ArrowRight, PieChart
 } from 'lucide-react';
@@ -28,11 +28,11 @@ const EmployeeDashboard = () => {
   const [stats, setStats] = useState({
     presentDays: 0,
     absentDays: 0,
-    lateComings: 0,
     halfDays: 0,
     leavesTaken: 0,
     availableLeaves: 12,
-    pendingLeaves: 0
+    pendingLeaves: 0,
+    attendanceRate: 0
   });
   const [todayStatus, setTodayStatus] = useState(null);
   const [currentPeriod, setCurrentPeriod] = useState({
@@ -188,23 +188,56 @@ const EmployeeDashboard = () => {
             icon={<PieChart size={24} strokeWidth={2.5} />} 
           />
           <StatCard 
-            label="Late Comings" 
-            value={stats.lateComings ?? 0} 
-            subValue="Time Logs" 
-            colorClass="border-orange-400"
-            bgClass="bg-orange-50"
-            textClass="text-orange-500"
-            icon={<Clock size={24} strokeWidth={2.5} />} 
-          />
-          <StatCard 
-            label="Leaves Taken" 
-            value={stats.leavesTaken ?? 0} 
-            subValue="Approved" 
-            colorClass="border-violet-400"
-            bgClass="bg-violet-50"
-            textClass="text-violet-500"
-            icon={<ClipboardList size={24} strokeWidth={2.5} />} 
-          />
+             label="Working Days" 
+             value={((stats.presentDays ?? 0) + (stats.absentDays ?? 0) + (stats.halfDays ?? 0)).toString()} 
+             subValue="Total Days" 
+             colorClass="border-sky-400"
+             bgClass="bg-sky-50"
+             textClass="text-sky-500"
+             icon={<Calendar size={24} strokeWidth={2.5} />}
+           />
+           <StatCard 
+             label="Attendance Rate" 
+             value={stats.attendanceRate != null ? `${stats.attendanceRate}%` : 'N/A'} 
+             subValue={(() => {
+               const rate = stats.attendanceRate || 0;
+               if (rate >= 90) return 'Excellent';
+               if (rate >= 75) return 'Good';
+               if (rate >= 50) return 'Average';
+               return 'Needs Improvement';
+             })()}
+             colorClass={(() => {
+               const rate = stats.attendanceRate || 0;
+               if (rate >= 90) return 'border-green-400';
+               if (rate >= 75) return 'border-blue-400';
+               if (rate >= 50) return 'border-orange-400';
+               return 'border-red-400';
+             })()}
+             bgClass={(() => {
+               const rate = stats.attendanceRate || 0;
+               if (rate >= 90) return 'bg-green-50';
+               if (rate >= 75) return 'bg-blue-50';
+               if (rate >= 50) return 'bg-orange-50';
+               return 'bg-red-50';
+             })()}
+             textClass={(() => {
+               const rate = stats.attendanceRate || 0;
+               if (rate >= 90) return 'text-green-500';
+               if (rate >= 75) return 'text-blue-500';
+               if (rate >= 50) return 'text-orange-500';
+               return 'text-red-500';
+             })()}
+             icon={<PieChart size={24} strokeWidth={2.5} />}
+           />
+           <StatCard 
+             label="Leaves Taken" 
+             value={stats.leavesTaken ?? 0} 
+             subValue="Approved" 
+             colorClass="border-violet-400"
+             bgClass="bg-violet-50"
+             textClass="text-violet-500"
+             icon={<ClipboardList size={24} strokeWidth={2.5} />}
+           />
           <StatCard 
             label="Available" 
             value={stats.availableLeaves ?? 12} 

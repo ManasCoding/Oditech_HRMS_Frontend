@@ -225,14 +225,6 @@ const AdminEmployees = () => {
                   <td className="px-6 py-5 text-right">
                     <div className="flex items-center justify-end gap-2">
                       <button 
-                        onClick={(e) => {
-                          e.stopPropagation();
-                        }}
-                        className="p-2 text-text-muted hover:text-primary hover:bg-primary/5 rounded-lg transition-all"
-                      >
-                        <Edit2 size={16} />
-                      </button>
-                      <button 
                         onClick={(e) => handleDelete(e, emp._id)}
                         className="p-2 text-text-muted hover:text-rose-500 hover:bg-rose-50 rounded-lg transition-all"
                       >

@@ -143,15 +143,6 @@ const AdminExEmployees = () => {
                           <RotateCcw size={16} />
                         </button>
                         <button 
-                          onClick={(e) => {
-                            e.stopPropagation();
-                            // Edit logic could go here
-                          }}
-                          className="p-2 text-text-muted hover:text-primary hover:bg-primary/5 rounded-lg transition-all"
-                        >
-                          <Edit2 size={16} />
-                        </button>
-                        <button 
                           onClick={(e) => handlePermanentDelete(e, emp._id)}
                           className="p-2 text-text-muted hover:text-rose-500 hover:bg-rose-50 rounded-lg transition-all"
                         >
