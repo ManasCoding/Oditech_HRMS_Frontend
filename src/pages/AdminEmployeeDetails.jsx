@@ -68,22 +68,12 @@ const AdminEmployeeDetails = () => {
   const [editingCheckIn, setEditingCheckIn] = useState({ date: null, time: '' });
   const [leaveRecords, setLeaveRecords] = useState([]);
 
-  useEffect(() => {
-    if (id) {
-      fetchEmployeeDetails();
-      fetchRealStats();
-    }
-  }, [id, currentMonth, currentYear]);
-
-  useEffect(() => {
-    if (activeTab === 'Messages' && id && employeeNotes.length === 0 && !notesLoading) {
-      setNotesLoading(true);
-      api.get(`/admin/notes/${id}`)
-        .then(res => { if (res.data.success) setEmployeeNotes(res.data.notes); })
-        .catch(err => console.error(err))
-        .finally(() => setNotesLoading(false));
-    }
-  }, [activeTab, id]);
+  const [documents, setDocuments] = useState([]);
+  const [loginLogs, setLoginLogs] = useState([]);
+  const [hourlyReports, setHourlyReports] = useState([]);
+  const [showWeeklyDetail, setShowWeeklyDetail] = useState(false);
+  const [employeeNotes, setEmployeeNotes] = useState([]);
+  const [notesLoading, setNotesLoading] = useState(false);
 
   const fetchEmployeeDetails = async () => {
     try {
@@ -128,13 +118,6 @@ const AdminEmployeeDetails = () => {
     }
   };
 
-  const [documents, setDocuments] = useState([]);
-  const [loginLogs, setLoginLogs] = useState([]);
-  const [hourlyReports, setHourlyReports] = useState([]);
-  const [showWeeklyDetail, setShowWeeklyDetail] = useState(false);
-  const [employeeNotes, setEmployeeNotes] = useState([]);
-  const [notesLoading, setNotesLoading] = useState(false);
-
   const fetchRealStats = async () => {
     try {
       const m = currentMonth + 1;
@@ -163,7 +146,34 @@ const AdminEmployeeDetails = () => {
           });
 
           if (existing) {
-             filledRecords.push(existing);
+             const parseTime = (dateStr) => {
+               const d = new Date(dateStr);
+               return d.getHours() * 60 + d.getMinutes();
+             };
+
+             let derivedStatus = existing.status || 'Present';
+
+             if (existing.checkIn) {
+               const inTime = parseTime(existing.checkIn);
+               if (inTime >= 10 * 60 && inTime <= 13 * 60 + 30) {
+                 derivedStatus = 'Late';
+               } else if (inTime > 13 * 60 + 30) {
+                 derivedStatus = 'Half Day';
+               } else {
+                 derivedStatus = 'Present';
+               }
+             }
+
+             if (existing.checkOut) {
+               const outTime = parseTime(existing.checkOut);
+               if (outTime >= 9 * 60 + 30 && outTime <= 13 * 60 + 30) {
+                 derivedStatus = 'Absent';
+               } else if (outTime > 13 * 60 + 30 && outTime <= 18 * 60 + 30) {
+                 derivedStatus = 'Half Day';
+               }
+             }
+
+             filledRecords.push({ ...existing, status: derivedStatus });
           } else {
              filledRecords.push({
                date: currentDate.toISOString(),
@@ -188,6 +198,23 @@ const AdminEmployeeDetails = () => {
       console.error('Error fetching real stats:', err);
     }
   };
+
+  useEffect(() => {
+    if (id) {
+      fetchEmployeeDetails();
+      fetchRealStats();
+    }
+  }, [id, currentMonth, currentYear]);
+
+  useEffect(() => {
+    if (activeTab === 'Messages' && id && employeeNotes.length === 0 && !notesLoading) {
+      setNotesLoading(true);
+      api.get(`/admin/notes/${id}`)
+        .then(res => { if (res.data.success) setEmployeeNotes(res.data.notes); })
+        .catch(err => console.error(err))
+        .finally(() => setNotesLoading(false));
+    }
+  }, [activeTab, id]);
 
   const handleUploadDoc = async () => {
     if (!selectedFile || !newDoc.title) return;
@@ -321,15 +348,15 @@ const AdminEmployeeDetails = () => {
       leavesTotal: 0, leavesApproved: 0, leavesPending: 0, leavesRejected: 0, leavesBalance: 0
     };
 
-    const present    = attendanceStats.presentDays   ?? 0;
-    const absent     = attendanceRecords ? attendanceRecords.filter(r => r.status === 'Absent').length : (attendanceStats.absentDays ?? 0);
-    const halfDay    = attendanceStats.halfDays       ?? 0;
+    const present    = attendanceRecords && attendanceRecords.length > 0 ? attendanceRecords.filter(r => r.status === 'Present' || r.status === 'Late').length : (attendanceStats.presentDays ?? 0);
+    const absent     = attendanceRecords && attendanceRecords.length > 0 ? attendanceRecords.filter(r => r.status === 'Absent').length : (attendanceStats.absentDays ?? 0);
+    const halfDay    = attendanceRecords && attendanceRecords.length > 0 ? attendanceRecords.filter(r => r.status === 'Half Day').length : (attendanceStats.halfDays ?? 0);
     const leave      = attendanceStats.leavesTaken   ?? 0;
-    const workingDays= attendanceStats.workingDays   ?? 0;
+    const workingDays= present + absent + halfDay;
     // Rate: only full-day present counts; half-days are excluded
     const rate       = Math.round((present / (workingDays || 1)) * 100);
 
-    const late       = attendanceRecords ? attendanceRecords.filter(r => r.status === 'Late').length : 0;
+    const late       = attendanceRecords && attendanceRecords.length > 0 ? attendanceRecords.filter(r => r.status === 'Late').length : 0;
 
     return {
       present,
@@ -1081,10 +1108,53 @@ const AdminEmployeeDetails = () => {
       )}
 
       {activeTab === 'Late Marks' && (
-        <div className="bg-white rounded-[40px] border border-border shadow-sm p-20 text-center animate-in zoom-in-95 duration-300">
-          <div className="w-20 h-20 bg-slate-50 rounded-full flex items-center justify-center mx-auto mb-6 border border-slate-100"><Clock size={32} className="text-slate-300" /></div>
-          <h3 className="text-2xl font-black text-slate-800 mb-2">Late Marks Record</h3>
-          <p className="text-slate-500 text-sm font-medium max-w-md mx-auto">This employee has an excellent punctuality record. No significant late marks found for this period.</p>
+        <div className="bg-white rounded-[40px] border border-border shadow-sm overflow-hidden animate-in zoom-in-95 duration-300">
+          {attendanceRecords && attendanceRecords.filter(r => r.status === 'Late').length > 0 ? (
+            <>
+              <div className="p-10 border-b border-slate-50">
+                <h3 className="text-xl font-black text-slate-800">Late Marks Record</h3>
+                <p className="text-slate-400 text-xs font-bold mt-1">Days where check-in was after the expected time.</p>
+              </div>
+              <div className="overflow-x-auto">
+                <table className="w-full text-left">
+                  <thead>
+                    <tr className="bg-slate-50/50 border-b border-slate-100">
+                      {['Date', 'Day', 'Check In', 'Check Out', 'Work Hours'].map(head => (
+                        <th key={head} className="px-10 py-5 text-[10px] font-black text-slate-400 uppercase tracking-widest">{head}</th>
+                      ))}
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y divide-slate-50">
+                    {attendanceRecords.filter(r => r.status === 'Late').map((row, idx) => (
+                      <tr key={idx} className="hover:bg-slate-50/40 transition-colors">
+                        <td className="px-10 py-4 text-[11px] font-black text-slate-700">
+                          {new Date(row.date).toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' })}
+                        </td>
+                        <td className="px-10 py-4 text-[10px] font-black text-slate-400 uppercase tracking-widest">
+                          {new Date(row.date).toLocaleDateString('en-US', { weekday: 'long' })}
+                        </td>
+                        <td className="px-10 py-4 text-[11px] font-black text-orange-600">
+                          {row.checkIn ? new Date(row.checkIn).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) : '--:--'}
+                        </td>
+                        <td className="px-10 py-4 text-[11px] font-black text-slate-700">
+                          {row.checkOut ? new Date(row.checkOut).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) : '--:--'}
+                        </td>
+                        <td className="px-10 py-4 text-[11px] font-black text-slate-500">
+                          {row.workHours || '0h 0m'}
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            </>
+          ) : (
+            <div className="p-20 text-center">
+              <div className="w-20 h-20 bg-slate-50 rounded-full flex items-center justify-center mx-auto mb-6 border border-slate-100"><Clock size={32} className="text-slate-300" /></div>
+              <h3 className="text-2xl font-black text-slate-800 mb-2">Late Marks Record</h3>
+              <p className="text-slate-500 text-sm font-medium max-w-md mx-auto">This employee has an excellent punctuality record. No significant late marks found for this period.</p>
+            </div>
+          )}
         </div>
       )}
 

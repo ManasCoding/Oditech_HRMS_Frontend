@@ -28,7 +28,7 @@ const StatCard = ({ icon, label, value, subValue, colorClass }) => (
 const AdminAttendance = () => {
   const [loading, setLoading] = useState(true);
   const [data, setData] = useState({
-    stats: { totalEmployees: 0, totalHoursToday: '0h 0m', averageHours: '0h 0m', totalOvertimeToday: '0h 0m' },
+    stats: { totalEmployees: 0, totalHoursToday: '0h 0m', averageHours: '0h 0m', totalOvertimeToday: '0h 0m', lateComing: 0 },
     reports: [],
     totalEntries: 0,
     summary: [],
@@ -56,7 +56,8 @@ const AdminAttendance = () => {
       if (search) params.append('search', search);
       const res = await api.get(`/admin/reports/hourly?${params.toString()}`);
       if (res.data.success) {
-        setData(res.data);
+        const lateCount = res.data.reports.filter(r => r.isLate).length;
+        setData({ ...res.data, stats: { ...res.data.stats, lateComing: lateCount } });
       }
     } catch (err) {
       console.error('Error fetching reports:', err);
@@ -134,7 +135,7 @@ const AdminAttendance = () => {
         </div>
 
         {/* Stats Grid */}
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-6">
           <StatCard 
             icon={<Users size={24} className="text-blue-600" />} 
             label="Total Employees" 
@@ -162,6 +163,13 @@ const AdminAttendance = () => {
             value={data.stats.totalOvertimeToday} 
             subValue="Total Overtime" 
             colorClass="bg-orange-50"
+          />
+          <StatCard 
+            icon={<Clock size={24} className="text-red-500" />} 
+            label="Late Coming" 
+            value={data.stats.lateComing || 0} 
+            subValue="Employees Late" 
+            colorClass="bg-red-50"
           />
         </div>
 

@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import AdminLayout from '../layouts/AdminLayout';
 import { 
   FileText, 
@@ -13,67 +13,77 @@ import {
   Check,
   X,
   ChevronLeft,
-  ChevronRight
+  ChevronRight,
+  Loader2
 } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
+import api from '../services/api';
+
+const ITEMS_PER_PAGE = 8;
 
 const AdminResignation = () => {
+  const [resignations, setResignations] = useState([]);
+  const [stats, setStats] = useState({ total: 0, pending: 0, approved: 0, rejected: 0 });
   const [searchTerm, setSearchTerm] = useState('');
+  const [statusFilter, setStatusFilter] = useState('All Status');
+  const [loading, setLoading] = useState(true);
+  const [actionLoading, setActionLoading] = useState(null); // id of row being actioned
+  const [currentPage, setCurrentPage] = useState(1);
   const navigate = useNavigate();
-  
-  // Real data mimicking the screenshot
-  const mockResignations = [
-    {
-      id: 1,
-      name: 'Manas Kumar',
-      role: 'Software Engineer',
-      avatar: 'https://i.pravatar.cc/150?u=manas',
-      department: 'IT Department',
-      resignationDate: '04 Jun 2026',
-      lastWorkingDay: '04 Jul 2026',
-      status: 'PENDING'
-    },
-    {
-      id: 2,
-      name: 'Rohit Sharma',
-      role: 'UI/UX Designer',
-      avatar: 'https://i.pravatar.cc/150?u=rohit',
-      department: 'Design',
-      resignationDate: '01 Jun 2026',
-      lastWorkingDay: '01 Jul 2026',
-      status: 'PENDING'
-    },
-    {
-      id: 3,
-      name: 'Priya Patel',
-      role: 'HR Executive',
-      avatar: 'https://i.pravatar.cc/150?u=priya',
-      department: 'Human Resources',
-      resignationDate: '15 May 2026',
-      lastWorkingDay: '15 Jun 2026',
-      status: 'APPROVED'
-    },
-    {
-      id: 4,
-      name: 'Amit Verma',
-      role: 'Marketing Executive',
-      avatar: 'https://i.pravatar.cc/150?u=amit',
-      department: 'Marketing',
-      resignationDate: '20 Apr 2026',
-      lastWorkingDay: '20 May 2026',
-      status: 'REJECTED'
-    },
-    {
-      id: 5,
-      name: 'Neha Singh',
-      role: 'Business Analyst',
-      avatar: 'https://i.pravatar.cc/150?u=neha',
-      department: 'Operations',
-      resignationDate: '10 Mar 2026',
-      lastWorkingDay: '10 Apr 2026',
-      status: 'APPROVED'
+
+  const fetchResignations = useCallback(async () => {
+    try {
+      setLoading(true);
+      const params = {};
+      if (statusFilter !== 'All Status') params.status = statusFilter;
+      if (searchTerm.trim()) params.search = searchTerm.trim();
+
+      const res = await api.get('/admin/resignations', { params });
+      if (res.data.success) {
+        setResignations(res.data.resignations || []);
+        setStats(res.data.stats || { total: 0, pending: 0, approved: 0, rejected: 0 });
+        setCurrentPage(1);
+      }
+    } catch (err) {
+      console.error('Failed to fetch resignations:', err);
+    } finally {
+      setLoading(false);
     }
-  ];
+  }, [statusFilter, searchTerm]);
+
+  useEffect(() => {
+    const debounce = setTimeout(() => {
+      fetchResignations();
+    }, 300);
+    return () => clearTimeout(debounce);
+  }, [fetchResignations]);
+
+  const handleStatusUpdate = async (id, newStatus) => {
+    try {
+      setActionLoading(id + newStatus);
+      await api.patch(`/admin/resignations/${id}`, { status: newStatus });
+      await fetchResignations();
+    } catch (err) {
+      console.error('Failed to update status:', err);
+    } finally {
+      setActionLoading(null);
+    }
+  };
+
+  const formatDate = (dateStr) => {
+    if (!dateStr) return '—';
+    try {
+      return new Date(dateStr).toLocaleDateString('en-GB', {
+        day: '2-digit', month: 'short', year: 'numeric'
+      });
+    } catch {
+      return dateStr;
+    }
+  };
+
+  // Pagination
+  const totalPages = Math.ceil(resignations.length / ITEMS_PER_PAGE);
+  const paginated = resignations.slice((currentPage - 1) * ITEMS_PER_PAGE, currentPage * ITEMS_PER_PAGE);
 
   return (
     <AdminLayout 
@@ -85,15 +95,15 @@ const AdminResignation = () => {
         {/* Top Controls: Filters, Search, Export */}
         <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
           <div className="flex items-center gap-3">
-            <select className="px-4 py-2.5 bg-white border border-slate-200 rounded-xl text-sm font-bold text-slate-700 outline-none focus:border-blue-500 shadow-sm cursor-pointer">
+            <select 
+              value={statusFilter}
+              onChange={(e) => setStatusFilter(e.target.value)}
+              className="px-4 py-2.5 bg-white border border-slate-200 rounded-xl text-sm font-bold text-slate-700 outline-none focus:border-blue-500 shadow-sm cursor-pointer"
+            >
               <option>All Status</option>
-              <option>Pending</option>
-              <option>Approved</option>
-              <option>Rejected</option>
-            </select>
-            <select className="px-4 py-2.5 bg-white border border-slate-200 rounded-xl text-sm font-bold text-slate-700 outline-none focus:border-blue-500 shadow-sm cursor-pointer">
-              <option>01/05/2026 - 30/06/2026</option>
-              <option>01/04/2026 - 30/04/2026</option>
+              <option>PENDING</option>
+              <option>APPROVED</option>
+              <option>REJECTED</option>
             </select>
           </div>
           
@@ -119,13 +129,13 @@ const AdminResignation = () => {
         </div>
 
         {/* Stats Cards */}
-        <div className="grid grid-cols-2 md:grid-cols-5 gap-4">
+        <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
           <div className="bg-blue-50/50 p-4 rounded-2xl flex items-center gap-4">
             <div className="w-12 h-12 bg-white rounded-xl shadow-sm text-blue-600 flex items-center justify-center">
               <FileText size={24} />
             </div>
             <div>
-              <h4 className="text-xl font-black text-slate-800">8</h4>
+              <h4 className="text-xl font-black text-slate-800">{stats.total}</h4>
               <p className="text-[10px] font-bold text-slate-500">Total Requests</p>
             </div>
           </div>
@@ -135,7 +145,7 @@ const AdminResignation = () => {
               <Clock size={24} />
             </div>
             <div>
-              <h4 className="text-xl font-black text-slate-800">3</h4>
+              <h4 className="text-xl font-black text-slate-800">{stats.pending}</h4>
               <p className="text-[10px] font-bold text-slate-500">Pending</p>
             </div>
           </div>
@@ -145,7 +155,7 @@ const AdminResignation = () => {
               <CheckSquare size={24} />
             </div>
             <div>
-              <h4 className="text-xl font-black text-slate-800">3</h4>
+              <h4 className="text-xl font-black text-slate-800">{stats.approved}</h4>
               <p className="text-[10px] font-bold text-slate-500">Approved</p>
             </div>
           </div>
@@ -155,18 +165,8 @@ const AdminResignation = () => {
               <XCircle size={24} />
             </div>
             <div>
-              <h4 className="text-xl font-black text-slate-800">1</h4>
+              <h4 className="text-xl font-black text-slate-800">{stats.rejected}</h4>
               <p className="text-[10px] font-bold text-slate-500">Rejected</p>
-            </div>
-          </div>
-
-          <div className="bg-blue-50/50 p-4 rounded-2xl flex items-center gap-4">
-            <div className="w-12 h-12 bg-white rounded-xl shadow-sm text-blue-500 flex items-center justify-center">
-              <CalendarCheck size={24} />
-            </div>
-            <div>
-              <h4 className="text-xl font-black text-slate-800">1</h4>
-              <p className="text-[10px] font-bold text-slate-500">Completed</p>
             </div>
           </div>
         </div>
@@ -186,86 +186,152 @@ const AdminResignation = () => {
                 </tr>
               </thead>
               <tbody className="divide-y divide-slate-50">
-                {mockResignations.map((req) => (
-                  <tr key={req.id} className="hover:bg-slate-50/50 transition-colors">
-                    <td className="px-6 py-4">
-                      <div className="flex items-center gap-3">
-                        <img src={req.avatar} alt={req.name} className="w-10 h-10 rounded-full object-cover border border-slate-200 shadow-sm" />
-                        <div>
-                          <p className="text-sm font-black text-slate-800">{req.name}</p>
-                          <p className="text-[11px] font-bold text-slate-500">{req.role}</p>
-                        </div>
+                {loading ? (
+                  <tr>
+                    <td colSpan={6} className="px-6 py-16 text-center">
+                      <div className="flex flex-col items-center gap-3 text-slate-400">
+                        <Loader2 size={32} className="animate-spin text-blue-500" />
+                        <span className="text-sm font-bold">Loading resignations...</span>
                       </div>
                     </td>
-                    <td className="px-6 py-4">
-                      <span className="text-sm font-bold text-slate-700">{req.department}</span>
-                    </td>
-                    <td className="px-6 py-4">
-                      <span className="text-sm font-bold text-slate-800">{req.resignationDate}</span>
-                    </td>
-                    <td className="px-6 py-4">
-                      <span className="text-sm font-bold text-slate-800">{req.lastWorkingDay}</span>
-                    </td>
-                    <td className="px-6 py-4">
-                      <span className={`px-3 py-1.5 rounded text-[10px] font-black uppercase tracking-wider ${
-                        req.status === 'PENDING' ? 'text-orange-500 bg-orange-50' : 
-                        req.status === 'APPROVED' ? 'text-emerald-500 bg-emerald-50' : 
-                        'text-rose-500 bg-rose-50'
-                      }`}>
-                        {req.status}
-                      </span>
-                    </td>
-                    <td className="px-6 py-4">
-                      <div className="flex items-center justify-center gap-2">
-                        <button 
-                          onClick={() => navigate(`/admin/resignations/RES-000${req.id}`)}
-                          className="w-8 h-8 rounded-lg bg-blue-50 text-blue-500 flex items-center justify-center hover:bg-blue-100 transition-colors"
-                        >
-                          <Eye size={16} />
-                        </button>
-                        {req.status === 'PENDING' ? (
-                          <>
-                            <button className="w-8 h-8 rounded-lg bg-emerald-50 text-emerald-500 flex items-center justify-center hover:bg-emerald-100 transition-colors">
-                              <Check size={16} />
-                            </button>
-                            <button className="w-8 h-8 rounded-lg bg-rose-50 text-rose-500 flex items-center justify-center hover:bg-rose-100 transition-colors">
-                              <X size={16} />
-                            </button>
-                          </>
-                        ) : (
-                          <button 
-                            onClick={() => navigate(`/admin/resignations/RES-000${req.id}`)}
-                            className="w-8 h-8 rounded-lg bg-slate-50 text-slate-400 flex items-center justify-center hover:bg-slate-100 transition-colors"
-                          >
-                            <Eye size={16} className="opacity-50" />
-                          </button>
+                  </tr>
+                ) : paginated.length === 0 ? (
+                  <tr>
+                    <td colSpan={6} className="px-6 py-16 text-center">
+                      <div className="flex flex-col items-center gap-2 text-slate-400">
+                        <CalendarCheck size={40} className="opacity-30" />
+                        <span className="text-sm font-bold">No resignation requests found</span>
+                        {(searchTerm || statusFilter !== 'All Status') && (
+                          <span className="text-xs">Try clearing your filters</span>
                         )}
                       </div>
                     </td>
                   </tr>
-                ))}
+                ) : (
+                  paginated.map((req) => {
+                    const emp = req.employeeId;
+                    const avatar = emp?.profileImage || `https://ui-avatars.com/api/?name=${encodeURIComponent(emp?.fullName || 'E')}&background=6366f1&color=fff`;
+                    const isApproving = actionLoading === req._id + 'APPROVED';
+                    const isRejecting = actionLoading === req._id + 'REJECTED';
+
+                    return (
+                      <tr key={req._id} className="hover:bg-slate-50/50 transition-colors">
+                        <td className="px-6 py-4">
+                          <div className="flex items-center gap-3">
+                            <img 
+                              src={avatar} 
+                              alt={emp?.fullName} 
+                              className="w-10 h-10 rounded-full object-cover border border-slate-200 shadow-sm"
+                              onError={(e) => { e.target.src = `https://ui-avatars.com/api/?name=${encodeURIComponent(emp?.fullName || 'E')}&background=6366f1&color=fff`; }}
+                            />
+                            <div>
+                              <p className="text-sm font-black text-slate-800">{emp?.fullName || '—'}</p>
+                              <p className="text-[11px] font-bold text-slate-500">{emp?.designation || emp?.empCode || '—'}</p>
+                            </div>
+                          </div>
+                        </td>
+                        <td className="px-6 py-4">
+                          <span className="text-sm font-bold text-slate-700">{emp?.department || '—'}</span>
+                        </td>
+                        <td className="px-6 py-4">
+                          <span className="text-sm font-bold text-slate-800">{formatDate(req.resignationDate)}</span>
+                        </td>
+                        <td className="px-6 py-4">
+                          <span className="text-sm font-bold text-slate-800">{formatDate(req.lastWorkingDay)}</span>
+                        </td>
+                        <td className="px-6 py-4">
+                          <span className={`px-3 py-1.5 rounded text-[10px] font-black uppercase tracking-wider ${
+                            req.status === 'PENDING' ? 'text-orange-500 bg-orange-50' : 
+                            req.status === 'APPROVED' ? 'text-emerald-500 bg-emerald-50' : 
+                            'text-rose-500 bg-rose-50'
+                          }`}>
+                            {req.status}
+                          </span>
+                        </td>
+                        <td className="px-6 py-4">
+                          <div className="flex items-center justify-center gap-2">
+                            <button 
+                              onClick={() => navigate(`/admin/resignations/${req._id}`)}
+                              className="w-8 h-8 rounded-lg bg-blue-50 text-blue-500 flex items-center justify-center hover:bg-blue-100 transition-colors"
+                              title="View details"
+                            >
+                              <Eye size={16} />
+                            </button>
+                            {req.status === 'PENDING' ? (
+                              <>
+                                <button 
+                                  onClick={() => handleStatusUpdate(req._id, 'APPROVED')}
+                                  disabled={isApproving || isRejecting}
+                                  className="w-8 h-8 rounded-lg bg-emerald-50 text-emerald-500 flex items-center justify-center hover:bg-emerald-100 transition-colors disabled:opacity-50"
+                                  title="Approve"
+                                >
+                                  {isApproving ? <Loader2 size={14} className="animate-spin" /> : <Check size={16} />}
+                                </button>
+                                <button 
+                                  onClick={() => handleStatusUpdate(req._id, 'REJECTED')}
+                                  disabled={isApproving || isRejecting}
+                                  className="w-8 h-8 rounded-lg bg-rose-50 text-rose-500 flex items-center justify-center hover:bg-rose-100 transition-colors disabled:opacity-50"
+                                  title="Reject"
+                                >
+                                  {isRejecting ? <Loader2 size={14} className="animate-spin" /> : <X size={16} />}
+                                </button>
+                              </>
+                            ) : (
+                              <button 
+                                onClick={() => navigate(`/admin/resignations/${req._id}`)}
+                                className="w-8 h-8 rounded-lg bg-slate-50 text-slate-400 flex items-center justify-center hover:bg-slate-100 transition-colors"
+                                title="View"
+                              >
+                                <Eye size={16} className="opacity-50" />
+                              </button>
+                            )}
+                          </div>
+                        </td>
+                      </tr>
+                    );
+                  })
+                )}
               </tbody>
             </table>
           </div>
           
           {/* Pagination Footer */}
-          <div className="px-6 py-4 border-t border-slate-100 flex items-center justify-between bg-white">
-            <span className="text-sm font-medium text-slate-500">Showing 1 to 5 of 8 entries</span>
-            <div className="flex items-center gap-1">
-              <button className="w-8 h-8 rounded-lg text-slate-400 flex items-center justify-center hover:bg-slate-50 transition-colors">
-                <ChevronLeft size={16} />
-              </button>
-              <button className="w-8 h-8 rounded-lg bg-white border border-blue-500 text-blue-600 font-bold text-sm flex items-center justify-center">
-                1
-              </button>
-              <button className="w-8 h-8 rounded-lg text-slate-600 font-bold text-sm flex items-center justify-center hover:bg-slate-50 transition-colors">
-                2
-              </button>
-              <button className="w-8 h-8 rounded-lg text-slate-400 flex items-center justify-center hover:bg-slate-50 transition-colors">
-                <ChevronRight size={16} />
-              </button>
+          {!loading && resignations.length > 0 && (
+            <div className="px-6 py-4 border-t border-slate-100 flex items-center justify-between bg-white">
+              <span className="text-sm font-medium text-slate-500">
+                Showing {Math.min((currentPage - 1) * ITEMS_PER_PAGE + 1, resignations.length)} to {Math.min(currentPage * ITEMS_PER_PAGE, resignations.length)} of {resignations.length} entries
+              </span>
+              <div className="flex items-center gap-1">
+                <button 
+                  onClick={() => setCurrentPage(p => Math.max(1, p - 1))}
+                  disabled={currentPage === 1}
+                  className="w-8 h-8 rounded-lg text-slate-400 flex items-center justify-center hover:bg-slate-50 transition-colors disabled:opacity-40"
+                >
+                  <ChevronLeft size={16} />
+                </button>
+                {Array.from({ length: totalPages }, (_, i) => i + 1).map(page => (
+                  <button
+                    key={page}
+                    onClick={() => setCurrentPage(page)}
+                    className={`w-8 h-8 rounded-lg font-bold text-sm flex items-center justify-center transition-colors ${
+                      page === currentPage 
+                        ? 'bg-white border border-blue-500 text-blue-600' 
+                        : 'text-slate-600 hover:bg-slate-50'
+                    }`}
+                  >
+                    {page}
+                  </button>
+                ))}
+                <button 
+                  onClick={() => setCurrentPage(p => Math.min(totalPages, p + 1))}
+                  disabled={currentPage === totalPages}
+                  className="w-8 h-8 rounded-lg text-slate-400 flex items-center justify-center hover:bg-slate-50 transition-colors disabled:opacity-40"
+                >
+                  <ChevronRight size={16} />
+                </button>
+              </div>
             </div>
-          </div>
+          )}
         </div>
 
       </div>
