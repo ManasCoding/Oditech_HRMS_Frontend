@@ -328,10 +328,13 @@ const AdminEmployeeDetails = () => {
       const d = new Date(rawDate);
       const formattedDate = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
 
+      const localDate = new Date(`${formattedDate}T${editingCheckIn.time}:00`);
+      const checkInTimeUTC = localDate.toISOString().substring(11, 16);
+
       await api.put('/admin/attendance/checkin', {
         employeeId: employee._id,
         date: formattedDate,
-        checkInTime: editingCheckIn.time
+        checkInTime: checkInTimeUTC
       });
       setEditingCheckIn({ date: null, time: '' });
       fetchRealStats();
@@ -894,7 +897,6 @@ const AdminEmployeeDetails = () => {
                             ) : (
                               <div className="flex items-center gap-2">
                                 <span>{row.checkIn ? new Date(row.checkIn).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) : '--:--'}</span>
-                                {(row.status === 'Absent' || row.status === 'Late') && (
                                   <button 
                                     onClick={() => setEditingCheckIn({ 
                                       date: row.date, 
@@ -905,7 +907,6 @@ const AdminEmployeeDetails = () => {
                                   >
                                     <Edit3 size={14} />
                                   </button>
-                                )}
                               </div>
                             )}
                           </td>
