@@ -9,6 +9,7 @@ import {
   PieChart as RePieChart, Pie, Cell, ResponsiveContainer, Tooltip 
 } from 'recharts';
 import api from '../services/api';
+import CustomDropdown from '../components/CustomDropdown';
 
 const COLORS = ['#3b82f6', '#10b981', '#a855f7', '#f43f5e', '#f59e0b', '#64748b'];
 
@@ -44,10 +45,27 @@ const AdminHourlyReports = () => {
   });
 
   const [search, setSearch] = useState('');
+  const [departments, setDepartments] = useState(['All Departments', 'Digital Marketing', 'Web Development', 'SEO', 'HR', 'Others']);
+
+  useEffect(() => {
+    fetchDepartments();
+  }, []);
 
   useEffect(() => {
     fetchReports();
   }, [filters.date, filters.department, filters.employeeId, filters.status, filters.page]);
+
+  const fetchDepartments = async () => {
+    try {
+      const res = await api.get('/admin/employees');
+      if (res.data.success) {
+        const uniqueDepts = [...new Set(res.data.employees.map(e => e.department).filter(Boolean))];
+        setDepartments(['All Departments', ...uniqueDepts]);
+      }
+    } catch (err) {
+      console.error('Error fetching departments:', err);
+    }
+  };
 
   const fetchReports = async () => {
     setLoading(true);
@@ -79,8 +97,6 @@ const AdminHourlyReports = () => {
     });
     setSearch('');
   };
-
-  const departments = ['All Departments', 'Digital Marketing', 'Web Development', 'SEO', 'HR', 'Others'];
 
   return (
     <AdminLayout title="Hourly Reports" subtitle="View and download hourly work reports.">
@@ -146,38 +162,36 @@ const AdminHourlyReports = () => {
               </div>
               <div className="space-y-2">
                 <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">Department</label>
-                <select 
-                  name="department"
-                  value={filters.department}
-                  onChange={handleFilterChange}
-                  className="w-full px-4 py-3 bg-slate-50 border border-slate-100 rounded-xl text-sm font-bold text-[#1e293b] focus:outline-none"
-                >
-                  {departments.map(d => <option key={d}>{d}</option>)}
-                </select>
+                <div className="w-full">
+                  <CustomDropdown 
+                    name="department"
+                    value={filters.department}
+                    options={departments}
+                    onChange={handleFilterChange}
+                  />
+                </div>
               </div>
               <div className="space-y-2">
                 <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">Employee</label>
-                <select 
-                  name="employeeId"
-                  value={filters.employeeId}
-                  onChange={handleFilterChange}
-                  className="w-full px-4 py-3 bg-slate-50 border border-slate-100 rounded-xl text-sm font-bold text-[#1e293b] focus:outline-none"
-                >
-                  <option>All Employees</option>
-                </select>
+                <div className="w-full">
+                  <CustomDropdown 
+                    name="employeeId"
+                    value={filters.employeeId}
+                    options={['All Employees']}
+                    onChange={handleFilterChange}
+                  />
+                </div>
               </div>
               <div className="space-y-2">
                 <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">Status</label>
-                <select 
-                  name="status"
-                  value={filters.status}
-                  onChange={handleFilterChange}
-                  className="w-full px-4 py-3 bg-slate-50 border border-slate-100 rounded-xl text-sm font-bold text-[#1e293b] focus:outline-none"
-                >
-                  <option>All Status</option>
-                  <option>Completed</option>
-                  <option>Pending</option>
-                </select>
+                <div className="w-full">
+                  <CustomDropdown 
+                    name="status"
+                    value={filters.status}
+                    options={['All Status', 'Completed', 'Pending']}
+                    onChange={handleFilterChange}
+                  />
+                </div>
               </div>
               <div className="flex items-end gap-3">
                  <button onClick={fetchReports} className="flex-1 py-3 bg-[#3b82f6] text-white rounded-xl text-xs font-bold hover:bg-blue-600 transition-all flex items-center justify-center gap-2">

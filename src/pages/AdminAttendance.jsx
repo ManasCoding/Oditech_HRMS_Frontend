@@ -1,66 +1,153 @@
 import React, { useState, useEffect } from 'react';
 import AdminLayout from '../layouts/AdminLayout';
 import { 
-  Users, Clock, Filter, Download, Search, 
-  Eye, Calendar, ChevronLeft, ChevronRight, 
-  Briefcase, FileText, PieChart, TrendingUp 
+  Users, Clock, Search, Calendar, MoreHorizontal,
+  ChevronLeft, ChevronRight, X, Download, FileText,
+  UserCheck, Briefcase, Eye
 } from 'lucide-react';
 import { 
-  PieChart as RePieChart, Pie, Cell, ResponsiveContainer, Tooltip 
+  LineChart, Line, BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Cell 
 } from 'recharts';
 import api from '../services/api';
+import CustomDropdown from '../components/CustomDropdown';
 
-const COLORS = ['#3b82f6', '#10b981', '#a855f7', '#f43f5e', '#f59e0b', '#64748b'];
-
-const StatCard = ({ icon, label, value, subValue, colorClass }) => (
-  <div className="bg-white p-6 rounded-[32px] border border-slate-100 shadow-sm flex items-center gap-5 transition-all hover:shadow-md">
-    <div className={`w-14 h-14 ${colorClass} rounded-2xl flex items-center justify-center shadow-sm`}>
-      {icon}
-    </div>
-    <div>
-      <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-1">{label}</p>
-      <h3 className="text-2xl font-black text-[#1e293b]">{value}</h3>
-      <p className="text-[10px] font-bold text-slate-400">{subValue}</p>
-    </div>
+const StatCard = ({ label, value, percentage, topBorderClass, isActive, onClick }) => (
+  <div 
+    onClick={onClick}
+    className={`bg-white p-5 rounded-3xl flex flex-col items-center justify-center transition-all cursor-pointer ${
+    isActive ? 'border-2 border-blue-500 shadow-lg scale-105' : 'border border-slate-100 shadow-sm hover:border-blue-200 hover:-translate-y-1'
+  } ${topBorderClass} border-t-4`}>
+    <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-3 text-center leading-tight">
+      {label}
+    </p>
+    <h3 className="text-4xl font-black text-[#1e293b] mb-1">{value}</h3>
+    {percentage !== undefined && (
+      <p className="text-[10px] font-bold text-slate-400">{percentage}%</p>
+    )}
   </div>
 );
 
+// Dummy data for charts to match UI exactly
+const trendData = [
+  { name: '01 Jun', present: 20, absent: 3 },
+  { name: '12 Jun', present: 22, absent: 1 },
+  { name: '12 Jun', present: 18, absent: 5 },
+  { name: '12 Jun', present: 21, absent: 2 },
+  { name: '12 Jun', present: 23, absent: 0 },
+];
+
+const departmentData = [
+  { name: 'IT', value: 45, fill: '#3b82f6' },
+  { name: 'Marketing', value: 35, fill: '#f43f5e' },
+  { name: 'HR', value: 42, fill: '#10b981' },
+  { name: 'Design', value: 28, fill: '#3b82f6' },
+  { name: 'Software', value: 50, fill: '#10b981' },
+  { name: 'Development', value: 50, fill: '#10b981' },
+];
+
 const AdminAttendance = () => {
   const [loading, setLoading] = useState(true);
+  const [stats, setStats] = useState({
+    totalEmployees: 0, presentToday: 0, halfDayToday: 0, absentToday: 0, lateToday: 0, leavesToday: 0
+  });
   const [data, setData] = useState({
-    stats: { totalEmployees: 0, totalHoursToday: '0h 0m', averageHours: '0h 0m', totalOvertimeToday: '0h 0m', lateComing: 0 },
     reports: [],
-    totalEntries: 0,
-    summary: [],
-    statusCounts: { Completed: 0, Pending: 0, NotSubmitted: 0 }
+    totalEntries: 0
   });
 
   const [filters, setFilters] = useState({
     date: new Date().toISOString().split('T')[0],
     department: 'All Departments',
-    employeeId: 'All Employees',
-    status: 'All Status',
+    employeeId: 'All',
+    status: 'Active',
     page: 1
   });
 
+  const [departments, setDepartments] = useState(['All Departments', 'Digital Marketing', 'Web Development', 'SEO', 'HR', 'Others']);
+
   const [search, setSearch] = useState('');
+  const [selectedActionRow, setSelectedActionRow] = useState(null);
+  const [selectedEmployee, setSelectedEmployee] = useState(null);
+  const [selectedStatus, setSelectedStatus] = useState(null);
+  const [allEmployees, setAllEmployees] = useState([]);
+  const [rawRecords, setRawRecords] = useState([]);
 
   useEffect(() => {
-    fetchReports();
-  }, [filters.date, filters.department, filters.employeeId, filters.status, filters.page]);
+    fetchDepartments();
+  }, []);
 
-  const fetchReports = async () => {
-    setLoading(true);
+  useEffect(() => {
+    fetchStats();
+  }, [filters.date]);
+
+  useEffect(() => {
+    if (!rawRecords.length) {
+      setStats({ totalEmployees: 0, presentToday: 0, halfDayToday: 0, absentToday: 0, lateToday: 0, leavesToday: 0 });
+      setData({ reports: [], totalEntries: 0 });
+      return;
+    }
+
+    let statsRecords = rawRecords;
+    if (filters.department !== 'All Departments') {
+      statsRecords = statsRecords.filter(r => {
+        const fullEmp = allEmployees.find(e => e._id === (r.employeeId?._id || r.employeeId));
+        const empDept = fullEmp?.department || r.employeeId?.department;
+        return empDept === filters.department;
+      });
+    }
+
+    const totalEmployees = statsRecords.length;
+    const presentToday = statsRecords.filter(r => r.status === 'Present' || r.status === 'Late').length;
+    const halfDayToday = statsRecords.filter(r => r.status === 'Half Day').length;
+    const lateToday = statsRecords.filter(r => r.status === 'Late').length;
+    const leavesToday = statsRecords.filter(r => r.status === 'On Leave').length;
+    const absentToday = statsRecords.filter(r => r.status === 'Absent').length;
+    setStats({ totalEmployees, presentToday, halfDayToday, lateToday, leavesToday, absentToday });
+
+    let gridRecords = rawRecords;
+    if (filters.department !== 'All Departments') {
+      gridRecords = gridRecords.filter(r => {
+        const fullEmp = allEmployees.find(e => e._id === (r.employeeId?._id || r.employeeId));
+        const empDept = fullEmp?.department || r.employeeId?.department;
+        return empDept === filters.department;
+      });
+    }
+    if (search) {
+      gridRecords = gridRecords.filter(r => {
+        const fullEmp = allEmployees.find(e => e._id === (r.employeeId?._id || r.employeeId));
+        const empName = r.employeeId?.fullName || fullEmp?.fullName || '';
+        return empName.toLowerCase().includes(search.toLowerCase());
+      });
+    }
+
+    setData({
+      reports: gridRecords,
+      totalEntries: gridRecords.length
+    });
+  }, [rawRecords, allEmployees, filters.department, search]);
+
+  const fetchDepartments = async () => {
     try {
-      const params = new URLSearchParams(filters);
-      if (search) params.append('search', search);
-      const res = await api.get(`/admin/reports/hourly?${params.toString()}`);
+      const res = await api.get('/admin/employees');
       if (res.data.success) {
-        const lateCount = res.data.reports.filter(r => r.isLate).length;
-        setData({ ...res.data, stats: { ...res.data.stats, lateComing: lateCount } });
+        setAllEmployees(res.data.employees || []);
+        const uniqueDepts = [...new Set(res.data.employees.map(e => e.department).filter(Boolean))];
+        setDepartments(['All Departments', ...uniqueDepts]);
       }
     } catch (err) {
-      console.error('Error fetching reports:', err);
+      console.error('Error fetching departments:', err);
+    }
+  };
+
+  const fetchStats = async () => {
+    setLoading(true);
+    try {
+      const res = await api.get(`/admin/attendance/all?date=${filters.date}`);
+      if (res.data.success) {
+        setRawRecords(res.data.records || []);
+      }
+    } catch (err) {
+      console.error('Error fetching stats and reports:', err);
     } finally {
       setLoading(false);
     }
@@ -70,405 +157,350 @@ const AdminAttendance = () => {
     setFilters({ ...filters, [e.target.name]: e.target.value, page: 1 });
   };
 
-  const resetFilters = () => {
-    setFilters({
-      date: new Date().toISOString().split('T')[0],
-      department: 'All Departments',
-      employeeId: 'All Employees',
-      status: 'All Status',
-      page: 1
-    });
-    setSearch('');
-  };
-
-  const departments = ['All Departments', 'Digital Marketing', 'Web Development', 'SEO', 'HR', 'Others'];
-
-  const handleDownloadExcel = () => {
-    if (data.reports.length === 0) {
-      alert('No data available to download');
-      return;
-    }
-
-    const headers = ['#', 'Employee Name', 'Employee ID', 'Department', 'Date', 'Total Hours', 'Overtime', 'Status'];
-    const rows = data.reports.map((r, i) => [
-      i + 1,
-      r.employeeId?.fullName,
-      r.employeeId?.empCode,
-      r.employeeId?.department,
-      r.date,
-      r.workHours,
-      r.overtime,
-      r.workStatus
-    ]);
-
-    const csvContent = [
-      headers.join(','),
-      ...rows.map(row => row.map(cell => `"${cell}"`).join(','))
-    ].join('\n');
-
-    const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
-    const link = document.createElement('a');
-    const url = URL.createObjectURL(blob);
-    link.setAttribute('href', url);
-    link.setAttribute('download', `Hourly_Report_${filters.date}.csv`);
-    link.style.visibility = 'hidden';
-    document.body.appendChild(link);
-    link.click();
-    document.body.removeChild(link);
-  };
+  const statuses = ['Active', 'Inactive'];
 
   return (
-    <AdminLayout title="Hourly Reports" subtitle="View and download hourly work reports.">
+    <AdminLayout title="Attendance Report" subtitle="View employee attendance logs and performance by date">
       <div className="space-y-8 pb-20">
         
-        {/* Top Header Actions */}
-        <div className="flex justify-end gap-4 -mt-20 mb-12 relative z-10">
-           <button className="flex items-center gap-2 px-6 py-3 bg-white text-slate-600 rounded-xl text-xs font-bold border border-slate-200 shadow-sm hover:bg-slate-50 transition-all">
-             <Filter size={16} /> Filters
-           </button>
-           <button 
-             onClick={handleDownloadExcel}
-             className="flex items-center gap-2 px-6 py-3 bg-[#3b82f6] text-white rounded-xl text-xs font-bold shadow-lg shadow-blue-200 hover:bg-blue-600 transition-all active:scale-95"
-           >
-             <Download size={16} /> Download Excel
-           </button>
+        {/* Filters Bar */}
+        <div className="flex flex-wrap items-center gap-4 bg-transparent mt-2">
+          <div className="flex items-center bg-white border border-slate-200 rounded-xl px-4 py-3 shadow-sm min-w-[200px]">
+            <Calendar size={18} className="text-slate-400 mr-3" />
+            <input 
+              type="date" 
+              name="date"
+              value={filters.date}
+              onChange={handleFilterChange}
+              className="text-sm font-bold text-[#1e293b] bg-transparent outline-none w-full"
+            />
+          </div>
+          
+          <CustomDropdown 
+            icon={FileText}
+            name="department"
+            value={filters.department}
+            options={departments}
+            onChange={handleFilterChange}
+          />
+
+          <CustomDropdown 
+            name="employeeId"
+            value={filters.employeeId}
+            options={['All']}
+            onChange={handleFilterChange}
+          />
+
+          <CustomDropdown 
+            name="status"
+            value={filters.status}
+            options={statuses}
+            onChange={handleFilterChange}
+          />
+
+          <div className="flex items-center gap-3 ml-auto">
+            <div className="relative">
+              <Search size={16} className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400" />
+              <input 
+                type="text" 
+                placeholder="Search employee" 
+                value={search}
+                onChange={(e) => setSearch(e.target.value)}
+                className="pl-11 pr-4 py-3 bg-white border border-slate-200 rounded-xl text-sm font-bold focus:outline-none w-64 shadow-sm" 
+              />
+            </div>
+          </div>
         </div>
 
         {/* Stats Grid */}
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-6">
+        <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-4">
           <StatCard 
-            icon={<Users size={24} className="text-blue-600" />} 
             label="Total Employees" 
-            value={data.stats.totalEmployees} 
-            subValue="Active Employees" 
-            colorClass="bg-blue-50"
+            value={stats.totalEmployees}
+            topBorderClass="border-t-blue-600"
+            isActive={selectedStatus === null}
+            onClick={() => setSelectedStatus(null)}
           />
           <StatCard 
-            icon={<Clock size={24} className="text-emerald-600" />} 
-            label="Total Hours Today" 
-            value={data.stats.totalHoursToday} 
-            subValue="Logged Hours" 
-            colorClass="bg-emerald-50"
+            label="Present" 
+            value={stats.presentToday}
+            percentage={stats.totalEmployees > 0 ? Math.round((stats.presentToday / stats.totalEmployees) * 100) : 0}
+            topBorderClass="border-t-emerald-500"
+            isActive={selectedStatus === 'Present'}
+            onClick={() => setSelectedStatus('Present')}
           />
           <StatCard 
-            icon={<TrendingUp size={24} className="text-violet-600" />} 
-            label="Average Hours" 
-            value={data.stats.averageHours} 
-            subValue="Per Employee" 
-            colorClass="bg-violet-50"
+            label="Half Day" 
+            value={stats.halfDayToday}
+            percentage={stats.totalEmployees > 0 ? Math.round((stats.halfDayToday / stats.totalEmployees) * 100) : 0}
+            topBorderClass="border-t-sky-500"
+            isActive={selectedStatus === 'Half Day'}
+            onClick={() => setSelectedStatus('Half Day')}
           />
           <StatCard 
-            icon={<Clock size={24} className="text-orange-500" />} 
-            label="Overtime Hours" 
-            value={data.stats.totalOvertimeToday} 
-            subValue="Total Overtime" 
-            colorClass="bg-orange-50"
+            label="Absent" 
+            value={stats.absentToday}
+            percentage={stats.totalEmployees > 0 ? Math.round((stats.absentToday / stats.totalEmployees) * 100) : 0}
+            topBorderClass="border-t-rose-500"
+            isActive={selectedStatus === 'Absent'}
+            onClick={() => setSelectedStatus('Absent')}
           />
           <StatCard 
-            icon={<Clock size={24} className="text-red-500" />} 
-            label="Late Coming" 
-            value={data.stats.lateComing || 0} 
-            subValue="Employees Late" 
-            colorClass="bg-red-50"
+            label="Late Marks" 
+            value={stats.lateToday}
+            percentage={stats.totalEmployees > 0 ? Math.round((stats.lateToday / stats.totalEmployees) * 100) : 0}
+            topBorderClass="border-t-orange-500"
+            isActive={selectedStatus === 'Late'}
+            onClick={() => setSelectedStatus('Late')}
+          />
+          <StatCard 
+            label="On Leave" 
+            value={stats.leavesToday}
+            percentage={stats.totalEmployees > 0 ? Math.round((stats.leavesToday / stats.totalEmployees) * 100) : 0}
+            topBorderClass="border-t-purple-500"
+            isActive={selectedStatus === 'On Leave'}
+            onClick={() => setSelectedStatus('On Leave')}
           />
         </div>
 
-        {/* Filters Bar */}
-        <div className="bg-white p-8 rounded-[32px] border border-slate-100 shadow-sm">
-           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-6">
-              <div className="space-y-2">
-                <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">Date</label>
-                <div className="relative">
-                  <Calendar size={14} className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400" />
-                  <input 
-                    type="date" 
-                    name="date"
-                    value={filters.date}
-                    onChange={handleFilterChange}
-                    className="w-full pl-11 pr-4 py-3 bg-slate-50 border border-slate-100 rounded-xl text-sm font-bold text-[#1e293b] focus:outline-none focus:ring-2 focus:ring-blue-500/10" 
-                  />
-                </div>
-              </div>
-              <div className="space-y-2">
-                <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">Department</label>
-                <select 
-                  name="department"
-                  value={filters.department}
-                  onChange={handleFilterChange}
-                  className="w-full px-4 py-3 bg-slate-50 border border-slate-100 rounded-xl text-sm font-bold text-[#1e293b] focus:outline-none"
-                >
-                  {departments.map(d => <option key={d}>{d}</option>)}
-                </select>
-              </div>
-              <div className="space-y-2">
-                <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">Employee</label>
-                <select 
-                  name="employeeId"
-                  value={filters.employeeId}
-                  onChange={handleFilterChange}
-                  className="w-full px-4 py-3 bg-slate-50 border border-slate-100 rounded-xl text-sm font-bold text-[#1e293b] focus:outline-none"
-                >
-                  <option>All Employees</option>
-                </select>
-              </div>
-              <div className="space-y-2">
-                <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">Status</label>
-                <select 
-                  name="status"
-                  value={filters.status}
-                  onChange={handleFilterChange}
-                  className="w-full px-4 py-3 bg-slate-50 border border-slate-100 rounded-xl text-sm font-bold text-[#1e293b] focus:outline-none"
-                >
-                  <option>All Status</option>
-                  <option>Completed</option>
-                  <option>Pending</option>
-                </select>
-              </div>
-              <div className="flex items-end gap-3">
-                 <button onClick={fetchReports} className="flex-1 py-3 bg-[#3b82f6] text-white rounded-xl text-xs font-bold hover:bg-blue-600 transition-all flex items-center justify-center gap-2">
-                   <Search size={14} /> Apply Filters
-                 </button>
-                 <button onClick={resetFilters} className="p-3 bg-slate-100 text-slate-500 rounded-xl hover:bg-slate-200 transition-all">
-                   <TrendingUp size={16} />
-                 </button>
-              </div>
-           </div>
-        </div>
-
-        {/* Main Content Area */}
-        {/* Today's Stats Row */}
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
-           {/* Today's Summary (Donut) */}
-           <div className="bg-white rounded-[40px] border border-slate-100 shadow-sm p-8 flex items-center justify-between gap-8">
-              <div className="flex-1">
-                <div className="flex items-center gap-3 mb-6">
-                  <div className="w-10 h-10 bg-blue-50 text-blue-600 rounded-xl flex items-center justify-center">
-                    <PieChart size={20} />
-                  </div>
-                  <h3 className="text-lg font-black text-[#1e293b]">Today's Summary</h3>
-                </div>
-                <div className="space-y-3 max-h-40 overflow-y-auto pr-2">
-                   {data.summary.map((item, idx) => (
-                      <div key={item.name} className="flex items-center justify-between">
-                         <div className="flex items-center gap-3">
-                            <div className="w-2 h-2 rounded-full" style={{ backgroundColor: COLORS[idx % COLORS.length] }}></div>
-                            <span className="text-xs font-bold text-slate-500">{item.name}</span>
-                         </div>
-                         <span className="text-xs font-black text-[#1e293b]">{item.hours}</span>
-                      </div>
-                   ))}
-                </div>
-              </div>
-
-              <div className="w-48 h-48 relative">
-                 <ResponsiveContainer width="100%" height="100%">
-                    <RePieChart>
-                       <Pie
-                          data={data.summary.length > 0 ? data.summary : [{ name: 'No Data', minutes: 1 }]}
-                          cx="50%"
-                          cy="50%"
-                          innerRadius={55}
-                          outerRadius={75}
-                          paddingAngle={5}
-                          dataKey="minutes"
-                       >
-                          {data.summary.map((entry, index) => (
-                             <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
-                          ))}
-                       </Pie>
-                    </RePieChart>
-                 </ResponsiveContainer>
-                 <div className="absolute inset-0 flex flex-col items-center justify-center pointer-events-none">
-                    <p className="text-xl font-black text-[#1e293b] leading-tight">{data.stats.totalHoursToday}</p>
-                    <p className="text-[8px] font-black text-slate-400 uppercase tracking-widest">Total Hours</p>
-                 </div>
-              </div>
+        {/* Box Model Grid Data */}
+        <div className="bg-transparent overflow-hidden">
+           <div className="flex items-center justify-between pb-4">
+              <h3 className="text-xl font-black text-[#1e293b]">Date Wise Employee Report</h3>
            </div>
 
-           {/* Report Status */}
-           <div className="bg-white rounded-[40px] border border-slate-100 shadow-sm p-8">
-              <h3 className="text-lg font-black text-[#1e293b] mb-8">Submission Status</h3>
-              <div className="grid grid-cols-1 gap-4">
-                 {[
-                   { label: 'Completed', count: data.statusCounts.Completed, color: 'bg-emerald-500', total: data.stats.totalEmployees },
-                   { label: 'Pending', count: data.statusCounts.Pending, color: 'bg-orange-500', total: data.stats.totalEmployees },
-                   { label: 'Not Submitted', count: data.statusCounts.NotSubmitted, color: 'bg-rose-500', total: data.stats.totalEmployees }
-                 ].map(status => {
-                   const percentage = status.total > 0 ? (status.count / status.total) * 100 : 0;
+           {loading ? (
+             <div className="py-20 text-center text-slate-400 font-bold bg-white rounded-[32px] border border-slate-100 shadow-sm">Loading records...</div>
+           ) : (() => {
+             const filteredReports = data.reports.filter(report => {
+               if (!selectedStatus) return true;
+               const stat = report.status;
+               if (selectedStatus === 'Present') return stat === 'Present' || stat === 'Late';
+               if (selectedStatus === 'Absent') return stat === 'Absent';
+               if (selectedStatus === 'Half Day') return stat === 'Half Day';
+               if (selectedStatus === 'Late') return stat === 'Late';
+               if (selectedStatus === 'On Leave') return stat === 'On Leave';
+               return true;
+             });
+
+             if (filteredReports.length === 0) {
+               return <div className="py-20 text-center text-slate-400 font-bold bg-white rounded-[32px] border border-slate-100 shadow-sm">No reports available for this filter</div>;
+             }
+
+             return (
+               <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
+                 {filteredReports.map((report) => {
+                   const displayStatus = report.status || 'Present';
+                   const isAbsent = displayStatus === 'Absent';
+                   const fullEmp = allEmployees.find(e => e._id === (report.employeeId?._id || report.employeeId));
+                   const empName = report.employeeId?.fullName || fullEmp?.fullName;
+                   const empRole = fullEmp?.role || report.employeeId?.role || 'TEAM MEMBER';
+                   const empDept = fullEmp?.department || report.employeeId?.department || 'NO DEPARTMENT';
+                   
                    return (
-                     <div key={status.label} className="space-y-1.5">
-                        <div className="flex items-center justify-between">
-                           <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest">{status.label}</p>
-                           <p className="text-[10px] font-black text-[#1e293b] uppercase tracking-widest">{status.count} ({percentage.toFixed(1)}%)</p>
-                        </div>
-                        <div className="h-1.5 w-full bg-slate-50 rounded-full overflow-hidden">
-                           <div className={`h-full ${status.color} transition-all duration-1000`} style={{ width: `${percentage}%` }}></div>
-                        </div>
+                     <div key={report._id} className="bg-white rounded-[32px] p-6 border border-slate-100 shadow-sm hover:shadow-xl hover:border-blue-100 transition-all relative group cursor-pointer" onClick={() => setSelectedEmployee(report)}>
+                       {/* Top Info */}
+                       <div className="flex items-start gap-4 mb-6">
+                         <div className="w-14 h-14 rounded-full bg-slate-100 flex items-center justify-center overflow-hidden border-2 border-white shadow-sm shrink-0">
+                           {report.employeeId?.profileImage || fullEmp?.profileImage ? (
+                             <img src={report.employeeId?.profileImage || fullEmp?.profileImage} className="w-full h-full object-cover" />
+                           ) : (
+                             <span className="text-lg font-black text-slate-500">{empName?.charAt(0)}</span>
+                           )}
+                         </div>
+                         <div className="flex-1 min-w-0">
+                           <h4 className="text-[#1e293b] font-black text-base truncate leading-tight">{empName}</h4>
+                           <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest mt-1 truncate">
+                             MEMBER
+                           </p>
+                           <p className="text-[10px] font-black text-blue-500 uppercase tracking-widest mt-0.5 truncate">
+                             {empRole}
+                           </p>
+                           <div className="flex items-center gap-1 mt-0.5 text-[10px] font-bold text-slate-400 uppercase tracking-widest">
+                             <Briefcase size={10} />
+                             <span className="truncate">{empDept}</span>
+                           </div>
+                         </div>
+                       </div>
+
+                       {/* Attendance Data */}
+                       <div className="grid grid-cols-2 gap-y-4 gap-x-2 bg-slate-50 rounded-2xl p-4 mb-6">
+                         <div>
+                           <p className="text-[9px] font-black text-slate-400 uppercase tracking-widest mb-1">Login</p>
+                           <p className="text-sm font-bold text-[#1e293b]">
+                             {report.checkIn ? new Date(report.checkIn).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', hour12: true }) : '—'}
+                           </p>
+                         </div>
+                         <div>
+                           <p className="text-[9px] font-black text-slate-400 uppercase tracking-widest mb-1">Logout</p>
+                           <p className="text-sm font-bold text-[#1e293b]">
+                             {report.checkOut ? new Date(report.checkOut).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', hour12: true }) : '—'}
+                           </p>
+                         </div>
+                         <div>
+                           <p className="text-[9px] font-black text-slate-400 uppercase tracking-widest mb-1">Total</p>
+                           <p className="text-sm font-bold text-blue-600">{report.workHours || '—'}</p>
+                         </div>
+                         <div>
+                           <p className="text-[9px] font-black text-slate-400 uppercase tracking-widest mb-1">Overtime</p>
+                           <p className="text-sm font-bold text-orange-500">{report.overtime || '—'}</p>
+                         </div>
+                       </div>
+
+                       {/* Bottom Row */}
+                       <div className="flex items-center justify-between">
+                         <span className="px-3 py-1.5 bg-white border border-slate-200 text-blue-600 rounded-lg text-[10px] font-black tracking-widest shadow-sm">
+                           {report.employeeId?.empCode || 'N/A'}
+                         </span>
+                         
+                         <div className="flex items-center gap-2">
+                           <span className={`px-3 py-1.5 rounded-lg text-[10px] font-black uppercase tracking-widest shadow-sm ${
+                             isAbsent ? 'bg-rose-50 text-rose-600' : 'bg-emerald-50 text-emerald-600'
+                           }`}>
+                             {displayStatus}
+                           </span>
+                           
+                           {/* Actions */}
+                           <div className="relative" onClick={(e) => e.stopPropagation()}>
+                             <button 
+                               onClick={() => setSelectedActionRow(selectedActionRow === report._id ? null : report._id)}
+                               className="w-8 h-8 bg-slate-100 text-slate-500 hover:bg-[#1e293b] hover:text-white rounded-xl flex items-center justify-center transition-all shadow-sm"
+                             >
+                               <MoreHorizontal size={14} />
+                             </button>
+                             {selectedActionRow === report._id && (
+                               <div className="absolute right-0 bottom-full mb-2 z-50 w-48 bg-[#1e293b] rounded-2xl shadow-2xl p-2 text-white">
+                                 <button className="w-full flex items-center gap-3 px-4 py-2.5 hover:bg-white/10 rounded-xl text-xs font-bold transition-all">
+                                    <Eye size={14} className="text-blue-400" /> View Details
+                                 </button>
+                                 <button className="w-full flex items-center gap-3 px-4 py-2.5 hover:bg-white/10 rounded-xl text-xs font-bold transition-all">
+                                    <Download size={14} className="text-emerald-400" /> Download PDF
+                                 </button>
+                               </div>
+                             )}
+                           </div>
+                         </div>
+                       </div>
                      </div>
                    );
                  })}
-              </div>
-           </div>
-
-           {/* Download & Actions */}
-           <div className="bg-[#0f172a] rounded-[40px] p-8 text-white shadow-xl shadow-slate-200 flex flex-col justify-center relative overflow-hidden">
-              <div className="absolute top-0 right-0 w-32 h-32 bg-white/5 rounded-full -mr-16 -mt-16"></div>
-              <h3 className="text-lg font-black mb-6 relative z-10">Export Center</h3>
-              <div className="space-y-3 relative z-10">
-                 <button onClick={handleDownloadExcel} className="w-full flex items-center gap-3 p-3 bg-white/10 hover:bg-white/20 border border-white/10 rounded-2xl transition-all">
-                    <div className="w-8 h-8 bg-blue-500/20 text-blue-400 rounded-lg flex items-center justify-center">
-                       <Download size={16} />
-                    </div>
-                    <span className="text-xs font-black uppercase tracking-widest">Download Full Excel</span>
-                 </button>
-                 <button className="w-full flex items-center gap-3 p-3 bg-white/10 hover:bg-white/20 border border-white/10 rounded-2xl transition-all">
-                    <div className="w-8 h-8 bg-emerald-500/20 text-emerald-400 rounded-lg flex items-center justify-center">
-                       <FileText size={16} />
-                    </div>
-                    <span className="text-xs font-black uppercase tracking-widest">Custom Range</span>
-                 </button>
-              </div>
-           </div>
+               </div>
+             );
+           })()}
         </div>
 
-        {/* Full Width Report List */}
-        <div className="bg-white rounded-[40px] border border-slate-100 shadow-sm overflow-hidden">
-           <div className="p-8 border-b border-slate-50 flex flex-col sm:flex-row sm:items-center justify-between gap-6">
-              <div>
-                <h3 className="text-xl font-black text-[#1e293b]">Hourly Report List</h3>
-                <p className="text-xs font-bold text-slate-400 mt-1 uppercase tracking-widest">Detailed breakdown of employee work logs</p>
+        {/* Bottom Charts */}
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+          <div className="bg-white p-8 rounded-[32px] border border-slate-100 shadow-sm relative">
+            <div className="flex items-center justify-between mb-8">
+              <h3 className="text-xl font-black text-[#1e293b]">Trend</h3>
+              <div className="flex items-center gap-2 bg-blue-50 text-blue-600 px-3 py-1.5 rounded-lg text-xs font-bold cursor-pointer">
+                <Search size={14} /> 12 Jun, 12 Jom
+                <MoreHorizontal size={14} className="ml-1" />
               </div>
-              <div className="flex items-center gap-4">
-                 <div className="relative">
-                   <Search size={14} className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400" />
-                   <input 
-                     type="text" 
-                     placeholder="Search employee name or ID..." 
-                     value={search}
-                     onChange={(e) => setSearch(e.target.value)}
-                     className="pl-11 pr-4 py-3 bg-slate-50 border border-slate-100 rounded-2xl text-xs font-bold focus:outline-none w-72 focus:ring-4 focus:ring-blue-500/5 transition-all" 
-                   />
+            </div>
+            <div className="h-48">
+              <ResponsiveContainer width="100%" height="100%">
+                <LineChart data={trendData} margin={{ top: 5, right: 10, left: -20, bottom: 0 }}>
+                  <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#f1f5f9" />
+                  <XAxis dataKey="name" axisLine={false} tickLine={false} tick={{ fontSize: 12, fill: '#94a3b8' }} />
+                  <YAxis axisLine={false} tickLine={false} tick={{ fontSize: 12, fill: '#94a3b8' }} />
+                  <Tooltip />
+                  <Line type="monotone" dataKey="present" stroke="#10b981" strokeWidth={3} dot={{ r: 4, fill: '#10b981', strokeWidth: 2, stroke: '#fff' }} activeDot={{ r: 6 }} />
+                  <Line type="monotone" dataKey="absent" stroke="#f43f5e" strokeWidth={3} dot={{ r: 4, fill: '#f43f5e', strokeWidth: 2, stroke: '#fff' }} />
+                </LineChart>
+              </ResponsiveContainer>
+            </div>
+            <div className="flex items-center gap-6 mt-4">
+               <div className="flex items-center gap-2 text-xs font-bold text-slate-500"><div className="w-2 h-2 rounded-full bg-emerald-500"></div> Present</div>
+               <div className="flex items-center gap-2 text-xs font-bold text-slate-500"><div className="w-2 h-2 rounded-full bg-rose-500"></div> Absent</div>
+            </div>
+          </div>
+
+          <div className="bg-white p-8 rounded-[32px] border border-slate-100 shadow-sm">
+            <div className="flex items-center justify-between mb-8">
+              <h3 className="text-xl font-black text-[#1e293b]">Department Comparison</h3>
+              <div className="flex items-center gap-2 text-xs font-bold">
+                <span className="text-slate-400">Previous</span>
+                <span className="bg-blue-50 text-blue-600 w-6 h-6 flex items-center justify-center rounded-md">1</span>
+                <span className="text-slate-400 w-6 h-6 flex items-center justify-center border border-slate-200 rounded-md"><Download size={12}/></span>
+                <span className="text-slate-400">4</span>
+              </div>
+            </div>
+            <div className="h-48">
+              <ResponsiveContainer width="100%" height="100%">
+                <BarChart data={departmentData} margin={{ top: 5, right: 10, left: -20, bottom: 0 }}>
+                  <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#f1f5f9" />
+                  <XAxis dataKey="name" axisLine={false} tickLine={false} tick={{ fontSize: 12, fill: '#94a3b8' }} />
+                  <YAxis axisLine={false} tickLine={false} tick={{ fontSize: 12, fill: '#94a3b8' }} />
+                  <Tooltip />
+                  <Bar dataKey="value" radius={[4, 4, 0, 0]}>
+                    {departmentData.map((entry, index) => (
+                      <Cell key={`cell-${index}`} fill={entry.fill} />
+                    ))}
+                  </Bar>
+                </BarChart>
+              </ResponsiveContainer>
+            </div>
+          </div>
+        </div>
+
+        {/* Employee Detail Modal */}
+        {selectedEmployee && (
+          <div className="fixed inset-0 bg-slate-900/20 backdrop-blur-sm z-[100] flex items-center justify-center p-4" onClick={() => setSelectedEmployee(null)}>
+            <div className="bg-[#1e293b] rounded-[24px] w-full max-w-sm shadow-2xl overflow-hidden p-6 text-white relative animate-in zoom-in-95 duration-200" onClick={e => e.stopPropagation()}>
+               <button onClick={() => setSelectedEmployee(null)} className="absolute top-4 right-4 w-8 h-8 bg-white/10 rounded-full flex items-center justify-center hover:bg-white/20 transition-all">
+                 <X size={16} />
+               </button>
+               
+               <h3 className="text-lg font-bold">{selectedEmployee.employeeId?.fullName}</h3>
+               <div className="flex items-center gap-2 text-slate-400 text-xs font-bold mt-1 mb-6">
+                 <Calendar size={12} /> {selectedEmployee.date?.split('-').reverse().join('-')}
+               </div>
+
+               <div className="space-y-4 text-sm font-bold border-b border-white/10 pb-6 mb-4">
+                 <div className="flex items-center justify-between">
+                   <span className="text-slate-400">Login Time</span>
+                   <span>{selectedEmployee.checkIn ? new Date(selectedEmployee.checkIn).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', hour12: true }) : '—'}</span>
                  </div>
-                 <button className="p-3 bg-slate-50 text-slate-400 rounded-xl hover:bg-slate-100 border border-slate-100 transition-all">
-                   <Filter size={18} />
-                 </button>
-                 <button onClick={handleDownloadExcel} className="flex items-center gap-2 px-6 py-3 bg-[#3b82f6] text-white rounded-xl text-[10px] font-black uppercase tracking-widest shadow-lg shadow-blue-200 hover:bg-blue-600 transition-all active:scale-95">
-                   <Download size={16} /> Export
-                 </button>
-              </div>
-           </div>
+                 <div className="flex items-center justify-between">
+                   <span className="text-slate-400">Logout Time</span>
+                   <span>{selectedEmployee.checkOut ? new Date(selectedEmployee.checkOut).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', hour12: true }) : '—'}</span>
+                 </div>
+                 <div className="flex items-center justify-between">
+                   <span className="text-slate-400">Break Time</span>
+                   <span>45 Min</span>
+                 </div>
+                 <div className="flex items-center justify-between">
+                   <span className="text-slate-400">Working Hours</span>
+                   <span className="text-blue-400">{selectedEmployee.workHours || '—'}</span>
+                 </div>
+                 <div className="flex items-center justify-between">
+                   <span className="text-slate-400">Overtime</span>
+                   <span>{selectedEmployee.overtime || '—'}</span>
+                 </div>
+               </div>
 
-           <div className="overflow-x-auto">
-              <table className="w-full text-left">
-                 <thead>
-                    <tr className="bg-slate-50/50">
-                       <th className="px-8 py-5 text-[10px] font-black text-slate-400 uppercase tracking-widest">#</th>
-                       <th className="px-8 py-5 text-[10px] font-black text-slate-400 uppercase tracking-widest">Employee Name</th>
-                       <th className="px-8 py-5 text-[10px] font-black text-slate-400 uppercase tracking-widest">Employee ID</th>
-                       <th className="px-8 py-5 text-[10px] font-black text-slate-400 uppercase tracking-widest">Department</th>
-                       <th className="px-8 py-5 text-[10px] font-black text-slate-400 uppercase tracking-widest">Date</th>
-                       <th className="px-8 py-5 text-[10px] font-black text-slate-400 uppercase tracking-widest">Total Hours</th>
-                       <th className="px-8 py-5 text-[10px] font-black text-slate-400 uppercase tracking-widest">Overtime</th>
-                       <th className="px-8 py-5 text-[10px] font-black text-slate-400 uppercase tracking-widest">Submitted At</th>
-                       <th className="px-8 py-5 text-[10px] font-black text-slate-400 uppercase tracking-widest">Status</th>
-                       <th className="px-8 py-5 text-[10px] font-black text-slate-400 uppercase tracking-widest">Action</th>
-                    </tr>
-                 </thead>
-                 <tbody className="divide-y divide-slate-50">
-                    {loading ? (
-                      <tr>
-                        <td colSpan="10" className="px-8 py-20 text-center">
-                          <div className="flex flex-col items-center gap-3">
-                            <div className="w-10 h-10 border-4 border-slate-100 border-t-blue-500 rounded-full animate-spin"></div>
-                            <p className="text-xs font-black text-slate-400 uppercase tracking-widest">Loading records...</p>
-                          </div>
-                        </td>
-                      </tr>
-                    ) : data.reports.length === 0 ? (
-                      <tr>
-                        <td colSpan="10" className="px-8 py-20 text-center">
-                          <div className="flex flex-col items-center gap-3 opacity-20">
-                            <FileText size={64} />
-                            <p className="text-sm font-bold uppercase tracking-widest">No reports available</p>
-                          </div>
-                        </td>
-                      </tr>
-                    ) : (
-                      data.reports.map((report, idx) => (
-                        <tr key={report._id} className="hover:bg-slate-50/50 transition-all group">
-                           <td className="px-8 py-5 text-xs font-bold text-slate-400">{(filters.page - 1) * 8 + idx + 1}</td>
-                           <td className="px-8 py-5">
-                              <div className="flex items-center gap-4">
-                                 <div className="w-10 h-10 rounded-2xl bg-slate-100 flex items-center justify-center font-black text-[11px] text-slate-600 border-2 border-white shadow-sm overflow-hidden group-hover:scale-110 transition-transform">
-                                    {report.employeeId?.profileImage ? (
-                                      <img src={report.employeeId.profileImage} className="w-full h-full object-cover" />
-                                    ) : report.employeeId?.fullName?.charAt(0)}
-                                 </div>
-                                 <span className="text-sm font-black text-[#1e293b]">{report.employeeId?.fullName}</span>
-                              </div>
-                           </td>
-                           <td className="px-8 py-5 text-xs font-bold text-slate-500">{report.employeeId?.empCode}</td>
-                           <td className="px-8 py-5">
-                              <span className="px-3 py-1 bg-slate-100 text-slate-600 rounded-lg text-[9px] font-black uppercase tracking-widest">
-                                {report.employeeId?.department}
-                              </span>
-                           </td>
-                           <td className="px-8 py-5 text-xs font-bold text-slate-500">{report.date}</td>
-                           <td className="px-8 py-5 text-sm font-black text-[#1e293b]">{report.workHours}</td>
-                           <td className="px-8 py-5 text-xs font-bold text-slate-400">{report.overtime}</td>
-                           <td className="px-8 py-5 text-xs font-bold text-slate-400">
-                             {report.updatedAt ? new Date(report.updatedAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', hour12: true }) : '--:--'}
-                           </td>
-                           <td className="px-8 py-5">
-                              <span className={`px-4 py-1.5 rounded-full text-[9px] font-black uppercase tracking-widest shadow-sm ${
-                                report.workStatus === 'Completed' ? 'bg-emerald-50 text-emerald-600 border border-emerald-100' : 'bg-orange-50 text-orange-600 border border-orange-100'
-                              }`}>
-                                {report.workStatus}
-                              </span>
-                           </td>
-                           <td className="px-8 py-5">
-                              <div className="flex items-center gap-3">
-                                 <button className="p-2.5 text-slate-400 hover:text-blue-500 hover:bg-blue-50 rounded-xl transition-all border border-transparent hover:border-blue-100">
-                                    <Eye size={18} />
-                                 </button>
-                                 <button className="p-2.5 text-slate-400 hover:text-emerald-500 hover:bg-emerald-50 rounded-xl transition-all border border-transparent hover:border-emerald-100">
-                                    <Download size={18} />
-                                 </button>
-                              </div>
-                           </td>
-                        </tr>
-                      ))
-                    )}
-                 </tbody>
-              </table>
-           </div>
-
-           {/* Pagination */}
-           <div className="p-8 bg-slate-50/30 border-t border-slate-50 flex items-center justify-between">
-              <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest">
-                Showing 1 to {data.reports.length} of {data.totalEntries} entries
-              </p>
-              <div className="flex items-center gap-2">
-                 <button className="p-2.5 text-slate-400 hover:bg-white hover:text-[#1e293b] rounded-xl transition-all border border-transparent hover:border-slate-200">
-                   <ChevronLeft size={20} />
-                 </button>
-                 {[1, 2, 3].map(p => (
-                   <button 
-                     key={p} 
-                     onClick={() => setFilters({...filters, page: p})}
-                     className={`w-10 h-10 rounded-xl text-xs font-black transition-all ${
-                       filters.page === p ? 'bg-[#3b82f6] text-white shadow-xl shadow-blue-200' : 'text-slate-400 hover:bg-white hover:border-slate-200 border border-transparent'
-                     }`}
-                   >
-                     {p}
-                   </button>
-                 ))}
-                 <button className="p-2.5 text-slate-400 hover:bg-white hover:text-[#1e293b] rounded-xl transition-all border border-transparent hover:border-slate-200">
-                   <ChevronRight size={20} />
-                 </button>
-              </div>
-           </div>
-        </div>
+               <div>
+                 <h4 className="text-sm font-bold text-slate-400 mb-3">Tasks Submitted:</h4>
+                 <div className="space-y-2 text-sm font-bold">
+                   <div className="flex items-center gap-2">
+                     <div className="w-4 h-4 rounded bg-emerald-500/20 text-emerald-400 flex items-center justify-center">✓</div>
+                     UI Design
+                   </div>
+                   <div className="flex items-center gap-2">
+                     <div className="w-4 h-4 rounded bg-emerald-500/20 text-emerald-400 flex items-center justify-center">✓</div>
+                     API Integration
+                   </div>
+                   <div className="flex items-center gap-2">
+                     <div className="w-4 h-4 rounded bg-emerald-500/20 text-emerald-400 flex items-center justify-center">✓</div>
+                     Testing
+                   </div>
+                 </div>
+               </div>
+            </div>
+          </div>
+        )}
 
       </div>
     </AdminLayout>
