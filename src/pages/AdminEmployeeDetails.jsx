@@ -66,6 +66,7 @@ const AdminEmployeeDetails = () => {
   const [attendanceStats, setAttendanceStats] = useState(null);
   const [attendanceRecords, setAttendanceRecords] = useState([]);
   const [editingCheckIn, setEditingCheckIn] = useState({ date: null, time: '' });
+  const [editingCheckOut, setEditingCheckOut] = useState({ date: null, time: '' });
   const [leaveRecords, setLeaveRecords] = useState([]);
 
   const [documents, setDocuments] = useState([]);
@@ -340,6 +341,26 @@ const AdminEmployeeDetails = () => {
       fetchRealStats();
     } catch (err) {
       alert(err.response?.data?.message || 'Failed to update check-in');
+    }
+  };
+
+  const handleSaveCheckOut = async (rawDate) => {
+    try {
+      const d = new Date(rawDate);
+      const formattedDate = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+
+      const localDate = new Date(`${formattedDate}T${editingCheckOut.time}:00`);
+      const checkOutTimeUTC = localDate.toISOString().substring(11, 16);
+
+      await api.put('/admin/attendance/checkout', {
+        employeeId: employee._id,
+        date: formattedDate,
+        checkOutTime: checkOutTimeUTC
+      });
+      setEditingCheckOut({ date: null, time: '' });
+      fetchRealStats();
+    } catch (err) {
+      alert(err.response?.data?.message || 'Failed to update check-out');
     }
   };
 
@@ -911,7 +932,33 @@ const AdminEmployeeDetails = () => {
                             )}
                           </td>
                           <td className="px-10 py-1.5 text-[11px] font-black text-slate-700">
-                            {row.checkOut ? new Date(row.checkOut).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) : '--:--'}
+                            {editingCheckOut.date === row.date ? (
+                              <div className="flex items-center gap-2">
+                                <input 
+                                  type="time" 
+                                  value={editingCheckOut.time}
+                                  onChange={(e) => setEditingCheckOut({ ...editingCheckOut, time: e.target.value })}
+                                  className="border border-slate-200 rounded px-2 py-1 text-xs outline-none focus:border-primary"
+                                  autoFocus
+                                />
+                                <button onClick={() => handleSaveCheckOut(row.date)} className="text-emerald-500 hover:text-emerald-600 bg-emerald-50 p-1 rounded-md"><CheckCircle2 size={14}/></button>
+                                <button onClick={() => setEditingCheckOut({ date: null, time: '' })} className="text-slate-400 hover:text-slate-600 bg-slate-50 p-1 rounded-md"><X size={14}/></button>
+                              </div>
+                            ) : (
+                              <div className="flex items-center gap-2">
+                                <span>{row.checkOut ? new Date(row.checkOut).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) : '--:--'}</span>
+                                  <button 
+                                    onClick={() => setEditingCheckOut({ 
+                                      date: row.date, 
+                                      time: row.checkOut ? new Date(row.checkOut).toLocaleTimeString('en-US', {hour12: false, hour: '2-digit', minute: '2-digit'}) : '18:00' 
+                                    })}
+                                    className="text-slate-300 hover:text-primary opacity-0 group-hover:opacity-100 transition-opacity"
+                                    title="Edit Check-Out Time"
+                                  >
+                                    <Edit3 size={14} />
+                                  </button>
+                              </div>
+                            )}
                           </td>
                           <td className="px-10 py-1.5 text-[11px] font-black text-primary">{row.workHours || '--'}</td>
                           <td className="px-10 py-1.5 text-[9px] font-bold text-slate-400 tracking-tight">—</td>
