@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import DashboardLayout from '../layouts/DashboardLayout';
+import EmployeeLayout from '../layouts/EmployeeLayout';
 import { useParams, useNavigate, useLocation } from 'react-router-dom';
 import { 
   Send, Calendar, Download, FileSpreadsheet, 
@@ -311,11 +311,11 @@ const EmployeeSchedule = ({ embedded = false, onBack }) => {
   }
 
   return (
-    <DashboardLayout title="Hourly Report" subtitle="Daily Timesheet" employeeSlug={employeeSlug}>
+    <EmployeeLayout title="Hourly Report" subtitle="Daily Timesheet">
       <div className="max-w-[1600px] mx-auto">
         {renderContent()}
       </div>
-    </DashboardLayout>
+    </EmployeeLayout>
   );
 };
 

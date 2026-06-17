@@ -1,5 +1,5 @@
 import React from 'react';
-import DashboardLayout from '../layouts/DashboardLayout';
+import EmployeeLayout from '../layouts/EmployeeLayout';
 import { useParams, useNavigate, useLocation } from 'react-router-dom';
 import { MapPin, CheckCircle2, Clock, CheckSquare } from 'lucide-react';
 import EmployeeSchedule from './EmployeeSchedule';
@@ -19,7 +19,7 @@ const EmployeeAttendance = () => {
   }
 
   return (
-    <DashboardLayout title="Attendance" subtitle="Check in and out for your shift." employeeSlug={employeeSlug}>
+    <EmployeeLayout title="Attendance" subtitle="Check in and out for your shift.">
       <div className="max-w-4xl mx-auto">
         
         {/* Navigation Tabs */}
@@ -98,7 +98,7 @@ const EmployeeAttendance = () => {
           </div>
         </div>
       </div>
-    </DashboardLayout>
+    </EmployeeLayout>
   );
 };
 
