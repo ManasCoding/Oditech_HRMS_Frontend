@@ -9,6 +9,7 @@ import EmployeeCheckIn from '../pages/EmployeeCheckIn';
 import EmployeeProfile from '../pages/EmployeeProfile';
 import EmployeeDirectory from '../pages/EmployeeDirectory';
 import EmployeeSchedule from '../pages/EmployeeSchedule';
+import EmployeePolicy from '../pages/EmployeePolicy';
 
 
 import AdminDashboard from '../pages/AdminDashboard';
@@ -91,6 +92,7 @@ const AppRouter = () => {
       <Route path="/employee/:employeeSlug/schedule" element={<EmployeeSchedule />} />
       <Route path="/employee/:employeeSlug/resignation" element={<EmployeeResignation />} />
       <Route path="/employee/:employeeSlug/resignation/:id" element={<EmployeeResignationDetails />} />
+      <Route path="/employee/:employeeSlug/policy" element={<EmployeePolicy />} />
 
 
       

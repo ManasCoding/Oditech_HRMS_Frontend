@@ -1,44 +1,19 @@
 import React from 'react';
 import EmployeeLayout from '../layouts/EmployeeLayout';
-import { useParams, useNavigate, useLocation } from 'react-router-dom';
-import { MapPin, CheckCircle2, Clock, CheckSquare } from 'lucide-react';
-import EmployeeSchedule from './EmployeeSchedule';
+import { useParams, useNavigate } from 'react-router-dom';
+import { MapPin, CheckCircle2, Clock } from 'lucide-react';
 
 const EmployeeAttendance = () => {
   const { employeeSlug } = useParams();
   const navigate = useNavigate();
-  const location = useLocation();
   const today = new Date().toISOString().split('T')[0];
   
-  // If we are on the attendance page, the active tab is 'attendance'
-  // If we were using this as a wrapper, we'd check the path
-  const isHourly = location.pathname.includes('/schedule');
-
-  if (isHourly) {
-    return <EmployeeSchedule />;
-  }
 
   return (
     <EmployeeLayout title="Attendance" subtitle="Check in and out for your shift.">
       <div className="max-w-4xl mx-auto">
         
-        {/* Navigation Tabs */}
-        <div className="flex items-center gap-4 mb-10 bg-white p-2 rounded-2xl border border-slate-100 shadow-sm w-fit mx-auto">
-           <button 
-             onClick={() => navigate(`/employee/${employeeSlug}/attendance`)}
-             className={`flex items-center gap-2 px-8 py-3 rounded-xl text-xs font-black uppercase tracking-widest transition-all ${!isHourly ? 'bg-[#1e293b] text-white shadow-xl shadow-[#1e293b]/20' : 'text-slate-400 hover:bg-slate-50'}`}
-           >
-             <CheckSquare size={18} />
-             Attendance
-           </button>
-           <button 
-             onClick={() => navigate(`/employee/${employeeSlug}/schedule`)}
-             className={`flex items-center gap-2 px-8 py-3 rounded-xl text-xs font-black uppercase tracking-widest transition-all ${isHourly ? 'bg-[#1e293b] text-white shadow-xl shadow-[#1e293b]/20' : 'text-slate-400 hover:bg-slate-50'}`}
-           >
-             <Clock size={18} />
-             Hourly Update
-           </button>
-        </div>
+
 
         <div className="bg-white rounded-[40px] border border-slate-100 shadow-xl shadow-slate-200/50 p-8 md:p-12 mb-8 relative overflow-hidden">
           <div className="absolute top-0 left-0 w-full h-2 bg-[#1e293b]"></div>

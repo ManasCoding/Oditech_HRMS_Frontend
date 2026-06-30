@@ -32,7 +32,7 @@ const EmployeeLayout = ({ children, title, subtitle }) => {
     { name: 'Dashboard', icon: <LayoutDashboard size={18} />, path: `/employee/${slug}/dashboard` },
     { name: 'Profile', icon: <User size={18} />, path: `/employee/${slug}/profile` },
     { name: 'Directory', icon: <User size={18} />, path: `/employee/${slug}/directory` },
-    { name: 'Check In', icon: <CheckSquare size={18} />, path: `/employee/${slug}/check-in` },
+    { name: 'Hourly Report', icon: <Clock size={18} />, path: `/employee/${slug}/schedule` },
     { name: 'Attendance', icon: <ClipboardList size={18} />, path: `/employee/${slug}/attendance` },
     { name: 'Leave', icon: <Calendar size={18} />, path: `/employee/${slug}/apply-leave` },
     { name: 'Resignation', icon: <FileSignature size={18} />, path: `/employee/${slug}/resignation` },

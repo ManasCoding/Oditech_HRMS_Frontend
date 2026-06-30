@@ -14,7 +14,7 @@ const StatCard = ({ label, value, subValue, colorClass, bgClass, textClass, icon
       {icon}
     </div>
     <p className="text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-2 text-center">{label}</p>
-    <h3 className="text-4xl font-black text-slate-800 mb-2">{value}</h3>
+    <h3 className="text-3xl lg:text-2xl xl:text-xl 2xl:text-2xl font-black text-slate-800 mb-2 truncate max-w-full px-1">{value}</h3>
     <p className={`text-[9px] font-bold uppercase tracking-widest text-center ${textClass}`}>{subValue}</p>
   </div>
 );

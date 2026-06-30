@@ -4,7 +4,7 @@ import { useParams, useNavigate, useLocation } from 'react-router-dom';
 import { 
   Send, Calendar, Download, FileSpreadsheet, 
   Trash2, Plus, CheckCircle2, AlertCircle, Loader2,
-  ChevronLeft, ChevronRight, Eraser, Printer, CheckSquare, Clock
+  ChevronLeft, ChevronRight, Eraser, Printer, Clock
 } from 'lucide-react';
 import api from '../services/api';
 
@@ -143,22 +143,6 @@ const EmployeeSchedule = ({ embedded = false, onBack }) => {
   const renderContent = () => (
     <div className="space-y-6 pb-20 animate-in fade-in duration-500">
       
-      {/* Navigation Tabs */}
-      <div className="flex items-center gap-4 mb-10 bg-white p-2 rounded-2xl border border-slate-100 shadow-sm w-fit mx-auto">
-         <button 
-           onClick={() => navigate(`/employee/${employeeSlug}/attendance`)}
-           className="flex items-center gap-2 px-8 py-3 rounded-xl text-xs font-black uppercase tracking-widest transition-all text-slate-400 hover:bg-slate-50"
-         >
-           <CheckSquare size={18} />
-           Attendance
-         </button>
-         <button 
-           className="flex items-center gap-2 px-8 py-3 rounded-xl text-xs font-black uppercase tracking-widest transition-all bg-[#1e293b] text-white shadow-xl shadow-[#1e293b]/20"
-         >
-           <Clock size={18} />
-           Hourly Update
-         </button>
-      </div>
 
       {/* Header Section */}
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
