@@ -57,6 +57,7 @@ const AdminAttendance = () => {
     reports: [],
     totalEntries: 0
   });
+  const [holidays, setHolidays] = useState([]);
 
   const [filters, setFilters] = useState({
     date: new Date().toISOString().split('T')[0],
@@ -77,7 +78,19 @@ const AdminAttendance = () => {
 
   useEffect(() => {
     fetchDepartments();
+    fetchHolidays();
   }, []);
+
+  const fetchHolidays = async () => {
+    try {
+      const res = await api.get('/holidays');
+      if (res.data.success) {
+        setHolidays(res.data.holidays || []);
+      }
+    } catch (err) {
+      console.error('Error fetching holidays:', err);
+    }
+  };
 
   const fetchStats = useCallback(async (showLoader = true) => {
     if (showLoader) setLoading(true);
@@ -114,7 +127,31 @@ const AdminAttendance = () => {
       return;
     }
 
-    let statsRecords = rawRecords;
+    let statsRecords = rawRecords.map(r => {
+      let stat = r.status || 'Absent';
+      
+      const dateObj = new Date(filters.date);
+      const isSunday = dateObj.getDay() === 0;
+      const isHoliday = holidays.some(h => h.holidayDate === filters.date);
+      
+      const hasCheckedIn = r.checkIn && r.checkIn !== "00:00" && r.checkIn !== "1970-01-01T00:00:00.000Z";
+
+      // Priority logic
+      if (isHoliday) {
+        stat = 'Holiday';
+      } else if (isSunday) {
+        stat = 'Weekend';
+      } else if (stat === 'On Leave' || stat === 'Approved') {
+        stat = 'On Leave';
+      } else if (hasCheckedIn) {
+        stat = stat === 'Late' ? 'Late' : (stat === 'Half Day' ? 'Half Day' : 'Present');
+      } else {
+        stat = 'Absent';
+      }
+
+      return { ...r, calculatedStatus: stat };
+    });
+
     if (filters.department !== 'All Departments') {
       statsRecords = statsRecords.filter(r => {
         const fullEmp = allEmployees.find(e => e._id === (r.employeeId?._id || r.employeeId));
@@ -124,14 +161,17 @@ const AdminAttendance = () => {
     }
 
     const totalEmployees = statsRecords.length;
-    const presentToday = statsRecords.filter(r => r.status === 'Present' || r.status === 'Late').length;
-    const halfDayToday = statsRecords.filter(r => r.status === 'Half Day').length;
-    const lateToday = statsRecords.filter(r => r.status === 'Late').length;
-    const leavesToday = statsRecords.filter(r => r.status === 'On Leave').length;
-    const absentToday = statsRecords.filter(r => r.status === 'Absent').length;
-    setStats({ totalEmployees, presentToday, halfDayToday, lateToday, leavesToday, absentToday });
+    const presentToday = statsRecords.filter(r => r.calculatedStatus === 'Present' || r.calculatedStatus === 'Late').length;
+    const halfDayToday = statsRecords.filter(r => r.calculatedStatus === 'Half Day').length;
+    const lateToday = statsRecords.filter(r => r.calculatedStatus === 'Late').length;
+    const leavesToday = statsRecords.filter(r => r.calculatedStatus === 'On Leave').length;
+    const absentToday = statsRecords.filter(r => r.calculatedStatus === 'Absent' || r.calculatedStatus === 'Holiday' || r.calculatedStatus === 'Weekend').length; 
+    // ^ Maybe we want to just keep absent count for strictly 'Absent'. Let's adjust:
+    const strictAbsentToday = statsRecords.filter(r => r.calculatedStatus === 'Absent').length;
 
-    let gridRecords = rawRecords;
+    setStats({ totalEmployees, presentToday, halfDayToday, lateToday, leavesToday, absentToday: strictAbsentToday });
+
+    let gridRecords = statsRecords;
     if (filters.department !== 'All Departments') {
       gridRecords = gridRecords.filter(r => {
         const fullEmp = allEmployees.find(e => e._id === (r.employeeId?._id || r.employeeId));
@@ -286,9 +326,9 @@ const AdminAttendance = () => {
            {loading ? (
              <div className="py-20 text-center text-slate-400 font-bold bg-white rounded-[32px] border border-slate-100 shadow-sm">Loading records...</div>
            ) : (() => {
-             const filteredReports = data.reports.filter(report => {
+              const filteredReports = data.reports.filter(report => {
                if (!selectedStatus) return true;
-               const stat = report.status;
+               const stat = report.calculatedStatus;
                if (selectedStatus === 'Present') return stat === 'Present' || stat === 'Late';
                if (selectedStatus === 'Absent') return stat === 'Absent';
                if (selectedStatus === 'Half Day') return stat === 'Half Day';
@@ -304,7 +344,7 @@ const AdminAttendance = () => {
              return (
                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
                  {filteredReports.map((report) => {
-                   const displayStatus = report.status || 'Present';
+                   const displayStatus = report.calculatedStatus || 'Absent';
                    const isAbsent = displayStatus === 'Absent';
                    const fullEmp = allEmployees.find(e => e._id === (report.employeeId?._id || report.employeeId));
                    const empName = report.employeeId?.fullName || fullEmp?.fullName;
@@ -368,8 +408,14 @@ const AdminAttendance = () => {
                          </span>
                          
                          <div className="flex items-center gap-2">
-                           <span className={`px-3 py-1.5 rounded-lg text-[10px] font-black uppercase tracking-widest shadow-sm ${
-                             isAbsent ? 'bg-rose-50 text-rose-600' : 'bg-emerald-50 text-emerald-600'
+                           <span className={`px-4 py-1.5 rounded-[16px] text-[10px] font-black uppercase tracking-widest shadow-sm transition-all ${
+                             displayStatus === 'Absent' ? 'bg-[#FDECEC] text-[#E53935]' : 
+                             displayStatus === 'Present' ? 'bg-[#E8F8F0] text-[#00A86B]' : 
+                             displayStatus === 'Late' ? 'bg-[#FFF3E0] text-[#FB8C00]' : 
+                             displayStatus === 'On Leave' ? 'bg-[#F3E8FF] text-[#8E44AD]' : 
+                             displayStatus === 'Holiday' ? 'bg-[#EAF4FF] text-[#1E88E5]' : 
+                             displayStatus === 'Weekend' ? 'bg-[#F2F2F2] text-[#616161]' : 
+                             'bg-[#E8F8F0] text-[#00A86B]' // Default to Present
                            }`}>
                              {displayStatus}
                            </span>

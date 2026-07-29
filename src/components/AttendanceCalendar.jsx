@@ -78,14 +78,22 @@ const AttendanceCalendar = ({ employeeId }) => {
     const dateObj = new Date(dateStr);
     const dayOfWeek = dateObj.getDay();
 
-    // 1. Holiday (Pink)
-    const holiday = holidays.find(h => h.holidayDate === dateStr);
-    if (holiday) {
-      return { status: 'Holiday', color: 'bg-pink-500 text-white shadow-pink-200', tooltip: `Holiday: ${holiday.holidayName}` };
+    if (dateObj > new Date()) {
+      return { status: 'Future', color: 'text-slate-400 bg-transparent', tooltip: '' };
     }
 
-    // 2. Leave (Purple)
-    // Assuming leaves have startDate and endDate in ISO format
+    // 1. Holiday (Blue)
+    const holiday = holidays.find(h => h.holidayDate === dateStr);
+    if (holiday) {
+      return { status: 'Holiday', color: 'bg-[#EAF4FF] text-[#1E88E5] shadow-[#EAF4FF]', tooltip: `Holiday: ${holiday.holidayName}` };
+    }
+
+    // 2. Sunday (Weekend)
+    if (dayOfWeek === 0) {
+      return { status: 'Weekend', color: 'bg-[#F2F2F2] text-[#616161] shadow-[#F2F2F2]', tooltip: 'Weekend' };
+    }
+
+    // 3. Leave (Purple)
     const leave = leaves.find(l => {
       if (l.status !== 'Approved') return false;
       const start = new Date(l.startDate);
@@ -95,7 +103,7 @@ const AttendanceCalendar = ({ employeeId }) => {
       return dateObj >= start && dateObj <= end;
     });
     if (leave) {
-      return { status: 'Leave', color: 'bg-purple-500 text-white shadow-purple-200', tooltip: 'On Leave' };
+      return { status: 'Leave', color: 'bg-[#F3E8FF] text-[#8E44AD] shadow-[#F3E8FF]', tooltip: 'On Leave' };
     }
 
     // Attendance Log Checks
@@ -105,40 +113,34 @@ const AttendanceCalendar = ({ employeeId }) => {
     });
 
     if (log) {
-      // 3. Absent (Red)
-      if (log.status === 'Absent') return { status: 'Absent', color: 'bg-rose-500 text-white shadow-rose-200', tooltip: 'Absent' };
-      // 4. Late (Orange)
-      if (log.status === 'Late') return { status: 'Late', color: 'bg-orange-500 text-white shadow-orange-200', tooltip: 'Late' };
-      // 5. Present (Green)
-      if (log.status === 'Present') return { status: 'Present', color: 'bg-emerald-500 text-white shadow-emerald-200', tooltip: 'Present' };
-      if (log.status === 'Half Day') return { status: 'Half Day', color: 'bg-sky-500 text-white shadow-sky-200', tooltip: 'Half Day' };
+      // Check if employee has checked in properly
+      const hasCheckedIn = log.checkIn && log.checkIn !== "00:00";
+
+      if (hasCheckedIn) {
+        // 4. Present / Late
+        if (log.status === 'Late') return { status: 'Late', color: 'bg-[#FFF3E0] text-[#FB8C00] shadow-[#FFF3E0]', tooltip: 'Late' };
+        return { status: 'Present', color: 'bg-[#E8F8F0] text-[#00A86B] shadow-[#E8F8F0]', tooltip: 'Present' };
+      } else {
+        // 5. Absent
+        return { status: 'Absent', color: 'bg-[#FDECEC] text-[#E53935] shadow-[#FDECEC]', tooltip: 'Absent' };
+      }
     }
 
-    // 6. Weekend (Gray)
-    if (dayOfWeek === 0 || dayOfWeek === 6) {
-      return { status: 'Weekend', color: 'bg-slate-200 text-slate-500', tooltip: 'Weekend' };
-    }
-
-    // 7. Future/Default
-    if (dateObj > new Date()) {
-      return { status: 'Future', color: 'text-slate-400', tooltip: '' };
-    }
-
-    // If past and no record, and not weekend/holiday
-    return { status: 'Unknown', color: 'text-slate-700 bg-slate-50 border border-slate-100', tooltip: 'No Record' };
+    // If past and no record, and not weekend/holiday -> Absent
+    return { status: 'Absent', color: 'bg-[#FDECEC] text-[#E53935] shadow-[#FDECEC]', tooltip: 'Absent' };
   };
 
   return (
-    <div className="bg-white rounded-[32px] border border-slate-100 shadow-sm p-8 relative overflow-hidden h-full">
-      <div className="absolute top-0 left-0 w-1.5 h-full bg-pink-500"></div>
+    <div className="bg-white rounded-[32px] border border-slate-100 shadow-xl shadow-slate-200/20 p-8 relative overflow-hidden h-full">
+      <div className="absolute top-0 left-0 w-1.5 h-full bg-[#1e293b]"></div>
       
       <div className="flex items-center justify-between mb-8">
         <div className="flex items-center gap-3">
-          <div className="w-10 h-10 bg-pink-50 text-pink-500 rounded-xl flex items-center justify-center">
-            <Calendar size={20} />
+          <div className="w-12 h-12 bg-slate-50 text-[#1e293b] rounded-[16px] flex items-center justify-center shadow-sm">
+            <Calendar size={24} />
           </div>
           <div>
-            <h3 className="text-xl font-black text-[#1e293b]">Attendance Calendar</h3>
+            <h3 className="text-2xl font-black text-[#1e293b]">Attendance</h3>
             <p className="text-xs text-slate-400 font-bold">Your monthly attendance overview</p>
           </div>
         </div>
@@ -167,7 +169,7 @@ const AttendanceCalendar = ({ employeeId }) => {
           const { color, tooltip } = getDayStatus(day);
           return (
             <div key={day} className="flex flex-col items-center group relative cursor-pointer">
-              <div className={`w-10 h-10 rounded-xl flex items-center justify-center text-xs font-black shadow-sm transition-transform group-hover:scale-110 ${color}`}>
+              <div className={`w-11 h-11 rounded-full flex items-center justify-center text-sm font-black shadow-md transition-all duration-300 transform group-hover:scale-110 group-hover:shadow-lg ${color}`}>
                 {day}
               </div>
               {tooltip && (
@@ -181,13 +183,20 @@ const AttendanceCalendar = ({ employeeId }) => {
       </div>
 
       {/* Legend */}
-      <div className="flex flex-wrap items-center justify-center gap-4 pt-6 border-t border-slate-100">
-        <div className="flex items-center gap-2"><div className="w-2.5 h-2.5 rounded-full bg-pink-500"></div><span className="text-[9px] font-black text-slate-400 uppercase tracking-widest">Holiday</span></div>
-        <div className="flex items-center gap-2"><div className="w-2.5 h-2.5 rounded-full bg-purple-500"></div><span className="text-[9px] font-black text-slate-400 uppercase tracking-widest">Leave</span></div>
-        <div className="flex items-center gap-2"><div className="w-2.5 h-2.5 rounded-full bg-rose-500"></div><span className="text-[9px] font-black text-slate-400 uppercase tracking-widest">Absent</span></div>
-        <div className="flex items-center gap-2"><div className="w-2.5 h-2.5 rounded-full bg-orange-500"></div><span className="text-[9px] font-black text-slate-400 uppercase tracking-widest">Late</span></div>
-        <div className="flex items-center gap-2"><div className="w-2.5 h-2.5 rounded-full bg-emerald-500"></div><span className="text-[9px] font-black text-slate-400 uppercase tracking-widest">Present</span></div>
-        <div className="flex items-center gap-2"><div className="w-2.5 h-2.5 rounded-full bg-slate-200"></div><span className="text-[9px] font-black text-slate-400 uppercase tracking-widest">Weekend</span></div>
+      <div className="flex flex-wrap items-center justify-between w-full pt-8 border-t border-slate-100 gap-2">
+        {[
+          { label: 'Present', color: '#00A86B' },
+          { label: 'Absent', color: '#E53935' },
+          { label: 'Late', color: '#FB8C00' },
+          { label: 'Leave', color: '#8E44AD' },
+          { label: 'Holiday', color: '#1E88E5' },
+          { label: 'Weekend', color: '#616161' }
+        ].map(item => (
+          <div key={item.label} className="flex items-center gap-2 flex-1 justify-center min-w-[70px] hover:scale-105 transition-transform cursor-pointer">
+            <div className="w-3 h-3 rounded-full shadow-sm" style={{ backgroundColor: item.color }}></div>
+            <span className="text-[10px] md:text-xs font-black text-slate-500 uppercase tracking-widest">{item.label}</span>
+          </div>
+        ))}
       </div>
     </div>
   );
