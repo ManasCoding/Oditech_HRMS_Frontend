@@ -12,6 +12,7 @@ import {
 import { io } from 'socket.io-client';
 import api from '../services/api';
 import CustomDropdown from '../components/CustomDropdown';
+import AdminWeeklyTimesheet from '../components/AdminWeeklyTimesheet';
 
 const SOCKET_URL = (import.meta.env.VITE_API_BASE_URL || 'https://oditech-hrms-backend-2.onrender.com/api').replace('/api', '');
 
@@ -41,226 +42,6 @@ const StatCard = ({ icon, label, value, subValue, colorClass }) => (
     </div>
   </div>
 );
-
-/* ── Timesheet Detail Modal ──────────────────────────────────────────────────── */
-const TimesheetModal = ({ report, onClose }) => {
-  const [modalData, setModalData] = useState(null);
-  const [modalLoading, setModalLoading] = useState(true);
-
-  useEffect(() => {
-    if (!report) return;
-    const fetchDetail = async () => {
-      setModalLoading(true);
-      try {
-        const res = await api.get(`/admin/timesheets/${report._id}`);
-        if (res.data.success) {
-          setModalData(res.data.timesheet);
-        }
-      } catch (err) {
-        console.error('Error fetching timesheet detail:', err);
-      } finally {
-        setModalLoading(false);
-      }
-    };
-    fetchDetail();
-
-    const socket = io(SOCKET_URL);
-    socket.on('timesheetUpdated', (data) => {
-      if (data._id === report._id) fetchDetail();
-    });
-    return () => socket.disconnect();
-  }, [report]);
-
-  if (!report) return null;
-
-  const empName = report.employeeName || modalData?.employeeName || '—';
-  const empDept = report.department   || modalData?.department   || '—';
-  const empImg  = report.employeeId?.profileImage || null;
-  const isCompleted = report.status === 'Completed';
-
-  const hourlyTasks = modalData?.hourlyTasks || [];
-  const taskMap = {};
-  hourlyTasks.forEach(t => { taskMap[t.slotKey] = t.title; });
-  const dailyRemarks = modalData?.dailyRemarks || '';
-  const weeklyRemarks = modalData?.weeklyRemarks || '';
-
-  return (
-    /* Backdrop */
-    <div
-      className="fixed inset-0 z-50 flex items-center justify-center p-4"
-      style={{ background: 'rgba(15,23,42,0.55)', backdropFilter: 'blur(6px)' }}
-      onClick={onClose}
-    >
-      {/* Panel — stop propagation so clicking inside doesn't close */}
-      <div
-        className="relative bg-white rounded-[40px] w-full max-w-4xl max-h-[90vh] overflow-hidden flex flex-col shadow-2xl"
-        style={{ animation: 'modalIn 0.25s ease' }}
-        onClick={e => e.stopPropagation()}
-      >
-        {/* ── Modal Header ── */}
-        <div className="flex items-center justify-between p-8 border-b border-slate-100 shrink-0">
-          <div className="flex items-center gap-4">
-            <div className="w-12 h-12 rounded-2xl bg-slate-100 overflow-hidden flex items-center justify-center font-black text-slate-600 text-sm border-2 border-white shadow-sm">
-              {empImg
-                ? <img src={empImg} alt={empName} className="w-full h-full object-cover" />
-                : empName.charAt(0)}
-            </div>
-            <div>
-              <h2 className="text-xl font-black text-[#1e293b]">{empName}</h2>
-              <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest">
-                {empCode} · {empDept} · {report.date}
-              </p>
-            </div>
-          </div>
-
-          <div className="flex items-center gap-3">
-            <span className={`px-4 py-1.5 rounded-full text-[9px] font-black uppercase tracking-widest ${
-              report.status === 'Completed' ? 'bg-emerald-50 text-emerald-600' :
-              report.status === 'Submitted' ? 'bg-blue-50 text-blue-600' :
-              'bg-orange-50 text-orange-600'
-            }`}>
-              {report.status}
-            </span>
-            <button
-              onClick={onClose}
-              className="p-2.5 rounded-xl bg-slate-100 text-slate-500 hover:bg-slate-200 transition-all"
-            >
-              <X size={18} />
-            </button>
-          </div>
-        </div>
-
-        {/* ── Modal Body ── */}
-        <div className="overflow-y-auto flex-1">
-          {modalLoading ? (
-            /* Skeleton loader */
-            <div className="p-8 space-y-4">
-              {[...Array(5)].map((_, i) => (
-                <div key={i} className="flex gap-4 animate-pulse">
-                  <div className="w-28 h-10 bg-slate-100 rounded-xl shrink-0" />
-                  {[...Array(7)].map((_, j) => (
-                    <div key={j} className="flex-1 h-10 bg-slate-50 rounded-xl" />
-                  ))}
-                </div>
-              ))}
-            </div>
-          ) : (
-            <>
-              {/* ── Timesheet Grid ── */}
-              <div className="overflow-x-auto">
-                <table className="w-full border-collapse">
-                  <thead>
-                    <tr className="bg-slate-50/70 border-b border-slate-100">
-                      <th className="px-6 py-4 text-left text-[10px] font-black text-slate-400 uppercase tracking-widest sticky left-0 bg-slate-50/70 z-10 whitespace-nowrap">
-                        Time Slot
-                      </th>
-                      <th className="px-6 py-4 text-left text-[10px] font-black text-slate-400 uppercase tracking-widest">
-                        Task / Work Done
-                      </th>
-                    </tr>
-                  </thead>
-                  <tbody className="divide-y divide-slate-50">
-                    {TIME_SLOTS.map((slot, idx) => {
-                      const task = modalData?.taskMap?.[slot] || '';
-                      const isEmpty = !task.trim();
-                      return (
-                        <tr
-                          key={slot}
-                          className={`transition-colors ${isEmpty ? '' : 'bg-blue-50/20'}`}
-                        >
-                          <td className="px-6 py-4 sticky left-0 bg-white z-10">
-                            <span className="flex items-center gap-2 text-xs font-black text-slate-600 whitespace-nowrap">
-                              <Clock size={13} className="text-slate-400" />
-                              {slot}
-                            </span>
-                          </td>
-                          <td className="px-6 py-4">
-                            {isEmpty ? (
-                              <span className="text-slate-300 text-xs font-bold italic">— Not filled —</span>
-                            ) : (
-                              <div className="flex items-start gap-2">
-                                <CheckCircle2 size={14} className="text-emerald-500 mt-0.5 shrink-0" />
-                                <span className="text-sm font-medium text-[#1e293b] leading-relaxed">{task}</span>
-                              </div>
-                            )}
-                          </td>
-                        </tr>
-                      );
-                    })}
-                  </tbody>
-                </table>
-              </div>
-
-              {/* ── Remarks Section ── */}
-              {(dailyRemarks || weeklyRemarks) && (
-                <div className="mx-8 my-6 space-y-4">
-                  {dailyRemarks && (
-                    <div className="p-6 bg-amber-50/60 border border-amber-100 rounded-[24px]">
-                      <div className="flex items-center gap-2 mb-3">
-                        <MessageSquare size={14} className="text-amber-500" />
-                        <p className="text-[10px] font-black text-amber-600 uppercase tracking-widest">Daily Remarks</p>
-                      </div>
-                      <p className="text-sm font-medium text-slate-700 leading-relaxed">{dailyRemarks}</p>
-                    </div>
-                  )}
-                  {weeklyRemarks && (
-                    <div className="p-6 bg-blue-50/60 border border-blue-100 rounded-[24px]">
-                      <div className="flex items-center gap-2 mb-3">
-                        <MessageSquare size={14} className="text-blue-500" />
-                        <p className="text-[10px] font-black text-blue-600 uppercase tracking-widest">Weekly Remarks</p>
-                      </div>
-                      <p className="text-sm font-medium text-slate-700 leading-relaxed">{weeklyRemarks}</p>
-                    </div>
-                  )}
-                </div>
-              )}
-
-              {/* ── Work Hours Summary ── */}
-              <div className="mx-8 mb-8 grid grid-cols-2 md:grid-cols-4 gap-4">
-                {[
-                  { label: 'Login Time',   value: report.loginTime  || '—', color: 'bg-blue-50 text-blue-600' },
-                  { label: 'Logout Time',  value: report.logoutTime || '—', color: 'bg-emerald-50 text-emerald-600' },
-                  { label: 'Work Hours',   value: report.totalHours || '0h 0m', color: 'bg-violet-50 text-violet-600' },
-                  { label: 'Overtime',     value: report.overtime   || '0h 0m', color: 'bg-orange-50 text-orange-600' },
-                ].map(item => (
-                  <div key={item.label} className={`${item.color} rounded-[20px] p-5 flex flex-col gap-1`}>
-                    <p className="text-[9px] font-black uppercase tracking-widest opacity-70">{item.label}</p>
-                    <p className="text-lg font-black">{item.value}</p>
-                  </div>
-                ))}
-              </div>
-
-              {/* empty state when no tasks at all */}
-              {Object.keys(taskMap).length === 0 && (
-                <div className="flex flex-col items-center gap-3 py-10 opacity-30">
-                  <AlertCircle size={40} />
-                  <p className="text-sm font-bold">No task entries found for this date.</p>
-                </div>
-              )}
-            </>
-          )}
-        </div>
-
-        {/* ── Modal Footer ── */}
-        <div className="p-6 border-t border-slate-100 flex justify-end shrink-0">
-          <button
-            onClick={onClose}
-            className="px-8 py-3 bg-[#1e293b] text-white rounded-2xl text-xs font-black uppercase tracking-widest hover:bg-slate-700 transition-all active:scale-95"
-          >
-            Close
-          </button>
-        </div>
-      </div>
-
-      <style>{`
-        @keyframes modalIn {
-          from { opacity: 0; transform: scale(0.95) translateY(10px); }
-          to   { opacity: 1; transform: scale(1)    translateY(0);    }
-        }
-      `}</style>
-    </div>
-  );
-};
 
 /* ── Main Page ───────────────────────────────────────────────────────────────── */
 const AdminHourlyReports = () => {
@@ -393,7 +174,14 @@ const AdminHourlyReports = () => {
   };
 
   return (
-    <AdminLayout title="Hourly Reports" subtitle="View and download hourly work reports.">
+    <AdminLayout title="Hourly Reports" subtitle={selectedReport ? "Weekly Timesheet Details" : "View and download hourly work reports."}>
+      {selectedReport ? (
+        <AdminWeeklyTimesheet 
+          employee={typeof selectedReport.employeeId === 'object' ? selectedReport.employeeId : { _id: selectedReport.employeeId, fullName: selectedReport.employeeName, department: selectedReport.department }} 
+          initialTimesheet={selectedReport}
+          onBack={() => setSelectedReport(null)} 
+        />
+      ) : (
       <div className="space-y-8 pb-20">
         
         {/* Top Header Actions */}
@@ -750,13 +538,6 @@ const AdminHourlyReports = () => {
         </div>
 
       </div>
-
-      {/* ── Timesheet Detail Modal ── */}
-      {selectedReport && (
-        <TimesheetModal
-          report={selectedReport}
-          onClose={() => setSelectedReport(null)}
-        />
       )}
     </AdminLayout>
   );

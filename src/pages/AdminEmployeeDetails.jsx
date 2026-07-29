@@ -70,7 +70,6 @@ const AdminEmployeeDetails = () => {
   const [attendanceRecords, setAttendanceRecords] = useState([]);
   const [editingCheckIn, setEditingCheckIn] = useState({ date: null, time: '' });
   const [editingCheckOut, setEditingCheckOut] = useState({ date: null, time: '' });
-  const [editingCheckOut, setEditingCheckOut] = useState({ date: null, time: '' });
   const [leaveRecords, setLeaveRecords] = useState([]);
   const [holidays, setHolidays] = useState([]);
 
@@ -78,6 +77,7 @@ const AdminEmployeeDetails = () => {
   const [loginLogs, setLoginLogs] = useState([]);
   const [timesheets, setTimesheets] = useState([]);
   const [showWeeklyDetail, setShowWeeklyDetail] = useState(false);
+  const [selectedTimesheet, setSelectedTimesheet] = useState(null);
   const [employeeNotes, setEmployeeNotes] = useState([]);
   const [notesLoading, setNotesLoading] = useState(false);
 
@@ -1532,7 +1532,10 @@ const AdminEmployeeDetails = () => {
                                   </td>
                                   <td className="px-10 py-5">
                                      <button 
-                                       onClick={() => setShowWeeklyDetail(true)}
+                                       onClick={() => {
+                                         setSelectedTimesheet(report);
+                                         setShowWeeklyDetail(true);
+                                       }}
                                        className="p-2 text-slate-300 hover:text-primary transition-colors"
                                      >
                                        <Eye size={16} />
@@ -1553,7 +1556,8 @@ const AdminEmployeeDetails = () => {
            ) : (
              <AdminWeeklyTimesheet 
                employee={employee} 
-               onBack={() => setShowWeeklyDetail(false)} 
+               onBack={() => { setShowWeeklyDetail(false); setSelectedTimesheet(null); }}
+               initialTimesheet={selectedTimesheet}
              />
            )}
         </div>
