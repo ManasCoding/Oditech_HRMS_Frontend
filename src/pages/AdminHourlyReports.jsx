@@ -9,8 +9,11 @@ import {
 import { 
   PieChart as RePieChart, Pie, Cell, ResponsiveContainer, Tooltip 
 } from 'recharts';
+import { io } from 'socket.io-client';
 import api from '../services/api';
 import CustomDropdown from '../components/CustomDropdown';
+
+const SOCKET_URL = (import.meta.env.VITE_API_BASE_URL || 'https://oditech-hrms-backend-2.onrender.com/api').replace('/api', '');
 
 const COLORS = ['#3b82f6', '#10b981', '#a855f7', '#f43f5e', '#f59e0b', '#64748b'];
 
@@ -52,18 +55,35 @@ const TimesheetModal = ({ report, onClose }) => {
         const employeeId = report.employeeId?._id || report.employeeId;
         const res = await api.get(`/admin/tasks/${employeeId}?date=${report.date}`);
         if (res.data.success) {
-          // Build a lookup: slotKey → title
           const taskMap = {};
           res.data.tasks.forEach(t => { taskMap[t.slotKey] = t.title; });
           setModalData({ taskMap, attendance: res.data.attendance, employee: res.data.employee });
         }
       } catch (err) {
-        console.error('Error loading timesheet detail:', err);
+        console.error('Error fetching detail:', err);
       } finally {
         setModalLoading(false);
       }
     };
+    
     fetchDetail();
+
+    const socket = io(SOCKET_URL);
+    socket.on('timesheetUpdated', (data) => {
+      const employeeId = report.employeeId?._id || report.employeeId;
+      if (data.employeeId === employeeId && data.dates.includes(report.date)) {
+        // Silently re-fetch without showing loading overlay to avoid flicker
+        api.get(`/admin/tasks/${employeeId}?date=${report.date}`).then(res => {
+          if (res.data.success) {
+            const taskMap = {};
+            res.data.tasks.forEach(t => { taskMap[t.slotKey] = t.title; });
+            setModalData({ taskMap, attendance: res.data.attendance, employee: res.data.employee });
+          }
+        });
+      }
+    });
+
+    return () => socket.disconnect();
   }, [report]);
 
   if (!report) return null;
@@ -270,10 +290,6 @@ const AdminHourlyReports = () => {
     fetchDepartments();
   }, []);
 
-  useEffect(() => {
-    fetchReports();
-  }, [filters.date, filters.department, filters.employeeId, filters.status, filters.page]);
-
   const fetchDepartments = async () => {
     try {
       const res = await api.get('/admin/employees');
@@ -286,8 +302,8 @@ const AdminHourlyReports = () => {
     }
   };
 
-  const fetchReports = async () => {
-    setLoading(true);
+  const fetchReports = useCallback(async (showLoader = true) => {
+    if (showLoader) setLoading(true);
     try {
       const params = new URLSearchParams(filters);
       if (search) params.append('search', search);
@@ -298,9 +314,23 @@ const AdminHourlyReports = () => {
     } catch (err) {
       console.error('Error fetching reports:', err);
     } finally {
-      setLoading(false);
+      if (showLoader) setLoading(false);
     }
-  };
+  }, [filters, search]);
+
+  useEffect(() => {
+    fetchReports();
+  }, [fetchReports]);
+
+  useEffect(() => {
+    const socket = io(SOCKET_URL);
+    socket.on('timesheetUpdated', (eventData) => {
+      if (eventData.dates.includes(filters.date)) {
+        fetchReports(false); // Silently re-fetch without loader
+      }
+    });
+    return () => socket.disconnect();
+  }, [filters.date, fetchReports]);
 
   const handleFilterChange = (e) => {
     setFilters({ ...filters, [e.target.name]: e.target.value, page: 1 });

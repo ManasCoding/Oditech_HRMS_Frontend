@@ -8,8 +8,11 @@ import {
 import { 
   LineChart, Line, BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Cell 
 } from 'recharts';
+import { io } from 'socket.io-client';
 import api from '../services/api';
 import CustomDropdown from '../components/CustomDropdown';
+
+const SOCKET_URL = (import.meta.env.VITE_API_BASE_URL || 'https://oditech-hrms-backend-2.onrender.com/api').replace('/api', '');
 
 const StatCard = ({ label, value, percentage, topBorderClass, isActive, onClick }) => (
   <div 
@@ -76,9 +79,33 @@ const AdminAttendance = () => {
     fetchDepartments();
   }, []);
 
+  const fetchStats = useCallback(async (showLoader = true) => {
+    if (showLoader) setLoading(true);
+    try {
+      const res = await api.get(`/admin/attendance/all?date=${filters.date}`);
+      if (res.data.success) {
+        setRawRecords(res.data.records || []);
+      }
+    } catch (err) {
+      console.error('Error fetching stats and reports:', err);
+    } finally {
+      if (showLoader) setLoading(false);
+    }
+  }, [filters.date]);
+
   useEffect(() => {
     fetchStats();
-  }, [filters.date]);
+  }, [fetchStats]);
+
+  useEffect(() => {
+    const socket = io(SOCKET_URL);
+    socket.on('timesheetUpdated', (data) => {
+      if (data.dates.includes(filters.date)) {
+        fetchStats(false);
+      }
+    });
+    return () => socket.disconnect();
+  }, [filters.date, fetchStats]);
 
   useEffect(() => {
     if (!rawRecords.length) {
@@ -139,19 +166,6 @@ const AdminAttendance = () => {
     }
   };
 
-  const fetchStats = async () => {
-    setLoading(true);
-    try {
-      const res = await api.get(`/admin/attendance/all?date=${filters.date}`);
-      if (res.data.success) {
-        setRawRecords(res.data.records || []);
-      }
-    } catch (err) {
-      console.error('Error fetching stats and reports:', err);
-    } finally {
-      setLoading(false);
-    }
-  };
 
   const handleFilterChange = (e) => {
     setFilters({ ...filters, [e.target.name]: e.target.value, page: 1 });

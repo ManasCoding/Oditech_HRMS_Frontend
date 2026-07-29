@@ -20,6 +20,7 @@ const EmployeeSchedule = ({ embedded = false, onBack }) => {
   const [selectedDate, setSelectedDate] = useState(new Date());
   const [weekDates, setWeekDates] = useState([]);
   const [currentTime, setCurrentTime] = useState(new Date());
+  const [isAutoSaving, setIsAutoSaving] = useState(false);
 
   useEffect(() => {
     const timer = setInterval(() => setCurrentTime(new Date()), 1000);
@@ -137,35 +138,37 @@ const EmployeeSchedule = ({ embedded = false, onBack }) => {
     }));
   };
 
-  const handleSubmit = async () => {
-    setSubmitting(true);
+  const handleAutoSave = async () => {
+    setIsAutoSaving(true);
     try {
       const tasksToSubmit = [];
       Object.entries(weekTasks).forEach(([key, title]) => {
         if (title.trim()) {
           const [date, slotKey] = key.split('_');
-          tasksToSubmit.push({
-            date,
-            slotKey,
-            title,
-            status: 'Completed'
-          });
+          tasksToSubmit.push({ date, slotKey, title, status: 'Completed' });
         }
       });
 
-      const res = await api.post('/employee/tasks/bulk', {
+      await api.post('/employee/tasks/bulk', {
         employeeId: user.id,
         tasks: tasksToSubmit,
         dates: weekDates,
         dailyRemarks,
         weeklyRemarks: weekRemarks
       });
-
-      if (res.data.success) {
-        alert('Timesheet submitted successfully');
-      }
     } catch (err) {
-      console.error('Error submitting timesheet:', err);
+      console.error('Error auto-saving timesheet:', err);
+    } finally {
+      setTimeout(() => setIsAutoSaving(false), 1000);
+    }
+  };
+
+  const handleSubmit = async () => {
+    setSubmitting(true);
+    try {
+      await handleAutoSave();
+      alert('Timesheet submitted successfully');
+    } catch (err) {
       alert('Failed to submit timesheet');
     } finally {
       setSubmitting(false);
@@ -202,8 +205,15 @@ const EmployeeSchedule = ({ embedded = false, onBack }) => {
               <ChevronRight size={12} />
               <span className="text-blue-500">New Timesheet</span>
            </nav>
-           <h2 className="text-3xl font-black text-[#1e293b]">Hourly Report - Daily Timesheet</h2>
-           <p className="text-slate-400 text-sm font-medium">Fill your work hours and tasks for the day</p>
+           <h2 className="text-3xl font-black text-[#1e293b] flex items-center gap-3">
+             Hourly Report - Daily Timesheet
+             {isAutoSaving && (
+               <span className="text-xs font-semibold text-slate-400 flex items-center gap-1.5 bg-slate-100 px-2.5 py-1 rounded-md ml-2">
+                 <Loader2 size={12} className="animate-spin" /> Auto-saving...
+               </span>
+             )}
+           </h2>
+           <p className="text-slate-400 text-sm font-medium">Fill your work hours and tasks for the day (Auto-saves as you type)</p>
          </div>
 
          <div className="flex items-center gap-4">
@@ -271,6 +281,7 @@ const EmployeeSchedule = ({ embedded = false, onBack }) => {
                                type="text"
                                value={weekTasks[`${date}_${slot}`] || ''}
                                onChange={(e) => handleInputChange(date, slot, e.target.value)}
+                               onBlur={handleAutoSave}
                                placeholder={slotState.status === 'FUTURE' ? "Not available" : "-"}
                                disabled={isLocked}
                                className={`w-full px-4 py-3.5 border rounded-xl text-xs font-medium text-[#1e293b] outline-none transition-all
@@ -319,6 +330,7 @@ const EmployeeSchedule = ({ embedded = false, onBack }) => {
                             <textarea 
                               value={dailyRemarks[date] || ''}
                               onChange={(e) => setDailyRemarks(prev => ({ ...prev, [date]: e.target.value }))}
+                              onBlur={handleAutoSave}
                               placeholder={remarksState === 'FUTURE' ? "Not available" : "Daily notes..."}
                               disabled={isLocked}
                               rows="2"
@@ -357,6 +369,7 @@ const EmployeeSchedule = ({ embedded = false, onBack }) => {
               <textarea 
                  value={weekRemarks}
                  onChange={(e) => setWeekRemarks(e.target.value)}
+                 onBlur={handleAutoSave}
                  placeholder="Overall productive week. Completed major tasks and updated reports."
                  rows="3"
                  className="w-full p-6 bg-white border border-slate-100 rounded-[24px] text-sm font-medium text-[#1e293b] outline-none shadow-sm focus:ring-4 focus:ring-blue-500/5 transition-all resize-none"
