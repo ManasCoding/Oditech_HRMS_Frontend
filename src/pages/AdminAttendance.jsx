@@ -76,11 +76,6 @@ const AdminAttendance = () => {
   const [allEmployees, setAllEmployees] = useState([]);
   const [rawRecords, setRawRecords] = useState([]);
 
-  useEffect(() => {
-    fetchDepartments();
-    fetchHolidays();
-  }, []);
-
   const fetchHolidays = async () => {
     try {
       const res = await api.get('/holidays');
@@ -91,6 +86,24 @@ const AdminAttendance = () => {
       console.error('Error fetching holidays:', err);
     }
   };
+
+  const fetchDepartments = async () => {
+    try {
+      const res = await api.get('/admin/employees');
+      if (res.data.success) {
+        setAllEmployees(res.data.employees || []);
+        const uniqueDepts = [...new Set(res.data.employees.map(e => e.department).filter(Boolean))];
+        setDepartments(['All Departments', ...uniqueDepts]);
+      }
+    } catch (err) {
+      console.error('Error fetching departments:', err);
+    }
+  };
+
+  useEffect(() => {
+    fetchDepartments();
+    fetchHolidays();
+  }, []);
 
   const fetchStats = useCallback(async (showLoader = true) => {
     if (showLoader) setLoading(true);
@@ -191,20 +204,7 @@ const AdminAttendance = () => {
       reports: gridRecords,
       totalEntries: gridRecords.length
     });
-  }, [rawRecords, allEmployees, filters.department, search]);
-
-  const fetchDepartments = async () => {
-    try {
-      const res = await api.get('/admin/employees');
-      if (res.data.success) {
-        setAllEmployees(res.data.employees || []);
-        const uniqueDepts = [...new Set(res.data.employees.map(e => e.department).filter(Boolean))];
-        setDepartments(['All Departments', ...uniqueDepts]);
-      }
-    } catch (err) {
-      console.error('Error fetching departments:', err);
-    }
-  };
+  }, [rawRecords, allEmployees, filters.department, search, filters.date, holidays]);
 
 
   const handleFilterChange = (e) => {
