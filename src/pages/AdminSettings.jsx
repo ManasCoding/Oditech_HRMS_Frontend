@@ -18,6 +18,8 @@ import {
 } from 'lucide-react';
 
 import api from '../services/api';
+import PublishAnnouncement from '../components/PublishAnnouncement';
+import ActiveAnnouncements from '../components/ActiveAnnouncements';
 
 const SettingCard = ({ label, value, name, onChange, colorClass = "bg-slate-50", type = "text", suffix = "" }) => (
   <div className={`bg-white p-6 rounded-[32px] border border-slate-100 shadow-sm flex flex-col items-center text-center group transition-all hover:shadow-md relative overflow-hidden`}>
@@ -297,84 +299,9 @@ const AdminSettings = () => {
         </div>
 
         {/* Notifications & Announcements */}
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-10 pt-6">
-           {/* Add Notice */}
-           <div className="bg-white rounded-[48px] border border-slate-100 shadow-sm p-10 relative overflow-hidden">
-              <div className="absolute top-0 left-0 w-2 h-full bg-violet-500"></div>
-              <div className="flex items-center gap-4 mb-8">
-                 <div className="w-14 h-14 bg-violet-50 text-violet-600 rounded-[20px] flex items-center justify-center">
-                    <Bell size={28} />
-                 </div>
-                 <div>
-                    <h3 className="text-2xl font-black text-[#1e293b]">Publish Notice</h3>
-                    <p className="text-slate-400 text-xs font-medium">Post a festival or official holiday notice.</p>
-                 </div>
-              </div>
-
-              <form className="space-y-6">
-                <div className="space-y-2">
-                  <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">Title</label>
-                  <input type="text" placeholder="Festival Holiday Notice" className="w-full p-4 bg-slate-50/50 border border-slate-100 rounded-2xl focus:outline-none focus:ring-4 focus:ring-violet-50 transition-all font-black text-[#1e293b] placeholder:text-slate-300" />
-                </div>
-                <div className="grid grid-cols-2 gap-6">
-                  <div className="space-y-2">
-                    <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">Valid Until</label>
-                    <input type="date" className="w-full p-4 bg-slate-50/50 border border-slate-100 rounded-2xl focus:outline-none focus:ring-4 focus:ring-violet-50 transition-all font-black text-[#1e293b]" />
-                  </div>
-                  <div className="space-y-2">
-                    <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">Priority</label>
-                    <select className="w-full p-4 bg-slate-50/50 border border-slate-100 rounded-2xl focus:outline-none focus:ring-4 focus:ring-violet-50 transition-all font-black text-[#1e293b]">
-                      <option>Normal</option>
-                      <option>Urgent</option>
-                      <option>Holiday</option>
-                    </select>
-                  </div>
-                </div>
-                <div className="space-y-2">
-                  <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">Message</label>
-                  <textarea rows="3" placeholder="Description of the notice..." className="w-full p-4 bg-slate-50/50 border border-slate-100 rounded-2xl focus:outline-none focus:ring-4 focus:ring-violet-50 transition-all font-medium text-[#1e293b] resize-none"></textarea>
-                </div>
-                <button className="w-full py-5 bg-violet-600 text-white rounded-[24px] font-black text-xs uppercase tracking-[0.2em] shadow-xl shadow-violet-100 hover:scale-[1.02] active:scale-95 transition-all">
-                  Publish Announcement
-                </button>
-              </form>
-           </div>
-
-           {/* Active Notices */}
-           <div className="space-y-6">
-              <h3 className="text-xl font-black text-[#1e293b] px-4 flex items-center gap-3">
-                <div className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse"></div>
-                Active Announcements
-              </h3>
-              
-              <div className="space-y-4 max-h-[600px] overflow-y-auto pr-2 custom-scrollbar">
-                {[
-                  { title: 'Ram Navami Holiday', date: '27 Mar 2026', msg: 'The office will remain closed for the festival.', priority: 'Holiday' },
-                  { title: 'Annual Maintenance', date: '02 Apr 2026', msg: 'System will be offline for 2 hours.', priority: 'Urgent' },
-                ].map((notice, idx) => (
-                  <div key={idx} className="bg-white p-6 rounded-[32px] border border-slate-100 shadow-sm relative group hover:border-violet-100 transition-all">
-                    <div className="flex justify-between items-start mb-3">
-                      <div>
-                        <h4 className="text-lg font-black text-[#1e293b] mb-1">{notice.title}</h4>
-                        <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest">{notice.date}</p>
-                      </div>
-                      <span className={`px-3 py-1 rounded-lg text-[9px] font-black uppercase tracking-widest ${notice.priority === 'Urgent' ? 'bg-rose-50 text-rose-600' : 'bg-emerald-50 text-emerald-600'}`}>
-                        {notice.priority}
-                      </span>
-                    </div>
-                    <p className="text-sm text-slate-500 font-medium leading-relaxed mb-4">{notice.msg}</p>
-                    <div className="flex justify-end gap-2 opacity-0 group-hover:opacity-100 transition-all">
-                       <button className="p-2 text-slate-400 hover:text-rose-500 hover:bg-rose-50 rounded-lg transition-all">
-                         <Trash2 size={16} />
-                       </button>
-                       <button className="p-2 text-slate-400 hover:text-violet-500 hover:bg-violet-50 rounded-lg transition-all">
-                         <Archive size={16} />
-                       </button>
-                    </div>
-                  </div>
-                ))}
-              </div>
-           </div>
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 pt-6">
+          <PublishAnnouncement />
+          <ActiveAnnouncements />
         </div>
 
         {/* Administrator Access Control */}

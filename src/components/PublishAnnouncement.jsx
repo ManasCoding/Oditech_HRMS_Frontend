@@ -1,6 +1,9 @@
-import React, { useState } from 'react';
-import { Send, Megaphone, CheckCircle2, X } from 'lucide-react';
+import React, { useState, useEffect } from 'react';
+import { Send, Megaphone, CheckCircle2, X, Users, Mail } from 'lucide-react';
 import api from '../services/api';
+import { io } from 'socket.io-client';
+
+const SOCKET_URL = (import.meta.env.VITE_API_BASE_URL || 'https://oditech-hrms-backend-2.onrender.com/api').replace('/api', '');
 
 const PublishAnnouncement = () => {
   const [form, setForm] = useState({
@@ -11,6 +14,15 @@ const PublishAnnouncement = () => {
   });
   const [loading, setLoading] = useState(false);
   const [toast, setToast] = useState({ show: false, message: '', type: 'success' });
+  const [summary, setSummary] = useState(null);
+
+  useEffect(() => {
+    const socket = io(SOCKET_URL);
+    socket.on('notificationSummary', (data) => {
+      setSummary(data);
+    });
+    return () => socket.disconnect();
+  }, []);
 
   const showToast = (message, type = 'success') => {
     setToast({ show: true, message, type });
@@ -49,6 +61,49 @@ const PublishAnnouncement = () => {
         }`}>
           {toast.type === 'success' ? <CheckCircle2 size={18} /> : <X size={18} />}
           {toast.message}
+        </div>
+      )}
+
+      {/* Summary Modal */}
+      {summary && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/50 backdrop-blur-sm p-4">
+          <div className="bg-white rounded-[32px] p-8 max-w-sm w-full shadow-2xl relative animate-in zoom-in-95">
+            <button onClick={() => setSummary(null)} className="absolute top-6 right-6 p-2 text-slate-400 hover:text-rose-500 hover:bg-rose-50 rounded-xl transition-all">
+              <X size={20} />
+            </button>
+            <div className="w-16 h-16 bg-emerald-50 text-emerald-500 rounded-full flex items-center justify-center mb-6 mx-auto border-4 border-emerald-100">
+              <CheckCircle2 size={32} />
+            </div>
+            <h3 className="text-xl font-black text-center text-[#1e293b] mb-1">{summary.title}</h3>
+            <p className="text-xs text-center text-slate-400 font-bold mb-8">Notification dispatch completed</p>
+            
+            <div className="space-y-4">
+              <div className="flex items-center justify-between p-3 bg-slate-50 rounded-2xl border border-slate-100">
+                <div className="flex items-center gap-3 text-slate-600 font-bold text-sm">
+                  <div className="p-2 bg-white rounded-lg shadow-sm text-blue-500"><Users size={16} /></div>
+                  Total Employees
+                </div>
+                <span className="font-black text-[#1e293b]">{summary.stats.total}</span>
+              </div>
+              <div className="flex items-center justify-between p-3 bg-emerald-50/50 rounded-2xl border border-emerald-100/50">
+                <div className="flex items-center gap-3 text-emerald-700 font-bold text-sm">
+                  <div className="p-2 bg-white rounded-lg shadow-sm text-emerald-500"><Mail size={16} /></div>
+                  Emails Sent
+                </div>
+                <span className="font-black text-emerald-700">{summary.stats.emailsSent}</span>
+              </div>
+              {summary.stats.failedEmails > 0 && (
+                <div className="p-4 bg-rose-50 rounded-2xl border border-rose-100">
+                  <p className="text-xs font-black text-rose-600 uppercase tracking-wider mb-1">Failed Deliveries</p>
+                  <p className="text-sm font-bold text-rose-700">Emails: {summary.stats.failedEmails}</p>
+                </div>
+              )}
+            </div>
+            
+            <button onClick={() => setSummary(null)} className="w-full mt-8 py-4 bg-[#1e293b] text-white rounded-xl text-xs font-black uppercase tracking-widest hover:bg-slate-800 transition-all active:scale-95 shadow-lg shadow-slate-900/20">
+              Close Summary
+            </button>
+          </div>
         </div>
       )}
 

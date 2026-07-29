@@ -5,8 +5,7 @@ import api from '../services/api';
 import { 
   Users, Search, Filter, Briefcase, ArrowLeft, ChevronLeft, ChevronRight
 } from 'lucide-react';
-import PublishAnnouncement from '../components/PublishAnnouncement';
-import ActiveAnnouncements from '../components/ActiveAnnouncements';
+
 
 const StatCard = ({ label, value, percentage, color, isActive, onClick }) => (
   <button 
@@ -128,12 +127,6 @@ const AdminDashboard = () => {
               />
             ))}
           </div>
-        </div>
-
-        {/* Announcements Section */}
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
-          <PublishAnnouncement />
-          <ActiveAnnouncements />
         </div>
 
         {/* Dynamic Detail List - MATCHING SCREENSHOT EXACTLY */}
