@@ -34,6 +34,9 @@ import {
 import { PieChart, Pie, Cell, ResponsiveContainer } from 'recharts';
 import AdminWeeklyTimesheet from '../components/AdminWeeklyTimesheet';
 import api from '../services/api';
+import { io } from 'socket.io-client';
+
+const SOCKET_URL = (import.meta.env.VITE_API_BASE_URL || 'https://oditech-hrms-backend-2.onrender.com/api').replace('/api', '');
 
 const AdminEmployeeDetails = () => {
   const { id } = useParams();
@@ -67,11 +70,13 @@ const AdminEmployeeDetails = () => {
   const [attendanceRecords, setAttendanceRecords] = useState([]);
   const [editingCheckIn, setEditingCheckIn] = useState({ date: null, time: '' });
   const [editingCheckOut, setEditingCheckOut] = useState({ date: null, time: '' });
+  const [editingCheckOut, setEditingCheckOut] = useState({ date: null, time: '' });
   const [leaveRecords, setLeaveRecords] = useState([]);
+  const [holidays, setHolidays] = useState([]);
 
   const [documents, setDocuments] = useState([]);
   const [loginLogs, setLoginLogs] = useState([]);
-  const [hourlyReports, setHourlyReports] = useState([]);
+  const [timesheets, setTimesheets] = useState([]);
   const [showWeeklyDetail, setShowWeeklyDetail] = useState(false);
   const [employeeNotes, setEmployeeNotes] = useState([]);
   const [notesLoading, setNotesLoading] = useState(false);
@@ -122,13 +127,14 @@ const AdminEmployeeDetails = () => {
   const fetchRealStats = async () => {
     try {
       const m = currentMonth + 1;
-      const [statsRes, logsRes, leavesRes, docsRes, activityRes, hourlyRes] = await Promise.all([
+      const [statsRes, logsRes, leavesRes, docsRes, activityRes, timesheetsRes, holidaysRes] = await Promise.all([
         api.get(`/employee/stats/${id}?month=${m}&year=${currentYear}`),
         api.get(`/employee/attendance/log/${id}?month=${m}&year=${currentYear}`),
         api.get('/admin/leaves'),
         api.get(`/admin/documents/${id}`),
         api.get(`/admin/activity-logs/${id}`),
-        api.get(`/admin/reports/hourly/${id}?month=${m}&year=${currentYear}`)
+        api.get(`/timesheets/${id}?month=${m}&year=${currentYear}`),
+        api.get('/holidays')
       ]);
 
       if (statsRes.data.success) setAttendanceStats(statsRes.data.stats);
@@ -176,9 +182,17 @@ const AdminEmployeeDetails = () => {
 
              filledRecords.push({ ...existing, status: derivedStatus });
           } else {
+             const dateStr = currentDate.toISOString().split('T')[0];
+             const isHoliday = holidaysRes.data?.holidays?.find(h => h.holidayDate === dateStr);
+             const isWeekend = currentDate.getDay() === 0 || currentDate.getDay() === 6;
+             
+             let finalStatus = 'Absent';
+             if (isHoliday) finalStatus = 'Holiday';
+             else if (isWeekend) finalStatus = 'Weekend';
+
              filledRecords.push({
                date: currentDate.toISOString(),
-               status: currentDate.getDay() === 0 ? 'Weekend' : 'Absent',
+               status: finalStatus,
                checkIn: null,
                checkOut: null,
                workHours: '0h 0m'
@@ -192,9 +206,12 @@ const AdminEmployeeDetails = () => {
         const myLeaves = leavesRes.data.leaves.filter(l => l.employeeId?._id === id || l.employeeId === id);
         setLeaveRecords(myLeaves);
       }
+      if (holidaysRes.data?.success) {
+        setHolidays(holidaysRes.data.holidays || []);
+      }
       if (docsRes.data.success) setDocuments(docsRes.data.documents);
       if (activityRes.data.success) setLoginLogs(activityRes.data.logs);
-      if (hourlyRes.data.success) setHourlyReports(hourlyRes.data.reports);
+      if (timesheetsRes.data.success) setTimesheets(timesheetsRes.data.timesheets);
     } catch (err) {
       console.error('Error fetching real stats:', err);
     }
@@ -205,6 +222,16 @@ const AdminEmployeeDetails = () => {
       fetchEmployeeDetails();
       fetchRealStats();
     }
+    
+    const socket = io(SOCKET_URL);
+    socket.on('timesheetSubmitted', (data) => {
+      if (data.employeeId === id) fetchRealStats();
+    });
+    socket.on('timesheetUpdated', (data) => {
+      if (data.employeeId === id) fetchRealStats();
+    });
+    
+    return () => socket.disconnect();
   }, [id, currentMonth, currentYear]);
 
   useEffect(() => {
@@ -892,15 +919,16 @@ const AdminEmployeeDetails = () => {
                             {new Date(row.date).toLocaleDateString('en-US', { weekday: 'short' })}
                           </td>
                           <td className="px-10 py-1.5">
-                            <span className={`px-2 py-0.5 rounded-md text-[7px] font-black uppercase tracking-widest border ${
-                              row.status === 'Present' ? 'bg-emerald-50 text-emerald-600 border-emerald-100' : 
-                              row.status === 'Late' ? 'bg-orange-50 text-orange-600 border-orange-100' :
-                              row.status === 'Half Day' ? 'bg-sky-50 text-sky-600 border-sky-100' :
-                              row.status === 'Weekend' ? 'bg-slate-50 text-slate-500 border-slate-200' :
-                              'bg-rose-50 text-rose-600 border-rose-100'
-                            }`}>
-                              {row.status}
-                            </span>
+                            <span className={`px-2.5 py-1 rounded-md text-[10px] font-black uppercase tracking-widest ${
+                                row.status === 'Present' ? 'bg-emerald-50 text-emerald-600' : 
+                                row.status === 'Absent' ? 'bg-rose-50 text-rose-600' :
+                                row.status === 'Half Day' ? 'bg-sky-50 text-sky-600' :
+                                row.status === 'Late' ? 'bg-orange-50 text-orange-600' :
+                                row.status === 'Holiday' ? 'bg-pink-50 text-pink-600' :
+                                'bg-slate-100 text-slate-500'
+                              }`}>
+                                {row.status}
+                              </span>
                           </td>
                           <td className="px-10 py-1.5 text-[11px] font-black text-slate-700">
                             {editingCheckIn.date === row.date ? (
@@ -1118,13 +1146,27 @@ const AdminEmployeeDetails = () => {
                 ))}
                 {[...Array(30)].map((_, i) => {
                    const day = i + 1;
-                   const isCasual = [2, 3, 21].includes(day);
-                   const isSick = [10, 11].includes(day);
-                   const isAnnual = [15, 16, 17, 18, 19].includes(day);
+                   const dateStr = `${currentYear}-${String(currentMonth + 1).padStart(2, '0')}-${String(day).padStart(2, '0')}`;
+                   
+                   const isHoliday = holidays.some(h => h.holidayDate === dateStr);
+                   const leave = leaveRecords.find(l => {
+                     if (l.status !== 'Approved') return false;
+                     const start = new Date(l.startDate);
+                     const end = new Date(l.endDate);
+                     start.setHours(0,0,0,0);
+                     end.setHours(23,59,59,999);
+                     const dateObj = new Date(dateStr);
+                     return dateObj >= start && dateObj <= end;
+                   });
+                   
+                   const isCasual = leave?.type === 'Casual';
+                   const isSick = leave?.type === 'Sick';
+                   const isAnnual = leave?.type === 'Annual' || leave?.type === 'Other';
                    
                    return (
                      <div key={i} className="flex flex-col items-center">
                        <div className={`w-10 h-10 rounded-full flex items-center justify-center text-xs font-black transition-all ${
+                         isHoliday ? 'bg-pink-50 text-pink-600 border border-pink-100 shadow-sm' :
                          isCasual ? 'bg-violet-50 text-violet-600' : 
                          isSick ? 'bg-orange-50 text-orange-600' : 
                          isAnnual ? 'bg-rose-50 text-rose-600' : 
@@ -1148,6 +1190,10 @@ const AdminEmployeeDetails = () => {
                  <div className="flex items-center gap-2">
                     <div className="w-2.5 h-2.5 rounded-full bg-rose-500"></div>
                     <span className="text-[9px] font-black text-slate-500 uppercase tracking-widest">Annual Leave</span>
+                 </div>
+                 <div className="flex items-center gap-2">
+                    <div className="w-2.5 h-2.5 rounded-full bg-pink-500"></div>
+                    <span className="text-[9px] font-black text-slate-500 uppercase tracking-widest">Holiday</span>
                  </div>
               </div>
             </div>
@@ -1388,11 +1434,11 @@ const AdminEmployeeDetails = () => {
                  <div className="bg-white p-6 rounded-[32px] border border-border shadow-sm">
                     <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-1">Total Work Hours</p>
                     <h3 className="text-xl font-black text-slate-800">
-                      {Math.floor(hourlyReports.reduce((acc, r) => {
-                        const h = r.workHours?.match(/(\d+)h/);
+                      {Math.floor(timesheets.reduce((acc, r) => {
+                        const h = r.totalHours?.match(/(\d+)h/);
                         return acc + (h ? parseInt(h[1]) : 0);
-                      }, 0))}h {hourlyReports.reduce((acc, r) => {
-                        const m = r.workHours?.match(/(\d+)m/);
+                      }, 0))}h {timesheets.reduce((acc, r) => {
+                        const m = r.totalHours?.match(/(\d+)m/);
                         return acc + (m ? parseInt(m[1]) : 0);
                       }, 0) % 60}m
                     </h3>
@@ -1401,10 +1447,10 @@ const AdminEmployeeDetails = () => {
                  <div className="bg-white p-6 rounded-[32px] border border-border shadow-sm">
                     <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-1">Total Overtime</p>
                     <h3 className="text-xl font-black text-slate-800">
-                      {Math.floor(hourlyReports.reduce((acc, r) => {
+                      {Math.floor(timesheets.reduce((acc, r) => {
                         const h = r.overtime?.match(/(\d+)h/);
                         return acc + (h ? parseInt(h[1]) : 0);
-                      }, 0))}h {hourlyReports.reduce((acc, r) => {
+                      }, 0))}h {timesheets.reduce((acc, r) => {
                         const m = r.overtime?.match(/(\d+)m/);
                         return acc + (m ? parseInt(m[1]) : 0);
                       }, 0) % 60}m
@@ -1414,18 +1460,18 @@ const AdminEmployeeDetails = () => {
                  <div className="bg-white p-6 rounded-[32px] border border-border shadow-sm">
                     <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-1">Avg. Hours / Day</p>
                     <h3 className="text-xl font-black text-slate-800">
-                      {hourlyReports.length > 0 ? (
-                        Math.floor(hourlyReports.reduce((acc, r) => {
-                          const h = r.workHours?.match(/(\d+)h/);
-                          const m = r.workHours?.match(/(\d+)m/);
+                      {timesheets.length > 0 ? (
+                        Math.floor(timesheets.reduce((acc, r) => {
+                          const h = r.totalHours?.match(/(\d+)h/);
+                          const m = r.totalHours?.match(/(\d+)m/);
                           return acc + (h ? parseInt(h[1]) * 60 : 0) + (m ? parseInt(m[1]) : 0);
-                        }, 0) / hourlyReports.length / 60)
-                      ) : 0}h {hourlyReports.length > 0 ? (
-                        Math.floor(hourlyReports.reduce((acc, r) => {
-                          const h = r.workHours?.match(/(\d+)h/);
-                          const m = r.workHours?.match(/(\d+)m/);
+                        }, 0) / timesheets.length / 60)
+                      ) : 0}h {timesheets.length > 0 ? (
+                        Math.floor(timesheets.reduce((acc, r) => {
+                          const h = r.totalHours?.match(/(\d+)h/);
+                          const m = r.totalHours?.match(/(\d+)m/);
                           return acc + (h ? parseInt(h[1]) * 60 : 0) + (m ? parseInt(m[1]) : 0);
-                        }, 0) / hourlyReports.length) % 60
+                        }, 0) / timesheets.length) % 60
                       ) : 0}m
                     </h3>
                     <p className="text-[10px] font-bold text-slate-400 mt-1 uppercase tracking-widest">Efficiency Rate</p>
@@ -1459,27 +1505,29 @@ const AdminEmployeeDetails = () => {
                            </tr>
                         </thead>
                         <tbody className="divide-y divide-slate-50">
-                           {hourlyReports.length > 0 ? (
-                             hourlyReports.map((report, idx) => (
+                           {timesheets.length > 0 ? (
+                             timesheets.map((report, idx) => (
                                <tr key={idx} className="hover:bg-slate-50/30 transition-all">
                                   <td className="px-10 py-5">
                                      <p className="text-sm font-black text-slate-700">{report.date}</p>
                                   </td>
                                   <td className="px-10 py-5">
                                      <p className="text-[10px] font-bold text-slate-400 uppercase tracking-tight">
-                                        {report.checkIn ? new Date(report.checkIn).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) : '--'} - 
-                                        {report.checkOut ? new Date(report.checkOut).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) : '--'}
+                                        {report.loginTime || '--'} - 
+                                        {report.logoutTime || '--'}
                                      </p>
                                   </td>
                                   <td className="px-10 py-5">
-                                     <span className="text-sm font-black text-slate-700">{report.workHours || '0h 0m'}</span>
+                                     <span className="text-sm font-black text-slate-700">{report.totalHours || '0h 0m'}</span>
                                   </td>
                                   <td className="px-10 py-5 text-sm font-bold text-slate-400">{report.overtime || '0h 0m'}</td>
                                   <td className="px-10 py-5">
                                      <span className={`px-3 py-1 rounded-full text-[9px] font-black uppercase tracking-widest border ${
-                                       report.workStatus === 'Completed' ? 'bg-emerald-50 text-emerald-600 border-emerald-100' : 'bg-orange-50 text-orange-600 border-orange-100'
+                                       report.status === 'Completed' ? 'bg-emerald-50 text-emerald-600 border-emerald-100' :
+                                       report.status === 'Submitted' ? 'bg-blue-50 text-blue-600 border-blue-100' : 
+                                       'bg-orange-50 text-orange-600 border-orange-100'
                                      }`}>
-                                        {report.workStatus || 'Pending'}
+                                        {report.status || 'Pending'}
                                      </span>
                                   </td>
                                   <td className="px-10 py-5">

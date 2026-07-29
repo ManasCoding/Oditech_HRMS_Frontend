@@ -7,6 +7,8 @@ import {
   AlertCircle, ChevronRight, ChevronLeft, LayoutDashboard,
   ClipboardList, UserCheck, Bell, ArrowRight, PieChart
 } from 'lucide-react';
+import ActiveAnnouncements from '../components/ActiveAnnouncements';
+import AttendanceCalendar from '../components/AttendanceCalendar';
 
 const StatCard = ({ label, value, subValue, colorClass, bgClass, textClass, icon }) => (
   <div className={`bg-white rounded-2xl shadow-[0_8px_30px_rgb(0,0,0,0.04)] border border-slate-100 p-6 flex flex-col items-center justify-center border-t-4 ${colorClass} hover:-translate-y-1 transition-transform duration-300`}>
@@ -256,6 +258,12 @@ const EmployeeDashboard = () => {
             textClass="text-red-500"
             icon={<Clock size={24} strokeWidth={2.5} />}
           />
+        </div>
+
+        {/* Announcements & Calendar Grid */}
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+          <ActiveAnnouncements />
+          <AttendanceCalendar employeeId={employeeId} />
         </div>
 
         {/* Quick Links */}

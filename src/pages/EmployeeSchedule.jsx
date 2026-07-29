@@ -4,9 +4,12 @@ import { useParams, useNavigate, useLocation } from 'react-router-dom';
 import { 
   Send, Calendar, Download, FileSpreadsheet, 
   Trash2, Plus, CheckCircle2, AlertCircle, Loader2,
-  ChevronLeft, ChevronRight, Eraser, Printer, Clock, Lock
+  ChevronLeft, ChevronRight, Eraser, Printer, Clock, Lock, PieChart, CheckCircle, XCircle
 } from 'lucide-react';
 import api from '../services/api';
+import { io } from 'socket.io-client';
+
+const SOCKET_URL = (import.meta.env.VITE_API_BASE_URL || 'https://oditech-hrms-backend-2.onrender.com/api').replace('/api', '');
 
 const EmployeeSchedule = ({ embedded = false, onBack }) => {
   const { employeeSlug } = useParams();
@@ -21,6 +24,34 @@ const EmployeeSchedule = ({ embedded = false, onBack }) => {
   const [weekDates, setWeekDates] = useState([]);
   const [currentTime, setCurrentTime] = useState(new Date());
   const [isAutoSaving, setIsAutoSaving] = useState(false);
+  const [timesheets, setTimesheets] = useState([]);
+  const [toast, setToast] = useState(null);
+
+  const showToast = (msg, type = 'success') => {
+    setToast({ msg, type });
+    setTimeout(() => setToast(null), 3000);
+  };
+
+  const fetchTimesheets = async () => {
+    try {
+      const res = await api.get(`/timesheets/${user.id}?month=${selectedDate.getMonth() + 1}&year=${selectedDate.getFullYear()}`);
+      if (res.data.success) setTimesheets(res.data.timesheets);
+    } catch (err) {
+      console.error('Error fetching timesheets:', err);
+    }
+  };
+
+  useEffect(() => {
+    fetchTimesheets();
+    const socket = io(SOCKET_URL);
+    socket.on('timesheetSubmitted', (data) => {
+      if (data.employeeId === user.id) fetchTimesheets();
+    });
+    socket.on('timesheetUpdated', (data) => {
+      if (data.employeeId === user.id) fetchTimesheets();
+    });
+    return () => socket.disconnect();
+  }, [selectedDate, user.id]);
 
   useEffect(() => {
     const timer = setInterval(() => setCurrentTime(new Date()), 1000);
@@ -167,9 +198,54 @@ const EmployeeSchedule = ({ embedded = false, onBack }) => {
     setSubmitting(true);
     try {
       await handleAutoSave();
-      alert('Timesheet submitted successfully');
+      
+      const dateStr = selectedDate.toISOString().split('T')[0];
+      
+      // Calculate login/logout time based on tasks for the selected date
+      let loginTime = null;
+      let logoutTime = null;
+      const hourlyTasks = [];
+      
+      Object.entries(weekTasks).forEach(([key, title]) => {
+        if (title.trim()) {
+          const [tDate, slotKey] = key.split('_');
+          if (tDate === dateStr) {
+            hourlyTasks.push({ date: tDate, slotKey, title, status: 'Completed' });
+            const startStr = slotKey.split(' - ')[0].trim();
+            const endStr = slotKey.split(' - ')[1].trim();
+            
+            // simple conversion to AM/PM for logic
+            const formatAmPm = (time) => {
+              const [h, m] = time.split(':').map(Number);
+              const suffix = h >= 12 ? 'PM' : 'AM';
+              const hour12 = h > 12 ? h - 12 : (h === 0 ? 12 : h);
+              return `${hour12.toString().padStart(2, '0')}:${m.toString().padStart(2, '0')} ${suffix}`;
+            };
+
+            const startFormatted = formatAmPm(startStr);
+            const endFormatted = formatAmPm(endStr);
+            
+            if (!loginTime) loginTime = startFormatted;
+            logoutTime = endFormatted; // will end up being the last one
+          }
+        }
+      });
+      
+      await api.post('/timesheets/submit', {
+        employeeId: user.id,
+        date: dateStr,
+        weekStart: weekDates[0],
+        weekEnd: weekDates[6],
+        loginTime,
+        logoutTime,
+        hourlyTasks,
+        dailyRemarks: dailyRemarks[dateStr] || '',
+        weeklyRemarks: weekRemarks
+      });
+
+      showToast('Timesheet submitted successfully');
     } catch (err) {
-      alert('Failed to submit timesheet');
+      showToast('Failed to submit timesheet', 'error');
     } finally {
       setSubmitting(false);
     }
@@ -216,6 +292,15 @@ const EmployeeSchedule = ({ embedded = false, onBack }) => {
            <p className="text-slate-400 text-sm font-medium">Fill your work hours and tasks for the day (Auto-saves as you type)</p>
          </div>
 
+         {toast && (
+           <div className={`fixed top-4 right-4 z-50 px-4 py-3 rounded-xl shadow-xl flex items-center gap-3 text-sm font-bold animate-in slide-in-from-right-4 ${
+             toast.type === 'success' ? 'bg-emerald-50 text-emerald-700 border border-emerald-200' : 'bg-rose-50 text-rose-700 border border-rose-200'
+           }`}>
+             {toast.type === 'success' ? <CheckCircle2 size={18} /> : <AlertCircle size={18} />}
+             {toast.msg}
+           </div>
+         )}
+
          <div className="flex items-center gap-4">
             <div className="flex items-center gap-2 bg-white p-1.5 rounded-2xl border border-slate-100 shadow-sm">
                <button onClick={() => navigateWeek(-1)} className="p-2 hover:bg-slate-50 rounded-xl transition-colors">
@@ -239,6 +324,111 @@ const EmployeeSchedule = ({ embedded = false, onBack }) => {
                 className="px-6 py-3.5 bg-white border border-slate-100 rounded-2xl text-xs font-black text-[#1e293b] outline-none shadow-sm focus:ring-4 focus:ring-blue-500/5 transition-all cursor-pointer"
               />
             </div>
+         </div>
+      </div>
+
+      {/* Monthly Summary Cards */}
+      <div className="grid grid-cols-1 lg:grid-cols-4 gap-6 pt-6">
+         <div className="bg-white p-6 rounded-[32px] border border-slate-100 shadow-sm flex flex-col justify-center items-center">
+            <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-1">Total Work Hours</p>
+            <h3 className="text-2xl font-black text-slate-800">
+               {Math.floor(timesheets.reduce((acc, r) => {
+                 const h = r.totalHours?.match(/(\d+)h/);
+                 return acc + (h ? parseInt(h[1]) : 0);
+               }, 0))}h {timesheets.reduce((acc, r) => {
+                 const m = r.totalHours?.match(/(\d+)m/);
+                 return acc + (m ? parseInt(m[1]) : 0);
+               }, 0) % 60}m
+            </h3>
+            <p className="text-[10px] font-bold text-emerald-500 mt-1 uppercase tracking-widest">This Month</p>
+         </div>
+         <div className="bg-white p-6 rounded-[32px] border border-slate-100 shadow-sm flex flex-col justify-center items-center">
+            <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-1">Total Overtime</p>
+            <h3 className="text-2xl font-black text-slate-800">
+               {Math.floor(timesheets.reduce((acc, r) => {
+                 const h = r.overtime?.match(/(\d+)h/);
+                 return acc + (h ? parseInt(h[1]) : 0);
+               }, 0))}h {timesheets.reduce((acc, r) => {
+                 const m = r.overtime?.match(/(\d+)m/);
+                 return acc + (m ? parseInt(m[1]) : 0);
+               }, 0) % 60}m
+            </h3>
+            <p className="text-[10px] font-bold text-blue-500 mt-1 uppercase tracking-widest">Extra Hours</p>
+         </div>
+         <div className="bg-white p-6 rounded-[32px] border border-slate-100 shadow-sm flex flex-col justify-center items-center">
+            <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-1">Avg. Hours / Day</p>
+            <h3 className="text-2xl font-black text-slate-800">
+               {timesheets.length > 0 ? (
+                 Math.floor(timesheets.reduce((acc, r) => {
+                   const h = r.totalHours?.match(/(\d+)h/);
+                   const m = r.totalHours?.match(/(\d+)m/);
+                   return acc + (h ? parseInt(h[1]) * 60 : 0) + (m ? parseInt(m[1]) : 0);
+                 }, 0) / timesheets.length / 60)
+               ) : 0}h {timesheets.length > 0 ? (
+                 Math.floor(timesheets.reduce((acc, r) => {
+                   const h = r.totalHours?.match(/(\d+)h/);
+                   const m = r.totalHours?.match(/(\d+)m/);
+                   return acc + (h ? parseInt(h[1]) * 60 : 0) + (m ? parseInt(m[1]) : 0);
+                 }, 0) / timesheets.length) % 60
+               ) : 0}m
+            </h3>
+            <p className="text-[10px] font-bold text-slate-400 mt-1 uppercase tracking-widest">Efficiency Rate</p>
+         </div>
+         <div className="bg-white p-6 rounded-[32px] border border-slate-100 shadow-sm flex flex-col justify-center items-center">
+            <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-1">Total Submissions</p>
+            <h3 className="text-2xl font-black text-slate-800">{timesheets.length}</h3>
+            <p className="text-[10px] font-bold text-violet-500 mt-1 uppercase tracking-widest">Monthly Statistics</p>
+         </div>
+      </div>
+
+      {/* Monthly Timesheet List */}
+      <div className="bg-white rounded-[40px] border border-slate-100 shadow-sm overflow-hidden">
+         <div className="p-8 border-b border-slate-50">
+            <h3 className="text-xl font-black text-slate-800">Monthly Timesheet List</h3>
+         </div>
+         <div className="overflow-x-auto">
+            <table className="w-full text-left">
+               <thead>
+                  <tr className="bg-slate-50/50 border-b border-slate-100">
+                     {['Date', 'Log Time', 'Work Hours', 'Overtime', 'Status'].map(h => (
+                       <th key={h} className="px-8 py-5 text-[10px] font-black text-slate-400 uppercase tracking-widest">{h}</th>
+                     ))}
+                  </tr>
+               </thead>
+               <tbody className="divide-y divide-slate-50">
+                  {timesheets.length > 0 ? (
+                    timesheets.map((ts, idx) => (
+                      <tr key={idx} className="hover:bg-slate-50/30 transition-all">
+                         <td className="px-8 py-5">
+                            <p className="text-sm font-black text-slate-700">{ts.date}</p>
+                         </td>
+                         <td className="px-8 py-5">
+                            <p className="text-[11px] font-bold text-slate-500 uppercase tracking-tight">
+                               {ts.loginTime || '--'} - {ts.logoutTime || '--'}
+                            </p>
+                         </td>
+                         <td className="px-8 py-5">
+                            <span className="text-sm font-black text-slate-700">{ts.totalHours || '0h 0m'}</span>
+                         </td>
+                         <td className="px-8 py-5 text-sm font-bold text-slate-400">{ts.overtime || '0h 0m'}</td>
+                         <td className="px-8 py-5">
+                            <span className={`px-3 py-1 rounded-full text-[9px] font-black uppercase tracking-widest border ${
+                              ts.status === 'Completed' ? 'bg-emerald-50 text-emerald-600 border-emerald-100' :
+                              ts.status === 'Submitted' ? 'bg-blue-50 text-blue-600 border-blue-100' : 
+                              'bg-orange-50 text-orange-600 border-orange-100'
+                            }`}>
+                               {ts.status || 'Pending'}
+                            </span>
+                         </td>
+                      </tr>
+                    ))
+                  ) : (
+                    <tr>
+                      <td colSpan="5" className="px-10 py-20 text-center text-slate-400 text-xs font-bold italic">No submitted timesheets found for this month.</td>
+                    </tr>
+                  )}
+               </tbody>
+            </table>
          </div>
       </div>
 

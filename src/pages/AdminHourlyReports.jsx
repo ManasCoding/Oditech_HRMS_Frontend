@@ -52,49 +52,37 @@ const TimesheetModal = ({ report, onClose }) => {
     const fetchDetail = async () => {
       setModalLoading(true);
       try {
-        const employeeId = report.employeeId?._id || report.employeeId;
-        const res = await api.get(`/admin/tasks/${employeeId}?date=${report.date}`);
+        const res = await api.get(`/admin/timesheets/${report._id}`);
         if (res.data.success) {
-          const taskMap = {};
-          res.data.tasks.forEach(t => { taskMap[t.slotKey] = t.title; });
-          setModalData({ taskMap, attendance: res.data.attendance, employee: res.data.employee });
+          setModalData(res.data.timesheet);
         }
       } catch (err) {
-        console.error('Error fetching detail:', err);
+        console.error('Error fetching timesheet detail:', err);
       } finally {
         setModalLoading(false);
       }
     };
-    
     fetchDetail();
 
     const socket = io(SOCKET_URL);
     socket.on('timesheetUpdated', (data) => {
-      const employeeId = report.employeeId?._id || report.employeeId;
-      if (data.employeeId === employeeId && data.dates.includes(report.date)) {
-        // Silently re-fetch without showing loading overlay to avoid flicker
-        api.get(`/admin/tasks/${employeeId}?date=${report.date}`).then(res => {
-          if (res.data.success) {
-            const taskMap = {};
-            res.data.tasks.forEach(t => { taskMap[t.slotKey] = t.title; });
-            setModalData({ taskMap, attendance: res.data.attendance, employee: res.data.employee });
-          }
-        });
-      }
+      if (data._id === report._id) fetchDetail();
     });
-
     return () => socket.disconnect();
   }, [report]);
 
   if (!report) return null;
 
-  const empName  = report.employeeId?.fullName  || modalData?.employee?.fullName  || '—';
-  const empCode  = report.employeeId?.empCode   || modalData?.employee?.empCode   || '—';
-  const empDept  = report.employeeId?.department|| modalData?.employee?.department|| '—';
-  const empImg   = report.employeeId?.profileImage || modalData?.employee?.profileImage;
-  const isCompleted = report.workStatus === 'Completed';
+  const empName = report.employeeName || modalData?.employeeName || '—';
+  const empDept = report.department   || modalData?.department   || '—';
+  const empImg  = report.employeeId?.profileImage || null;
+  const isCompleted = report.status === 'Completed';
 
-  const remarks = modalData?.attendance?.remarks || '';
+  const hourlyTasks = modalData?.hourlyTasks || [];
+  const taskMap = {};
+  hourlyTasks.forEach(t => { taskMap[t.slotKey] = t.title; });
+  const dailyRemarks = modalData?.dailyRemarks || '';
+  const weeklyRemarks = modalData?.weeklyRemarks || '';
 
   return (
     /* Backdrop */
@@ -127,9 +115,11 @@ const TimesheetModal = ({ report, onClose }) => {
 
           <div className="flex items-center gap-3">
             <span className={`px-4 py-1.5 rounded-full text-[9px] font-black uppercase tracking-widest ${
-              isCompleted ? 'bg-emerald-50 text-emerald-600' : 'bg-orange-50 text-orange-600'
+              report.status === 'Completed' ? 'bg-emerald-50 text-emerald-600' :
+              report.status === 'Submitted' ? 'bg-blue-50 text-blue-600' :
+              'bg-orange-50 text-orange-600'
             }`}>
-              {report.workStatus}
+              {report.status}
             </span>
             <button
               onClick={onClose}
@@ -202,25 +192,36 @@ const TimesheetModal = ({ report, onClose }) => {
               </div>
 
               {/* ── Remarks Section ── */}
-              {remarks && (
-                <div className="mx-8 my-6 p-6 bg-amber-50/60 border border-amber-100 rounded-[24px]">
-                  <div className="flex items-center gap-2 mb-3">
-                    <MessageSquare size={14} className="text-amber-500" />
-                    <p className="text-[10px] font-black text-amber-600 uppercase tracking-widest">
-                      Daily / Weekly Remarks
-                    </p>
-                  </div>
-                  <p className="text-sm font-medium text-slate-700 leading-relaxed">{remarks}</p>
+              {(dailyRemarks || weeklyRemarks) && (
+                <div className="mx-8 my-6 space-y-4">
+                  {dailyRemarks && (
+                    <div className="p-6 bg-amber-50/60 border border-amber-100 rounded-[24px]">
+                      <div className="flex items-center gap-2 mb-3">
+                        <MessageSquare size={14} className="text-amber-500" />
+                        <p className="text-[10px] font-black text-amber-600 uppercase tracking-widest">Daily Remarks</p>
+                      </div>
+                      <p className="text-sm font-medium text-slate-700 leading-relaxed">{dailyRemarks}</p>
+                    </div>
+                  )}
+                  {weeklyRemarks && (
+                    <div className="p-6 bg-blue-50/60 border border-blue-100 rounded-[24px]">
+                      <div className="flex items-center gap-2 mb-3">
+                        <MessageSquare size={14} className="text-blue-500" />
+                        <p className="text-[10px] font-black text-blue-600 uppercase tracking-widest">Weekly Remarks</p>
+                      </div>
+                      <p className="text-sm font-medium text-slate-700 leading-relaxed">{weeklyRemarks}</p>
+                    </div>
+                  )}
                 </div>
               )}
 
               {/* ── Work Hours Summary ── */}
               <div className="mx-8 mb-8 grid grid-cols-2 md:grid-cols-4 gap-4">
                 {[
-                  { label: 'Check In',    value: report.checkIn  ? new Date(report.checkIn).toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit' }) : '—', color: 'bg-blue-50 text-blue-600' },
-                  { label: 'Check Out',   value: report.checkOut ? new Date(report.checkOut).toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit' }) : '—', color: 'bg-emerald-50 text-emerald-600' },
-                  { label: 'Work Hours',  value: report.workHours || '0h 0m',   color: 'bg-violet-50 text-violet-600' },
-                  { label: 'Overtime',    value: report.overtime  || '0h 0m',   color: 'bg-orange-50 text-orange-600' },
+                  { label: 'Login Time',   value: report.loginTime  || '—', color: 'bg-blue-50 text-blue-600' },
+                  { label: 'Logout Time',  value: report.logoutTime || '—', color: 'bg-emerald-50 text-emerald-600' },
+                  { label: 'Work Hours',   value: report.totalHours || '0h 0m', color: 'bg-violet-50 text-violet-600' },
+                  { label: 'Overtime',     value: report.overtime   || '0h 0m', color: 'bg-orange-50 text-orange-600' },
                 ].map(item => (
                   <div key={item.label} className={`${item.color} rounded-[20px] p-5 flex flex-col gap-1`}>
                     <p className="text-[9px] font-black uppercase tracking-widest opacity-70">{item.label}</p>
@@ -230,7 +231,7 @@ const TimesheetModal = ({ report, onClose }) => {
               </div>
 
               {/* empty state when no tasks at all */}
-              {Object.keys(modalData?.taskMap || {}).length === 0 && (
+              {Object.keys(taskMap).length === 0 && (
                 <div className="flex flex-col items-center gap-3 py-10 opacity-30">
                   <AlertCircle size={40} />
                   <p className="text-sm font-bold">No task entries found for this date.</p>
@@ -305,11 +306,58 @@ const AdminHourlyReports = () => {
   const fetchReports = useCallback(async (showLoader = true) => {
     if (showLoader) setLoading(true);
     try {
-      const params = new URLSearchParams(filters);
-      if (search) params.append('search', search);
-      const res = await api.get(`/admin/reports/hourly?${params.toString()}`);
+      const res = await api.get('/admin/timesheets');
       if (res.data.success) {
-        setData(res.data);
+        // Build stats from returned timesheets
+        const ts = res.data.timesheets;
+        const filtered = ts.filter(r => {
+          const matchDate = !filters.date || r.date === filters.date;
+          const matchDept = filters.department === 'All Departments' || r.department === filters.department;
+          const matchStatus = filters.status === 'All Status' || r.status === filters.status;
+          const matchSearch = !search || r.employeeName?.toLowerCase().includes(search.toLowerCase());
+          return matchDate && matchDept && matchStatus && matchSearch;
+        });
+
+        const parseMin = (str) => {
+          if (!str) return 0;
+          const h = str.match(/(\d+)h/);
+          const m = str.match(/(\d+)m/);
+          return (h ? parseInt(h[1]) * 60 : 0) + (m ? parseInt(m[1]) : 0);
+        };
+        const fmtMin = (min) => `${Math.floor(min / 60)}h ${Math.floor(min % 60)}m`;
+
+        const totalMins = filtered.reduce((a, r) => a + parseMin(r.totalHours), 0);
+        const totalOTMins = filtered.reduce((a, r) => a + parseMin(r.overtime), 0);
+        const avgMins = filtered.length > 0 ? Math.round(totalMins / filtered.length) : 0;
+        const submitted = filtered.filter(r => r.status === 'Submitted').length;
+        const completed = filtered.filter(r => r.status === 'Completed').length;
+
+        // Build pie chart summary by department
+        const deptMap = {};
+        filtered.forEach(r => {
+          const dept = r.department || 'General';
+          deptMap[dept] = (deptMap[dept] || 0) + parseMin(r.totalHours);
+        });
+        const summary = Object.entries(deptMap).map(([name, minutes]) => ({ name, minutes, hours: fmtMin(minutes) }));
+
+        const uniqueEmployees = [...new Set(filtered.map(r => String(r.employeeId?._id || r.employeeId)))].length;
+
+        setData({
+          stats: {
+            totalEmployees: uniqueEmployees,
+            totalHoursToday: fmtMin(totalMins),
+            averageHours: fmtMin(avgMins),
+            totalOvertimeToday: fmtMin(totalOTMins),
+          },
+          reports: filtered,
+          totalEntries: filtered.length,
+          summary,
+          statusCounts: {
+            Completed: completed,
+            Pending: ts.filter(r => r.status === 'Pending').length,
+            NotSubmitted: Math.max(0, uniqueEmployees - submitted - completed),
+          }
+        });
       }
     } catch (err) {
       console.error('Error fetching reports:', err);
@@ -324,13 +372,10 @@ const AdminHourlyReports = () => {
 
   useEffect(() => {
     const socket = io(SOCKET_URL);
-    socket.on('timesheetUpdated', (eventData) => {
-      if (eventData.dates.includes(filters.date)) {
-        fetchReports(false); // Silently re-fetch without loader
-      }
-    });
+    socket.on('timesheetSubmitted', () => fetchReports(false));
+    socket.on('timesheetUpdated', () => fetchReports(false));
     return () => socket.disconnect();
-  }, [filters.date, fetchReports]);
+  }, [fetchReports]);
 
   const handleFilterChange = (e) => {
     setFilters({ ...filters, [e.target.name]: e.target.value, page: 1 });
@@ -521,25 +566,27 @@ const AdminHourlyReports = () => {
                                       <div className="w-9 h-9 rounded-full bg-slate-100 flex items-center justify-center font-black text-[10px] text-slate-600 border-2 border-white shadow-sm overflow-hidden">
                                          {report.employeeId?.profileImage ? (
                                            <img src={report.employeeId.profileImage} className="w-full h-full object-cover" alt="" onError={(e) => { e.target.onerror = null; e.target.style.display = 'none'; }} />
-                                         ) : report.employeeId?.fullName?.charAt(0)}
+                                         ) : (report.employeeName || 'E').charAt(0)}
                                       </div>
-                                      <span className="text-sm font-black text-[#1e293b]">{report.employeeId?.fullName}</span>
+                                      <span className="text-sm font-black text-[#1e293b]">{report.employeeName || report.employeeId?.fullName}</span>
                                    </div>
                                 </td>
-                                <td className="px-6 py-5 text-xs font-bold text-slate-500">{report.employeeId?.empCode}</td>
+                                <td className="px-6 py-5 text-xs font-bold text-slate-500">{report.employeeId?.empCode || '—'}</td>
                                 <td className="px-6 py-5">
                                    <span className="px-3 py-1 bg-slate-100 text-slate-600 rounded-lg text-[10px] font-black uppercase tracking-widest">
-                                     {report.employeeId?.department}
+                                     {report.department || report.employeeId?.department || '—'}
                                    </span>
                                 </td>
                                 <td className="px-6 py-5 text-xs font-bold text-slate-500">{report.date}</td>
-                                <td className="px-6 py-5 text-sm font-black text-[#1e293b]">{report.workHours}</td>
-                                <td className="px-6 py-5 text-xs font-bold text-slate-400">{report.overtime}</td>
+                                <td className="px-6 py-5 text-sm font-black text-[#1e293b]">{report.totalHours || '0h 0m'}</td>
+                                <td className="px-6 py-5 text-xs font-bold text-slate-400">{report.overtime || '0h 0m'}</td>
                                 <td className="px-6 py-5">
                                    <span className={`px-4 py-1.5 rounded-full text-[9px] font-black uppercase tracking-widest ${
-                                     report.workStatus === 'Completed' ? 'bg-emerald-50 text-emerald-600' : 'bg-orange-50 text-orange-600'
+                                     report.status === 'Completed' ? 'bg-emerald-50 text-emerald-600' : 
+                                     report.status === 'Submitted'  ? 'bg-blue-50 text-blue-600'    :
+                                     'bg-orange-50 text-orange-600'
                                    }`}>
-                                     {report.workStatus}
+                                     {report.status || 'Pending'}
                                    </span>
                                 </td>
                                 <td className="px-6 py-5">
