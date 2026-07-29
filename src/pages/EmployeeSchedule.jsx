@@ -4,7 +4,7 @@ import { useParams, useNavigate, useLocation } from 'react-router-dom';
 import { 
   Send, Calendar, Download, FileSpreadsheet, 
   Trash2, Plus, CheckCircle2, AlertCircle, Loader2,
-  ChevronLeft, ChevronRight, Eraser, Printer, Clock
+  ChevronLeft, ChevronRight, Eraser, Printer, Clock, Lock
 } from 'lucide-react';
 import api from '../services/api';
 
@@ -19,6 +19,56 @@ const EmployeeSchedule = ({ embedded = false, onBack }) => {
   const [weekRemarks, setWeekRemarks] = useState('');
   const [selectedDate, setSelectedDate] = useState(new Date());
   const [weekDates, setWeekDates] = useState([]);
+  const [currentTime, setCurrentTime] = useState(new Date());
+
+  useEffect(() => {
+    const timer = setInterval(() => setCurrentTime(new Date()), 1000);
+    return () => clearInterval(timer);
+  }, []);
+
+  const getSlotState = (dateStr, slotKey) => {
+    const endStr = (slotKey || '').split(' - ')[1]?.trim() || '00:00';
+    const startStr = (slotKey || '').split(' - ')[0]?.trim() || '00:00';
+    
+    const parseTime = (timeStr) => {
+      let [h, m] = timeStr.split(':').map(Number);
+      if (h >= 1 && h <= 8) h += 12;
+      return { h, m };
+    };
+
+    const startT = parseTime(startStr);
+    const endT = parseTime(endStr);
+
+    const slotStart = new Date(dateStr);
+    slotStart.setHours(startT.h, startT.m, 0, 0);
+
+    const slotEnd = new Date(dateStr);
+    slotEnd.setHours(endT.h, endT.m, 0, 0);
+
+    const graceEnd = new Date(slotEnd.getTime() + 15 * 60000);
+
+    if (currentTime < slotStart) return { status: 'FUTURE' };
+    if (currentTime >= slotStart && currentTime < slotEnd) return { status: 'ACTIVE' };
+    if (currentTime >= slotEnd && currentTime < graceEnd) {
+      const remainingMs = graceEnd - currentTime;
+      const m = Math.floor(remainingMs / 60000);
+      const s = Math.floor((remainingMs % 60000) / 1000);
+      const countdown = `${m.toString().padStart(2, '0')}:${s.toString().padStart(2, '0')}`;
+      return { status: 'GRACE', countdown };
+    }
+    return { status: 'LOCKED' };
+  };
+
+  const getRemarksState = (dateStr) => {
+    const startOfDay = new Date(dateStr);
+    startOfDay.setHours(0, 0, 0, 0);
+    const endOfDay = new Date(dateStr);
+    endOfDay.setHours(23, 59, 59, 999);
+    
+    if (currentTime < startOfDay) return 'FUTURE';
+    if (currentTime > endOfDay) return 'LOCKED';
+    return 'ACTIVE';
+  };
   
   const user = JSON.parse(localStorage.getItem('user'));
 
@@ -210,34 +260,91 @@ const EmployeeSchedule = ({ embedded = false, onBack }) => {
                 {timeSlots.map((slot, sIdx) => (
                   <tr key={slot} className="group hover:bg-slate-50/30 transition-colors">
                      <td className="p-6 text-xs font-black text-slate-500 border-r border-slate-50 sticky left-0 bg-white group-hover:bg-slate-50/30 z-10">{slot}</td>
-                     {weekDates.map((date, dIdx) => (
-                       <td key={`${date}-${slot}`} className="p-3 border-r border-slate-50">
-                          <input 
-                            type="text"
-                            value={weekTasks[`${date}_${slot}`] || ''}
-                            onChange={(e) => handleInputChange(date, slot, e.target.value)}
-                            placeholder="-"
-                            className="w-full px-4 py-3.5 bg-transparent border border-transparent rounded-xl text-xs font-medium text-[#1e293b] outline-none hover:border-slate-200 focus:bg-white focus:border-blue-500 focus:shadow-lg focus:shadow-blue-500/5 transition-all"
-                          />
-                       </td>
-                     ))}
+                     {weekDates.map((date, dIdx) => {
+                       const slotState = getSlotState(date, slot);
+                       const isLocked = slotState.status === 'LOCKED' || slotState.status === 'FUTURE';
+                       
+                       return (
+                         <td key={`${date}-${slot}`} className="p-3 border-r border-slate-50 relative">
+                           <div className="relative w-full group/input">
+                             <input 
+                               type="text"
+                               value={weekTasks[`${date}_${slot}`] || ''}
+                               onChange={(e) => handleInputChange(date, slot, e.target.value)}
+                               placeholder={slotState.status === 'FUTURE' ? "Not available" : "-"}
+                               disabled={isLocked}
+                               className={`w-full px-4 py-3.5 border rounded-xl text-xs font-medium text-[#1e293b] outline-none transition-all
+                                 ${isLocked 
+                                   ? 'bg-slate-100 border-transparent text-slate-500 cursor-not-allowed' 
+                                   : 'bg-transparent border-transparent hover:border-slate-200 focus:bg-white focus:border-blue-500 focus:shadow-lg focus:shadow-blue-500/5'
+                                 }
+                               `}
+                               title={
+                                 slotState.status === 'LOCKED' 
+                                   ? "This timeslot has been locked because the editing window has expired." 
+                                   : slotState.status === 'FUTURE'
+                                     ? "This timeslot is not yet available."
+                                     : ""
+                               }
+                             />
+                             {slotState.status === 'LOCKED' && (
+                               <div className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400">
+                                 <Lock size={14} />
+                               </div>
+                             )}
+                             {slotState.status === 'GRACE' && (
+                               <div className="absolute right-3 top-1/2 -translate-y-1/2">
+                                 <span className="text-[10px] font-black text-orange-500 bg-orange-50 px-2 py-1 rounded-md whitespace-nowrap">
+                                   Editing ends in {slotState.countdown}
+                                 </span>
+                               </div>
+                             )}
+                           </div>
+                         </td>
+                       );
+                     })}
                   </tr>
                 ))}
                 
                 {/* Daily Remarks Row */}
                 <tr className="bg-slate-50/30">
                    <td className="p-6 text-[10px] font-black text-slate-400 uppercase tracking-widest border-r border-slate-100 sticky left-0 bg-slate-50 z-10">Daily Remarks</td>
-                   {weekDates.map((date) => (
-                     <td key={`remark-${date}`} className="p-3 border-r border-slate-50">
-                        <textarea 
-                          value={dailyRemarks[date] || ''}
-                          onChange={(e) => setDailyRemarks(prev => ({ ...prev, [date]: e.target.value }))}
-                          placeholder="Daily notes..."
-                          rows="2"
-                          className="w-full px-4 py-3 bg-white/50 border border-transparent rounded-xl text-[11px] font-medium text-slate-500 outline-none hover:border-slate-200 focus:bg-white focus:border-blue-500 transition-all resize-none"
-                        ></textarea>
-                     </td>
-                   ))}
+                   {weekDates.map((date) => {
+                     const remarksState = getRemarksState(date);
+                     const isLocked = remarksState === 'LOCKED' || remarksState === 'FUTURE';
+                     
+                     return (
+                       <td key={`remark-${date}`} className="p-3 border-r border-slate-50 relative">
+                          <div className="relative w-full">
+                            <textarea 
+                              value={dailyRemarks[date] || ''}
+                              onChange={(e) => setDailyRemarks(prev => ({ ...prev, [date]: e.target.value }))}
+                              placeholder={remarksState === 'FUTURE' ? "Not available" : "Daily notes..."}
+                              disabled={isLocked}
+                              rows="2"
+                              className={`w-full px-4 py-3 border rounded-xl text-[11px] font-medium text-slate-500 outline-none transition-all resize-none
+                                ${isLocked
+                                  ? 'bg-slate-100 border-transparent text-slate-500 cursor-not-allowed'
+                                  : 'bg-white/50 border-transparent hover:border-slate-200 focus:bg-white focus:border-blue-500'
+                                }
+                              `}
+                              title={
+                                remarksState === 'LOCKED'
+                                  ? "This field has been locked because the editing window has expired."
+                                  : remarksState === 'FUTURE'
+                                    ? "This field is not yet available."
+                                    : ""
+                              }
+                            ></textarea>
+                            {remarksState === 'LOCKED' && (
+                              <div className="absolute right-3 top-4 text-slate-400">
+                                <Lock size={14} />
+                              </div>
+                            )}
+                          </div>
+                       </td>
+                     );
+                   })}
                 </tr>
              </tbody>
           </table>
