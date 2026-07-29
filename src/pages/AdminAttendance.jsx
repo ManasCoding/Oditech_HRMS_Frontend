@@ -317,7 +317,7 @@ const AdminAttendance = () => {
                        <div className="flex items-start gap-4 mb-6">
                          <div className="w-14 h-14 rounded-full bg-slate-100 flex items-center justify-center overflow-hidden border-2 border-white shadow-sm shrink-0">
                            {report.employeeId?.profileImage || fullEmp?.profileImage ? (
-                             <img src={report.employeeId?.profileImage || fullEmp?.profileImage} className="w-full h-full object-cover" />
+                             <img src={report.employeeId?.profileImage || fullEmp?.profileImage} className="w-full h-full object-cover" onError={(e) => { e.target.onerror = null; e.target.style.display = 'none'; }} />
                            ) : (
                              <span className="text-lg font-black text-slate-500">{empName?.charAt(0)}</span>
                            )}

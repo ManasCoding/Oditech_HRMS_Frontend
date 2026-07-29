@@ -116,7 +116,7 @@ const EmployeeCheckIn = () => {
             <div className="flex items-center gap-4 p-6 bg-slate-50/50 rounded-[32px] border border-slate-100">
                <div className="w-14 h-14 bg-[#1e293b] rounded-2xl flex items-center justify-center text-white font-black text-xl overflow-hidden border border-slate-200">
                  {user.profileImage ? (
-                   <img src={user.profileImage} alt={user.name} className="w-full h-full object-cover" />
+                   <img src={user.profileImage} alt={user.name} className="w-full h-full object-cover" onError={(e) => { e.target.onerror = null; e.target.style.display = 'none'; }} />
                  ) : (
                    user.name?.[0] || 'U'
                  )}

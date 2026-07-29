@@ -193,7 +193,7 @@ const AdminEmployees = () => {
                     <div className="flex items-center gap-3">
                       <div className="w-10 h-10 bg-primary/5 text-primary rounded-full flex items-center justify-center font-bold overflow-hidden border border-border">
                         {emp.profileImage ? (
-                          <img src={emp.profileImage} alt={emp.fullName} className="w-full h-full object-cover" />
+                          <img src={emp.profileImage} alt={emp.fullName} className="w-full h-full object-cover" onError={(e) => { e.target.onerror = null; e.target.style.display = 'none'; }} />
                         ) : (
                           emp.fullName[0]
                         )}
@@ -324,7 +324,7 @@ const AdminEmployees = () => {
                     <div className="flex items-center gap-4">
                       {formData.profileImage && (
                         <div className="w-12 h-12 rounded-xl overflow-hidden border border-border">
-                          <img src={formData.profileImage} className="w-full h-full object-cover" />
+                          <img src={formData.profileImage} className="w-full h-full object-cover" onError={(e) => { e.target.onerror = null; e.target.style.display = 'none'; }} />
                         </div>
                       )}
                       <label className="flex-1 cursor-pointer">

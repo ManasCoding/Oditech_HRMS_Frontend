@@ -19,7 +19,7 @@ const EmployeeCard = ({ employee }) => {
         <div className="relative flex-shrink-0">
           <div className="w-20 h-20 rounded-[24px] bg-[#1e293b] flex items-center justify-center text-white text-xl font-black shadow-lg overflow-hidden transition-transform group-hover:scale-105">
             {employee.profileImage ? (
-              <img src={employee.profileImage} alt={employee.fullName} className="w-full h-full object-cover" />
+              <img src={employee.profileImage} alt={employee.fullName} className="w-full h-full object-cover" onError={(e) => { e.target.onerror = null; e.target.style.display = 'none'; }} />
             ) : (
               <span>{initials}</span>
             )}

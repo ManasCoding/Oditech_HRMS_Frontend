@@ -484,7 +484,7 @@ const AdminEmployeeDetails = () => {
           <div className="relative group">
             <div className="w-40 h-40 rounded-full overflow-hidden border-8 border-slate-50 shadow-2xl transition-transform group-hover:scale-105 duration-500">
               {employee.profileImage ? (
-                <img src={employee.profileImage} alt={employee.fullName} className="w-full h-full object-cover" />
+                <img src={employee.profileImage} alt={employee.fullName} className="w-full h-full object-cover" onError={(e) => { e.target.onerror = null; e.target.style.display = 'none'; }} />
               ) : (
                 <div className="w-full h-full bg-slate-100 flex items-center justify-center text-primary text-5xl font-black">
                   {employee.fullName[0]}

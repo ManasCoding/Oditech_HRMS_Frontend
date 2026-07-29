@@ -520,7 +520,7 @@ const AdminHourlyReports = () => {
                                    <div className="flex items-center gap-3">
                                       <div className="w-9 h-9 rounded-full bg-slate-100 flex items-center justify-center font-black text-[10px] text-slate-600 border-2 border-white shadow-sm overflow-hidden">
                                          {report.employeeId?.profileImage ? (
-                                           <img src={report.employeeId.profileImage} className="w-full h-full object-cover" alt="" />
+                                           <img src={report.employeeId.profileImage} className="w-full h-full object-cover" alt="" onError={(e) => { e.target.onerror = null; e.target.style.display = 'none'; }} />
                                          ) : report.employeeId?.fullName?.charAt(0)}
                                       </div>
                                       <span className="text-sm font-black text-[#1e293b]">{report.employeeId?.fullName}</span>

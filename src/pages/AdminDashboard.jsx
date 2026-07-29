@@ -190,7 +190,7 @@ const AdminDashboard = () => {
                         >
                           <div className="flex items-start gap-3">
                             <div className="w-16 h-16 bg-[#1e293b] rounded-full flex items-center justify-center text-white font-black text-lg border-2 border-white shadow-md overflow-hidden flex-shrink-0 group-hover:scale-105 transition-transform">
-                              {emp.profileImage ? <img src={emp.profileImage} className="w-full h-full object-cover" /> : initials}
+                              {emp.profileImage ? <img src={emp.profileImage} className="w-full h-full object-cover" onError={(e) => { e.target.onerror = null; e.target.style.display = 'none'; }} /> : initials}
                             </div>
 
                             <div className="min-w-0 flex-1">

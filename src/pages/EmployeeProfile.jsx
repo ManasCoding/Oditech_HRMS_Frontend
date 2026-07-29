@@ -174,7 +174,7 @@ const EmployeeProfile = () => {
               <div className="relative group mb-6">
                 <div className="w-28 h-28 rounded-full bg-[#1e293b] flex items-center justify-center text-white text-3xl font-black shadow-xl overflow-hidden relative group">
                   {profile?.profileImage ? (
-                    <img src={profile.profileImage} alt={profile.fullName} className="w-full h-full object-cover" />
+                    <img src={profile.profileImage} alt={profile.fullName} className="w-full h-full object-cover" onError={(e) => { e.target.onerror = null; e.target.style.display = 'none'; }} />
                   ) : (
                     <span>{initials}</span>
                   )}
