@@ -96,12 +96,6 @@ const EmployeeResignation = () => {
     }
   ];
 
-  useEffect(() => {
-    if (employeeId) {
-      fetchResignations();
-    }
-  }, [employeeId]);
-
   const fetchResignations = async () => {
     try {
       const res = await api.get(`/employee/resignations/${employeeId}`);
@@ -114,6 +108,13 @@ const EmployeeResignation = () => {
       setLoading(false);
     }
   };
+
+  useEffect(() => {
+    if (employeeId) {
+      fetchResignations();
+    }
+  }, [employeeId]);
+
 
   const handleFileChange = (e) => {
     const file = e.target.files[0];

@@ -67,10 +67,6 @@ const AdminEmployees = () => {
     password: '123456'
   });
 
-  useEffect(() => {
-    fetchEmployees();
-  }, []);
-
   const fetchEmployees = async () => {
     try {
       const response = await api.get('/admin/employees');
@@ -81,6 +77,11 @@ const AdminEmployees = () => {
       console.error('Error fetching employees:', err);
     }
   };
+
+  useEffect(() => {
+    fetchEmployees();
+  }, []);
+
 
   const handleInputChange = (e) => {
     setFormData({ ...formData, [e.target.name]: e.target.value });

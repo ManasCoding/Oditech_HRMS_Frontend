@@ -66,10 +66,6 @@ const EmployeeDirectory = () => {
   const [searchTerm, setSearchTerm] = useState('');
   const [filterDept, setFilterDept] = useState('All');
 
-  useEffect(() => {
-    fetchDirectory();
-  }, []);
-
   const fetchDirectory = async () => {
     try {
       const res = await api.get('/employee/directory');
@@ -82,6 +78,11 @@ const EmployeeDirectory = () => {
       setLoading(false);
     }
   };
+
+  useEffect(() => {
+    fetchDirectory();
+  }, []);
+
 
   const departments = ['All', ...new Set(employees.map(e => e.department).filter(Boolean))];
 

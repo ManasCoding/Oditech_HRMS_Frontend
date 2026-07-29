@@ -40,15 +40,6 @@ const EmployeeProfile = () => {
 
   const employeeId = user.id || user.slug;
 
-  useEffect(() => {
-    if (employeeId) {
-      fetchProfile();
-    } else {
-      setLoading(false);
-      setError('Your session has expired or is incomplete. Please log out and sign in again to view your profile.');
-    }
-  }, [employeeId]);
-
   const fetchProfile = async () => {
     try {
       const res = await api.get(`/employee/profile/${employeeId}`);
@@ -69,6 +60,16 @@ const EmployeeProfile = () => {
       setLoading(false);
     }
   };
+
+  useEffect(() => {
+    if (employeeId) {
+      fetchProfile();
+    } else {
+      setLoading(false);
+      setError('Your session has expired or is incomplete. Please log out and sign in again to view your profile.');
+    }
+  }, [employeeId]);
+
 
   const handleSave = async () => {
     setError('');

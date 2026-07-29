@@ -30,12 +30,6 @@ const EmployeeApplyLeave = () => {
 
   const employeeId = user.id;
 
-  useEffect(() => {
-    if (employeeId) {
-      fetchData();
-    }
-  }, [employeeId]);
-
   const fetchData = async () => {
     try {
       const [statsRes, leavesRes] = await Promise.all([
@@ -56,6 +50,13 @@ const EmployeeApplyLeave = () => {
       setLoading(false);
     }
   };
+
+  useEffect(() => {
+    if (employeeId) {
+      fetchData();
+    }
+  }, [employeeId]);
+
 
   const handleApply = async (e) => {
     e.preventDefault();

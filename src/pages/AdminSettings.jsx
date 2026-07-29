@@ -61,11 +61,6 @@ const AdminSettings = () => {
   const [adminLoading, setAdminLoading] = useState(false);
   const currentUser = JSON.parse(localStorage.getItem('user')) || {};
 
-  useEffect(() => {
-    fetchSettings();
-    fetchAdmins();
-  }, []);
-
   const fetchSettings = async () => {
     try {
       const res = await api.get('/settings');
@@ -76,6 +71,21 @@ const AdminSettings = () => {
       console.error('Error fetching settings:', err);
     }
   };
+
+  const fetchAdmins = async () => {
+    try {
+      const res = await api.get('/admin/admins');
+      if (res.data.success) setAdmins(res.data.admins);
+    } catch (err) {
+      console.error('Error fetching admins:', err);
+    }
+  };
+
+  useEffect(() => {
+    fetchSettings();
+    fetchAdmins();
+  }, []);
+
 
   const handleChange = (e) => {
     setSettings({ ...settings, [e.target.name]: e.target.value });
@@ -117,14 +127,6 @@ const AdminSettings = () => {
     }
   };
 
-  const fetchAdmins = async () => {
-    try {
-      const res = await api.get('/admin/admins');
-      if (res.data.success) setAdmins(res.data.admins);
-    } catch (err) {
-      console.error('Error fetching admins:', err);
-    }
-  };
 
   const handleCreateAdmin = async (e) => {
     e.preventDefault();

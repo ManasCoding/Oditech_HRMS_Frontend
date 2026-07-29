@@ -37,7 +37,6 @@ const AppRouter = () => {
   const [maintenance, setMaintenance] = useState(null);
   const [loadingSettings, setLoadingSettings] = useState(true);
 
-  useEffect(() => {
     const fetchSettings = async () => {
       try {
         const res = await api.get('/settings');
@@ -50,6 +49,8 @@ const AppRouter = () => {
         setLoadingSettings(false);
       }
     };
+
+  useEffect(() => {
     fetchSettings();
   }, [location.pathname]); // Re-verify settings on navigation to be responsive to changes
 

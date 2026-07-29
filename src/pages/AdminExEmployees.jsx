@@ -11,10 +11,6 @@ const AdminExEmployees = () => {
   const [loading, setLoading] = useState(true);
   const navigate = useNavigate();
 
-  useEffect(() => {
-    fetchExEmployees();
-  }, []);
-
   const fetchExEmployees = async () => {
     try {
       const res = await api.get('/admin/employees/ex');
@@ -27,6 +23,11 @@ const AdminExEmployees = () => {
       setLoading(false);
     }
   };
+
+  useEffect(() => {
+    fetchExEmployees();
+  }, []);
+
 
   const handleRestore = async (e, id) => {
     e.stopPropagation();

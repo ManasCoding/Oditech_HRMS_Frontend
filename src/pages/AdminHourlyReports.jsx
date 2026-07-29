@@ -68,10 +68,6 @@ const AdminHourlyReports = () => {
   // Modal state
   const [selectedReport, setSelectedReport] = useState(null);
 
-  useEffect(() => {
-    fetchDepartments();
-  }, []);
-
   const fetchDepartments = async () => {
     try {
       const res = await api.get('/admin/employees');
@@ -146,6 +142,12 @@ const AdminHourlyReports = () => {
       if (showLoader) setLoading(false);
     }
   }, [filters, search]);
+
+  useEffect(() => {
+    fetchDepartments();
+  }, []);
+
+
 
   useEffect(() => {
     fetchReports();

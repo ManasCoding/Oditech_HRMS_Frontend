@@ -50,14 +50,6 @@ const AdminReports = () => {
   const [modalLoading, setModalLoading] = useState(false);
   const [departments, setDepartments] = useState(['All Departments', 'Digital Marketing', 'Web Development', 'SEO', 'HR', 'Others']);
 
-  useEffect(() => {
-    fetchDepartments();
-  }, []);
-
-  useEffect(() => {
-    fetchReports();
-  }, [filters.date, filters.department, filters.employeeId, filters.status, filters.page]);
-
   const fetchDepartments = async () => {
     try {
       const res = await api.get('/admin/employees');
@@ -86,6 +78,31 @@ const AdminReports = () => {
     }
   };
 
+  const fetchEmployeeTasks = async (employeeId, date) => {
+    setModalLoading(true);
+    setIsModalOpen(true);
+    try {
+      const res = await api.get(`/employee/tasks/${employeeId}/${date}`);
+      if (res.data.success) {
+        setSelectedTasks(res.data.tasks);
+      }
+    } catch (err) {
+      console.error('Error fetching tasks:', err);
+    } finally {
+      setModalLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    fetchDepartments();
+  }, []);
+
+  useEffect(() => {
+    fetchReports();
+  }, [filters.date, filters.department, filters.employeeId, filters.status, filters.page]);
+
+
+
   const handleFilterChange = (e) => {
     setFilters({ ...filters, [e.target.name]: e.target.value, page: 1 });
   };
@@ -101,20 +118,6 @@ const AdminReports = () => {
     setSearch('');
   };
 
-  const fetchEmployeeTasks = async (employeeId, date) => {
-    setModalLoading(true);
-    setIsModalOpen(true);
-    try {
-      const res = await api.get(`/employee/tasks/${employeeId}/${date}`);
-      if (res.data.success) {
-        setSelectedTasks(res.data.tasks);
-      }
-    } catch (err) {
-      console.error('Error fetching tasks:', err);
-    } finally {
-      setModalLoading(false);
-    }
-  };
 
   const handleDownloadExcel = () => {
     if (data.reports.length === 0) {

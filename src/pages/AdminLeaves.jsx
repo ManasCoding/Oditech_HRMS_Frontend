@@ -11,10 +11,6 @@ const AdminLeaves = () => {
   const [actionLoading, setActionLoading] = useState(null);
   const admin = JSON.parse(localStorage.getItem('user')) || {};
 
-  useEffect(() => {
-    fetchLeaves();
-  }, []);
-
   const fetchLeaves = async () => {
     try {
       const res = await api.get('/admin/leaves');
@@ -27,6 +23,11 @@ const AdminLeaves = () => {
       setLoading(false);
     }
   };
+
+  useEffect(() => {
+    fetchLeaves();
+  }, []);
+
 
   const handleStatusUpdate = async (id, status) => {
     setActionLoading(id);

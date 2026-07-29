@@ -15,10 +15,6 @@ const EmployeeResignationDetails = () => {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
 
-  useEffect(() => {
-    fetchResignationDetails();
-  }, [id]);
-
   const fetchResignationDetails = async () => {
     try {
       // Mock data for testing period
@@ -50,6 +46,11 @@ const EmployeeResignationDetails = () => {
       setLoading(false);
     }
   };
+
+  useEffect(() => {
+    fetchResignationDetails();
+  }, [id]);
+
 
   if (loading) {
     return (
