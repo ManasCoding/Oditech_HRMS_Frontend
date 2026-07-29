@@ -118,10 +118,6 @@ const EmployeeSchedule = ({ embedded = false, onBack }) => {
 
   const days = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday'];
 
-  useEffect(() => {
-    calculateWeekDates(selectedDate);
-  }, [selectedDate]);
-
   const calculateWeekDates = (date) => {
     const curr = new Date(date);
     const day = curr.getDay(); // 0 (Sun) to 6 (Sat)
@@ -138,10 +134,8 @@ const EmployeeSchedule = ({ embedded = false, onBack }) => {
   };
 
   useEffect(() => {
-    if (weekDates.length > 0) {
-      fetchWeeklyTasks();
-    }
-  }, [weekDates]);
+    calculateWeekDates(selectedDate);
+  }, [selectedDate]);
 
   const fetchWeeklyTasks = async () => {
     setLoading(true);
@@ -161,6 +155,12 @@ const EmployeeSchedule = ({ embedded = false, onBack }) => {
       setLoading(false);
     }
   };
+
+  useEffect(() => {
+    if (weekDates.length > 0) {
+      fetchWeeklyTasks();
+    }
+  }, [weekDates]);
 
   const handleInputChange = (date, slot, value) => {
     setWeekTasks(prev => ({
