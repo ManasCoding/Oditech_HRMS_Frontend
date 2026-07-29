@@ -15,6 +15,7 @@ const EmployeeSchedule = ({ embedded = false, onBack }) => {
   const { employeeSlug } = useParams();
   const navigate = useNavigate();
   const location = useLocation();
+  const user = JSON.parse(localStorage.getItem('user')) || {};
   const [loading, setLoading] = useState(true);
   const [submitting, setSubmitting] = useState(false);
   const [weekTasks, setWeekTasks] = useState({});
@@ -102,7 +103,7 @@ const EmployeeSchedule = ({ embedded = false, onBack }) => {
     return 'ACTIVE';
   };
   
-  const user = JSON.parse(localStorage.getItem('user'));
+
 
   const timeSlots = [
     '09:30 - 10:30',
