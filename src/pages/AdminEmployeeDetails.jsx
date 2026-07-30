@@ -35,6 +35,8 @@ import { PieChart, Pie, Cell, ResponsiveContainer } from 'recharts';
 import AdminWeeklyTimesheet from '../components/AdminWeeklyTimesheet';
 import api from '../services/api';
 import { io } from 'socket.io-client';
+import PayrollTab from '../components/employee/PayrollTab';
+import PayslipsTab from '../components/employee/PayslipsTab';
 
 const SOCKET_URL = (import.meta.env.VITE_API_BASE_URL || 'https://oditech-hrms-backend-2.onrender.com/api').replace('/api', '');
 
@@ -444,7 +446,7 @@ const AdminEmployeeDetails = () => {
     </AdminLayout>
   );
 
-  const tabs = ['Overview', 'Attendance', 'Leaves', 'Late Marks', 'Login History', 'Document', 'Timesheet', 'Messages'];
+  const tabs = ['Overview', 'Attendance', 'Leaves', 'Late Marks', 'Login History', 'Document', 'Timesheet', 'Messages', 'Payroll', 'Payslips'];
 
   return (
     <AdminLayout title="Profile Deep-Dive" hideHeader={true}>
@@ -1720,6 +1722,14 @@ const AdminEmployeeDetails = () => {
             )}
           </div>
         </div>
+      )}
+      
+      {activeTab === 'Payroll' && (
+        <PayrollTab employeeId={id} employee={employee} />
+      )}
+
+      {activeTab === 'Payslips' && (
+        <PayslipsTab employeeId={id} employee={employee} />
       )}
 
     </AdminLayout>
