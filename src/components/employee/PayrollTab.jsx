@@ -74,6 +74,7 @@ const PayrollTab = ({ employeeId, employee }) => {
   const [generating, setGenerating] = useState(false);
   const [payrollData, setPayrollData] = useState(null);
   const [isGenerated, setIsGenerated] = useState(false);
+  const [hasAttendanceData, setHasAttendanceData] = useState(true);
   const [history, setHistory]       = useState([]);
 
   // Salary inputs
@@ -107,6 +108,7 @@ const PayrollTab = ({ employeeId, employee }) => {
       if (res.data.success) {
         setPayrollData(res.data.data);
         setIsGenerated(res.data.isGenerated);
+        setHasAttendanceData(res.data.isGenerated ? true : res.data.hasAttendanceData);
         if (res.data.isGenerated) {
           const d = res.data.data;
           setBasicSalary(d.basicSalary || 30000);
@@ -257,7 +259,12 @@ const PayrollTab = ({ employeeId, employee }) => {
       </div>
 
       {/* ── Attendance Summary ─────────────────────────────────────────────── */}
-      {payrollData && (
+      {!isGenerated && !hasAttendanceData ? (
+        <div className="bg-amber-50 border border-amber-200 rounded-2xl p-6 text-center shadow-sm">
+          <p className="text-amber-700 font-bold">No attendance data found for this payroll period.</p>
+          <p className="text-amber-600 text-sm mt-1">Please ensure attendance is marked before generating payroll.</p>
+        </div>
+      ) : payrollData && (
         <div className="bg-white rounded-2xl p-6 shadow-sm border border-border">
           <div className="flex items-center justify-between mb-5">
             <h3 className="text-[10px] font-black uppercase tracking-widest text-slate-400 flex items-center gap-2">
@@ -406,7 +413,7 @@ const PayrollTab = ({ employeeId, employee }) => {
 
             <div className="mt-6">
               {!isGenerated ? (
-                <button onClick={handleGenerate} disabled={generating || loading}
+                <button onClick={handleGenerate} disabled={generating || loading || !hasAttendanceData}
                   className="w-full bg-primary hover:bg-primary/90 text-white font-black rounded-xl py-3.5 flex items-center justify-center gap-2 shadow-lg shadow-primary/20 transition-all active:scale-[0.98] disabled:opacity-50">
                   {generating ? <Loader2 size={18} className="animate-spin" /> : <CheckCircle2 size={18} />}
                   Generate Payroll
