@@ -58,10 +58,16 @@ const SalarySlipA4 = ({ data, employee }) => {
           <div style={{ color: 'rgba(255,255,255,0.7)', fontSize: '10px' }}>hr@oditechglobal.com | +91-XXXXXXXXXX</div>
         </div>
         <div style={{ textAlign: 'right' }}>
-          <div style={{ background: 'rgba(255,255,255,0.15)', borderRadius: '10px', padding: '12px 20px' }}>
+          <div style={{ background: 'rgba(255,255,255,0.15)', borderRadius: '10px', padding: '12px 20px', textAlign: 'right' }}>
             <div style={{ color: '#fff', fontSize: '18px', fontWeight: '900', letterSpacing: '1px' }}>SALARY SLIP</div>
-            <div style={{ color: 'rgba(255,255,255,0.85)', fontSize: '12px', marginTop: '4px' }}>{monthName} {data.year}</div>
-            <div style={{ color: 'rgba(255,255,255,0.7)', fontSize: '10px', marginTop: '2px' }}>Generated: {generatedDate}</div>
+            <div style={{ color: 'rgba(255,255,255,0.85)', fontSize: '12px', marginTop: '4px' }}>
+              Payroll Month: <strong>{monthName} {data.year}</strong>
+            </div>
+            <div style={{ color: 'rgba(255,255,255,0.85)', fontSize: '12px', marginTop: '2px' }}>
+              Payroll Period:<br/>
+              {new Date(data.periodStart).toLocaleDateString('en-IN', { day: '2-digit', month: 'short', year: 'numeric' })} to {new Date(data.periodEnd).toLocaleDateString('en-IN', { day: '2-digit', month: 'short', year: 'numeric' })}
+            </div>
+            <div style={{ color: 'rgba(255,255,255,0.7)', fontSize: '10px', marginTop: '4px' }}>Generated: {generatedDate}</div>
           </div>
         </div>
       </div>
