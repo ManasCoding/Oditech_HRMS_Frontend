@@ -33,6 +33,7 @@ import {
 } from 'lucide-react';
 import { PieChart, Pie, Cell, ResponsiveContainer } from 'recharts';
 import AdminWeeklyTimesheet from '../components/AdminWeeklyTimesheet';
+import InlineAttendanceStatusEditor from '../components/admin/InlineAttendanceStatusEditor';
 import api from '../services/api';
 import { io } from 'socket.io-client';
 import PayrollTab from '../components/employee/PayrollTab';
@@ -390,6 +391,22 @@ const AdminEmployeeDetails = () => {
       fetchRealStats();
     } catch (err) {
       alert(err.response?.data?.message || 'Failed to update check-out');
+    }
+  };
+
+  const handleUpdateStatus = async (rawDate, newStatus) => {
+    try {
+      const d = new Date(rawDate);
+      const formattedDate = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+      
+      await api.put('/admin/attendance/status', {
+        employeeId: employee._id,
+        date: formattedDate,
+        status: newStatus
+      });
+      fetchRealStats();
+    } catch (err) {
+      alert(err.response?.data?.message || 'Failed to update status');
     }
   };
 
@@ -921,16 +938,11 @@ const AdminEmployeeDetails = () => {
                             {new Date(row.date).toLocaleDateString('en-US', { weekday: 'short' })}
                           </td>
                           <td className="px-10 py-1.5">
-                            <span className={`px-2.5 py-1 rounded-md text-[10px] font-black uppercase tracking-widest ${
-                                row.status === 'Present' ? 'bg-emerald-50 text-emerald-600' : 
-                                row.status === 'Absent' ? 'bg-rose-50 text-rose-600' :
-                                row.status === 'Half Day' ? 'bg-sky-50 text-sky-600' :
-                                row.status === 'Late' ? 'bg-orange-50 text-orange-600' :
-                                row.status === 'Holiday' ? 'bg-pink-50 text-pink-600' :
-                                'bg-slate-100 text-slate-500'
-                              }`}>
-                                {row.status}
-                              </span>
+                            <InlineAttendanceStatusEditor 
+                              record={row}
+                              employeeId={employee._id}
+                              onUpdateSuccess={fetchRealStats}
+                            />
                           </td>
                           <td className="px-10 py-1.5 text-[11px] font-black text-slate-700">
                             {editingCheckIn.date === row.date ? (
