@@ -93,7 +93,7 @@ const AttendanceCalendar = ({ employeeId }) => {
       return { status: 'Weekend', color: 'bg-[#F2F2F2] text-[#616161] shadow-[#F2F2F2]', tooltip: 'Weekend' };
     }
 
-    // 3. Leave (Purple)
+    // 3. Leave
     const leave = leaves.find(l => {
       if (l.status !== 'Approved') return false;
       const start = new Date(l.startDate);
@@ -103,7 +103,11 @@ const AttendanceCalendar = ({ employeeId }) => {
       return dateObj >= start && dateObj <= end;
     });
     if (leave) {
-      return { status: 'Leave', color: 'bg-[#F3E8FF] text-[#8E44AD] shadow-[#F3E8FF]', tooltip: 'On Leave' };
+      const isUnpaid = leave.leaveType && (leave.leaveType.toLowerCase().includes('unpaid') || leave.leaveType.toLowerCase() === 'lwp');
+      if (isUnpaid) {
+        return { status: 'Unpaid Leave', color: 'bg-[#FFFBEB] text-[#D97706] shadow-[#FFFBEB]', tooltip: `Unpaid Leave: ${leave.leaveType}` };
+      }
+      return { status: 'Paid Leave', color: 'bg-[#F3E8FF] text-[#8E44AD] shadow-[#F3E8FF]', tooltip: `Paid Leave: ${leave.leaveType}` };
     }
 
     // Attendance Log Checks
@@ -116,8 +120,9 @@ const AttendanceCalendar = ({ employeeId }) => {
       // Check if employee has checked in properly
       const hasCheckedIn = log.checkIn && log.checkIn !== "00:00";
 
-      if (hasCheckedIn) {
-        // 4. Present / Late
+      if (hasCheckedIn || log.status === 'Half Day') {
+        // 4. Present / Late / Half Day
+        if (log.status === 'Half Day') return { status: 'Half Day', color: 'bg-[#F0FDFA] text-[#0D9488] shadow-[#F0FDFA]', tooltip: 'Half Day' };
         if (log.status === 'Late') return { status: 'Late', color: 'bg-[#FFF3E0] text-[#FB8C00] shadow-[#FFF3E0]', tooltip: 'Late' };
         return { status: 'Present', color: 'bg-[#E8F8F0] text-[#00A86B] shadow-[#E8F8F0]', tooltip: 'Present' };
       } else {
@@ -187,8 +192,10 @@ const AttendanceCalendar = ({ employeeId }) => {
         {[
           { label: 'Present', color: '#00A86B' },
           { label: 'Absent', color: '#E53935' },
+          { label: 'Half Day', color: '#0D9488' },
           { label: 'Late', color: '#FB8C00' },
-          { label: 'Leave', color: '#8E44AD' },
+          { label: 'Paid Leave', color: '#8E44AD' },
+          { label: 'Unpaid Leave', color: '#D97706' },
           { label: 'Holiday', color: '#1E88E5' },
           { label: 'Weekend', color: '#616161' }
         ].map(item => (

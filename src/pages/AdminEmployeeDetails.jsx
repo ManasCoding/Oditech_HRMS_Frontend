@@ -427,6 +427,10 @@ const AdminEmployeeDetails = () => {
     const rate       = Math.round((present / (workingDays || 1)) * 100);
 
     const late       = attendanceRecords && attendanceRecords.length > 0 ? attendanceRecords.filter(r => r.status === 'Late').length : 0;
+    const holidays   = attendanceRecords && attendanceRecords.length > 0 ? attendanceRecords.filter(r => r.status === 'Holiday').length : 0;
+    const weekend    = attendanceRecords && attendanceRecords.length > 0 ? attendanceRecords.filter(r => r.status === 'Weekend').length : 0;
+    const paidLeave  = attendanceStats.paidLeaves   ?? leave;
+    const unpaidLeave= attendanceStats.unpaidLeaves ?? 0;
 
     return {
       present,
@@ -434,6 +438,10 @@ const AdminEmployeeDetails = () => {
       halfDay,
       leave,
       late,
+      holidays,
+      weekend,
+      paidLeave,
+      unpaidLeave,
       workingDays,
       rate,
       leavesTotal: attendanceStats.totalLeaveQuota    ?? 0,
@@ -708,49 +716,70 @@ const AdminEmployeeDetails = () => {
                     <p className="text-lg font-black text-slate-800">{dynamicStats.halfDay} <span className="text-xs text-slate-400">Day</span></p>
                   </div>
                 </div>
+                <div className="p-4 bg-orange-50/50 rounded-3xl border border-orange-50 flex items-center gap-4">
+                  <div className="w-10 h-10 bg-orange-500 text-white rounded-full flex items-center justify-center shadow-md shadow-orange-200"><AlertCircle size={20} /></div>
+                  <div>
+                    <p className="text-[10px] font-black text-orange-600 uppercase tracking-widest">Late</p>
+                    <p className="text-lg font-black text-slate-800">{dynamicStats.late} <span className="text-xs text-slate-400">Day</span></p>
+                  </div>
+                </div>
+                <div className="p-4 bg-indigo-50/50 rounded-3xl border border-indigo-50 flex items-center gap-4">
+                  <div className="w-10 h-10 bg-indigo-500 text-white rounded-full flex items-center justify-center shadow-md shadow-indigo-200"><Calendar size={20} /></div>
+                  <div>
+                    <p className="text-[10px] font-black text-indigo-600 uppercase tracking-widest">Holiday</p>
+                    <p className="text-lg font-black text-slate-800">{dynamicStats.holidays} <span className="text-xs text-slate-400">Day</span></p>
+                  </div>
+                </div>
               </div>
             </div>
 
             <div className="bg-white rounded-[40px] border border-border shadow-sm p-10 flex flex-col">
-              <h3 className="text-lg font-black text-slate-800 mb-8">Monthly Attendance Overview</h3>
-              <div className="flex-1 flex items-center gap-4">
+              <h3 className="text-lg font-black text-slate-800 mb-6">Monthly Attendance Overview</h3>
+              <div className="flex-1 flex items-center gap-6">
                 {(() => {
-                  const total = (dynamicStats.present + dynamicStats.absent + dynamicStats.halfDay + dynamicStats.leave) || 1;
+                  const total = (dynamicStats.present + dynamicStats.absent + dynamicStats.halfDay + dynamicStats.leave + dynamicStats.late + dynamicStats.holidays + dynamicStats.weekend + dynamicStats.unpaidLeave) || 1;
                   const chartData = [
-                    { name: 'Present',  value: dynamicStats.present,  color: '#10b981', pct: Math.round((dynamicStats.present  / total) * 100) },
-                    { name: 'Absent',   value: dynamicStats.absent,   color: '#ef4444', pct: Math.round((dynamicStats.absent   / total) * 100) },
-                    { name: 'Half Day', value: dynamicStats.halfDay,  color: '#14b8a6', pct: Math.round((dynamicStats.halfDay  / total) * 100) },
-                    { name: 'Leave',    value: dynamicStats.leave,    color: '#8b5cf6', pct: Math.round((dynamicStats.leave    / total) * 100) },
-                  ];
+                    { name: 'Present',      value: dynamicStats.present,     color: '#10b981', pct: Math.round((dynamicStats.present      / total) * 100) },
+                    { name: 'Absent',       value: dynamicStats.absent,      color: '#ef4444', pct: Math.round((dynamicStats.absent       / total) * 100) },
+                    { name: 'Half Day',     value: dynamicStats.halfDay,     color: '#14b8a6', pct: Math.round((dynamicStats.halfDay      / total) * 100) },
+                    { name: 'Late',         value: dynamicStats.late,        color: '#f97316', pct: Math.round((dynamicStats.late         / total) * 100) },
+                    { name: 'Paid Leave',   value: dynamicStats.paidLeave,   color: '#8b5cf6', pct: Math.round((dynamicStats.paidLeave   / total) * 100) },
+                    { name: 'Unpaid Leave', value: dynamicStats.unpaidLeave, color: '#d97706', pct: Math.round((dynamicStats.unpaidLeave / total) * 100) },
+                    { name: 'Holiday',      value: dynamicStats.holidays,    color: '#3b82f6', pct: Math.round((dynamicStats.holidays    / total) * 100) },
+                    { name: 'Weekend',      value: dynamicStats.weekend,     color: '#94a3b8', pct: Math.round((dynamicStats.weekend     / total) * 100) },
+                  ].filter(d => d.value > 0);
+                  const allZero = chartData.length === 0;
+                  const displayData = allZero ? [{ name: 'No Data', value: 1, color: '#e2e8f0', pct: 100 }] : chartData;
                   return (
                     <>
-                      <div className="w-1/2 h-48">
+                      <div className="w-1/2 h-52">
                         <ResponsiveContainer width="100%" height="100%">
                           <PieChart>
                             <Pie
-                              data={chartData}
-                              innerRadius={55}
-                              outerRadius={75}
-                              paddingAngle={5}
+                              data={displayData}
+                              innerRadius={50}
+                              outerRadius={72}
+                              paddingAngle={allZero ? 0 : 4}
                               dataKey="value"
                             >
-                              {chartData.map((entry, index) => (
+                              {displayData.map((entry, index) => (
                                 <Cell key={`cell-${index}`} fill={entry.color} />
                               ))}
                             </Pie>
                           </PieChart>
                         </ResponsiveContainer>
                       </div>
-                      <div className="w-1/2 space-y-4">
-                        {chartData.map((item) => (
+                      <div className="w-1/2 space-y-2.5">
+                        {(allZero ? [] : chartData).map((item) => (
                           <div key={item.name} className="flex items-center justify-between group">
                             <div className="flex items-center gap-2">
-                              <div className="w-2.5 h-2.5 rounded-full" style={{ backgroundColor: item.color }}></div>
-                              <span className="text-xs font-black text-slate-500 uppercase tracking-tighter">{item.name}</span>
+                              <div className="w-2.5 h-2.5 rounded-full flex-shrink-0" style={{ backgroundColor: item.color }}></div>
+                              <span className="text-[10px] font-black text-slate-500 uppercase tracking-tighter">{item.name}</span>
                             </div>
                             <span className="text-xs font-black text-slate-800">{item.pct}%</span>
                           </div>
                         ))}
+                        {allZero && <p className="text-xs text-slate-400 font-medium">No data this month</p>}
                       </div>
                     </>
                   );
