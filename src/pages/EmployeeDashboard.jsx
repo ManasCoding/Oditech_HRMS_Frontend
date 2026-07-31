@@ -9,6 +9,7 @@ import {
 } from 'lucide-react';
 import ActiveAnnouncements from '../components/ActiveAnnouncements';
 import AttendanceCalendar from '../components/AttendanceCalendar';
+import PayrollAttendanceSummary from '../components/shared/PayrollAttendanceSummary';
 
 const StatCard = ({ label, value, subValue, colorClass, bgClass, textClass, icon }) => (
   <div className={`bg-white rounded-2xl shadow-[0_8px_30px_rgb(0,0,0,0.04)] border border-slate-100 p-6 flex flex-col items-center justify-center border-t-4 ${colorClass} hover:-translate-y-1 transition-transform duration-300`}>
@@ -184,80 +185,9 @@ const EmployeeDashboard = () => {
 
         </div>
 
-        {/* Stats Grid */}
-        <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-4 xl:grid-cols-8 gap-4">
-          <StatCard
-            label="Present Days"
-            value={stats.presentDays ?? 0}
-            subValue="Completed"
-            colorClass="border-emerald-400"
-            bgClass="bg-emerald-50"
-            textClass="text-emerald-500"
-            icon={<CheckCircle size={24} strokeWidth={2.5} />}
-          />
-          <StatCard
-            label="Absent Days"
-            value={stats.absentDays ?? 0}
-            subValue="Total Missed"
-            colorClass="border-rose-400"
-            bgClass="bg-rose-50"
-            textClass="text-rose-500"
-            icon={<XCircle size={24} strokeWidth={2.5} />}
-          />
-          <StatCard
-            label="Half Days"
-            value={stats.halfDays ?? 0}
-            subValue="Partial Shift"
-            colorClass="border-teal-400"
-            bgClass="bg-teal-50"
-            textClass="text-teal-500"
-            icon={<PieChart size={24} strokeWidth={2.5} />}
-          />
-          <StatCard
-            label="Working Days"
-            value={((stats.presentDays ?? 0) + (stats.absentDays ?? 0) + (stats.halfDays ?? 0)).toString()}
-            subValue="Total Days"
-            colorClass="border-sky-400"
-            bgClass="bg-sky-50"
-            textClass="text-sky-500"
-            icon={<Calendar size={24} strokeWidth={2.5} />}
-          />
-          <StatCard
-            label="Attendance Rate"
-            value={stats.attendanceRate != null ? `${stats.attendanceRate}%` : 'N/A'}
-            subValue={getAttendanceSubValue(stats.attendanceRate || 0)}
-            colorClass={attendanceColors.colorClass}
-            bgClass={attendanceColors.bgClass}
-            textClass={attendanceColors.textClass}
-            icon={<PieChart size={24} strokeWidth={2.5} />}
-          />
-          <StatCard
-            label="Leaves Taken"
-            value={stats.leavesTaken ?? 0}
-            subValue="Approved"
-            colorClass="border-violet-400"
-            bgClass="bg-violet-50"
-            textClass="text-violet-500"
-            icon={<ClipboardList size={24} strokeWidth={2.5} />}
-          />
-          <StatCard
-            label="Available"
-            value={stats.availableLeaves ?? 12}
-            subValue="Leave Quota"
-            colorClass="border-blue-400"
-            bgClass="bg-blue-50"
-            textClass="text-blue-500"
-            icon={<Calendar size={24} strokeWidth={2.5} />}
-          />
-          <StatCard
-            label="Late Arrivals"
-            value={stats.lateCount ?? 0}
-            subValue="Days Late"
-            colorClass="border-red-400"
-            bgClass="bg-red-50"
-            textClass="text-red-500"
-            icon={<Clock size={24} strokeWidth={2.5} />}
-          />
+        {/* Attendance Summary */}
+        <div className="animate-in fade-in slide-in-from-bottom-4 duration-500 delay-100">
+          <PayrollAttendanceSummary employeeId={employeeId} month={currentPeriod.month} year={currentPeriod.year} />
         </div>
 
         {/* Announcements & Calendar Grid */}
