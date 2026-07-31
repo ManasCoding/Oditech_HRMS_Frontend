@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import {
   Calendar, FileText, DollarSign, Loader2, CheckCircle2, Lock,
-  TrendingUp, TrendingDown, ArrowRight, RefreshCw, AlertCircle
+  TrendingUp, TrendingDown, ArrowRight, RefreshCw, AlertCircle, Clock, Plane, Briefcase
 } from 'lucide-react';
 import api from '../../services/api';
 import toast from 'react-hot-toast';
@@ -47,27 +47,43 @@ const InputField = ({ label, value, onChange, disabled }) => (
   </div>
 );
 
-const AttCard = ({ label, value, color = 'slate', loading = false }) => {
+const AttCard = ({ label, value, color = 'slate', loading = false, icon: Icon, subtext }) => {
   const map = {
-    slate:  'bg-slate-50 border-slate-200 text-slate-700',
-    green:  'bg-emerald-50 border-emerald-100 text-emerald-700',
-    red:    'bg-rose-50 border-rose-100 text-rose-700',
-    amber:  'bg-amber-50 border-amber-100 text-amber-700',
-    blue:   'bg-blue-50 border-blue-100 text-blue-700',
-    indigo: 'bg-indigo-50 border-indigo-100 text-indigo-700',
-    orange: 'bg-orange-50 border-orange-100 text-orange-700',
-    violet: 'bg-violet-50 border-violet-100 text-violet-700',
+    slate:  { wrapper: 'hover:border-slate-200', iconBg: 'bg-slate-50 text-slate-500', valueText: 'text-slate-800', subText: 'text-slate-500' },
+    green:  { wrapper: 'hover:border-emerald-200', iconBg: 'bg-emerald-50 text-emerald-500', valueText: 'text-slate-800', subText: 'text-emerald-500' },
+    red:    { wrapper: 'hover:border-rose-200', iconBg: 'bg-rose-50 text-rose-500', valueText: 'text-slate-800', subText: 'text-rose-500' },
+    amber:  { wrapper: 'hover:border-amber-200', iconBg: 'bg-amber-50 text-amber-500', valueText: 'text-slate-800', subText: 'text-amber-500' },
+    orange: { wrapper: 'hover:border-orange-200', iconBg: 'bg-orange-50 text-orange-500', valueText: 'text-slate-800', subText: 'text-orange-500' },
+    blue:   { wrapper: 'hover:border-blue-200', iconBg: 'bg-blue-50 text-blue-500', valueText: 'text-slate-800', subText: 'text-blue-500' },
+    indigo: { wrapper: 'hover:border-indigo-200', iconBg: 'bg-indigo-50 text-indigo-500', valueText: 'text-slate-800', subText: 'text-indigo-500' },
+    violet: { wrapper: 'hover:border-violet-200', iconBg: 'bg-violet-50 text-violet-500', valueText: 'text-slate-800', subText: 'text-violet-500' },
+    teal:   { wrapper: 'hover:border-teal-200', iconBg: 'bg-teal-50 text-teal-500', valueText: 'text-slate-800', subText: 'text-teal-500' },
+    primary:{ wrapper: 'hover:border-primary/20 bg-slate-50/30', iconBg: 'bg-primary/10 text-primary', valueText: 'text-slate-800', subText: 'text-primary' },
   };
+
+  const style = map[color] || map.slate;
+  const isDays = !label.toLowerCase().includes('mark');
+
   return (
-    <div className={`rounded-xl p-4 border ${map[color]} relative overflow-hidden`}>
-      <p className="text-[10px] font-black uppercase tracking-widest mb-1 opacity-60">{label}</p>
-      {loading ? (
-        <div className="h-8 flex items-center">
-          <div className="w-6 h-6 rounded-full border-2 border-current border-t-transparent animate-spin opacity-40" />
+    <div className={`bg-white p-6 rounded-[32px] border border-border shadow-sm group ${style.wrapper} transition-all min-w-[200px]`}>
+      <div className="flex items-center gap-4">
+        <div className={`w-12 h-12 ${style.iconBg} rounded-2xl flex items-center justify-center shadow-inner group-hover:scale-110 transition-transform flex-shrink-0`}>
+          {Icon ? <Icon size={22} /> : <Calendar size={22} />}
         </div>
-      ) : (
-        <p className="text-2xl font-black">{value ?? '—'}</p>
-      )}
+        <div>
+          <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest leading-tight mb-1">{label}</p>
+          {loading ? (
+            <div className="h-7 flex items-center">
+              <div className="w-5 h-5 rounded-full border-2 border-current border-t-transparent animate-spin opacity-40" />
+            </div>
+          ) : (
+            <>
+              <p className="text-xl font-black text-slate-800 leading-none mb-1">{value ?? '0'} <span className="text-sm font-bold text-slate-500">{isDays ? 'Days' : ''}</span></p>
+              {subtext && <p className={`text-[10px] font-bold ${style.subText}`}>{subtext}</p>}
+            </>
+          )}
+        </div>
+      </div>
     </div>
   );
 };
@@ -347,17 +363,17 @@ const PayrollTab = ({ employeeId, employee }) => {
           </div>
         )}
 
-        <div className="grid grid-cols-2 sm:grid-cols-4 lg:grid-cols-5 xl:grid-cols-10 gap-3">
-          <AttCard label="Working Days" value={att.workingDays}  color="slate"  loading={summaryLoading} />
-          <AttCard label="Present"      value={att.present}      color="green"  loading={summaryLoading} />
-          <AttCard label="Absent"       value={att.absent}       color="red"    loading={summaryLoading} />
-          <AttCard label="Half Day"     value={att.halfDay}      color="amber"  loading={summaryLoading} />
-          <AttCard label="Paid Leave"   value={att.paidLeave}    color="blue"   loading={summaryLoading} />
-          <AttCard label="Unpaid Leave" value={att.unpaidLeave}  color="orange" loading={summaryLoading} />
-          <AttCard label="Weekly Off"   value={att.weeklyOff}    color="slate"  loading={summaryLoading} />
-          <AttCard label="Holidays"     value={att.holidays}     color="indigo" loading={summaryLoading} />
-          <AttCard label="Late Marks"   value={att.lateMarks}    color="amber"  loading={summaryLoading} />
-          <AttCard label="Payable Days" value={att.payableDays}  color="green"  loading={summaryLoading} />
+        <div className="flex overflow-x-auto gap-4 pb-4 no-scrollbar">
+          <AttCard label="Working Days" value={att.workingDays} color="primary" icon={Briefcase} loading={summaryLoading} />
+          <AttCard label="Present"      value={att.present}     color="green"   icon={Calendar} loading={summaryLoading} subtext={att.workingDays ? `${Math.round(((att.present ?? 0) / att.workingDays) * 100)}%` : '0%'} />
+          <AttCard label="Absent"       value={att.absent}      color="red"     icon={Calendar} loading={summaryLoading} subtext={att.workingDays ? `${Math.round(((att.absent ?? 0) / att.workingDays) * 100)}%` : '0%'} />
+          <AttCard label="Half Day"     value={att.halfDay}     color="teal"    icon={Clock}    loading={summaryLoading} subtext={att.workingDays ? `${Math.round(((att.halfDay ?? 0) / att.workingDays) * 100)}%` : '0%'} />
+          <AttCard label="Paid Leave"   value={att.paidLeave}   color="blue"    icon={Plane}    loading={summaryLoading} />
+          <AttCard label="Unpaid Leave" value={att.unpaidLeave} color="orange"  icon={Plane}    loading={summaryLoading} />
+          <AttCard label="Weekly Off"   value={att.weeklyOff}   color="slate"   icon={Calendar} loading={summaryLoading} />
+          <AttCard label="Holidays"     value={att.holidays}    color="indigo"  icon={Calendar} loading={summaryLoading} />
+          <AttCard label="Late Marks"   value={att.lateMarks}   color="amber"   icon={AlertCircle} loading={summaryLoading} />
+          <AttCard label="Payable Days" value={att.payableDays} color="green"   icon={CheckCircle2} loading={summaryLoading} subtext="Total Payable" />
         </div>
 
         {/* Payable days formula note */}
