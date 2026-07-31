@@ -137,6 +137,7 @@ const PayrollTab = ({ employeeId, employee }) => {
       const res = await api.get(`/payroll/attendance-summary/${employeeId}/${month}/${year}`);
       if (res.data.success) {
         setAttendanceSummary(res.data.data);
+        console.log(res.data.data)
       }
     } catch (err) {
       console.error('Failed to load attendance summary', err);
