@@ -108,10 +108,13 @@ const PayrollTab = ({ employeeId, employee }) => {
   // Client-side period fallback (before API responds)
   const { periodStart: clientPeriodStart, periodEnd: clientPeriodEnd } = getPayrollPeriod(month, year);
 
-  // The attendance data shown in the summary cards always comes from the live summary endpoint
-  const att = attendanceSummary || {};
-  const periodFrom = att.payrollPeriod?.from || clientPeriodStart;
-  const periodTo   = att.payrollPeriod?.to   || clientPeriodEnd;
+  // The attendance data shown in the summary cards always comes from the live summary endpoint.
+  // attendanceSummary = { attendanceSummary: {...}, periodStart, periodEnd, payableDays }
+  const attData    = attendanceSummary?.attendanceSummary || {}; // the core counts
+  const att        = attData;  // shorthand used throughout
+  const periodFrom = attendanceSummary?.periodStart || clientPeriodStart;
+  const periodTo   = attendanceSummary?.periodEnd   || clientPeriodEnd;
+  const livePeriodPayableDays = attendanceSummary?.payableDays ?? null;
 
   // ── Fetch live attendance summary ─────────────────────────────────────────
   const fetchAttendanceSummary = useCallback(async () => {
@@ -120,6 +123,7 @@ const PayrollTab = ({ employeeId, employee }) => {
       setSummaryLoading(true);
       const res = await api.get(`/payroll/attendance-summary/${employeeId}/${month}/${year}`);
       if (res.data.success) {
+        // res.data.data = { attendanceSummary, periodStart, periodEnd, payableDays, rawRecords }
         setAttendanceSummary(res.data.data);
       }
     } catch (err) {
@@ -214,7 +218,7 @@ const PayrollTab = ({ employeeId, employee }) => {
       const res = await api.post('/payroll/generate', {
         employeeId, month, year,
         basicSalary,
-        // attendance stats — backend re-fetches live, these are informational
+        // attendance stats — backend re-fetches live, these are informational for validation
         workingDays:  att.workingDays  ?? 0,
         presentDays:  att.present      ?? 0,
         absentDays:   att.absent       ?? 0,
@@ -224,7 +228,7 @@ const PayrollTab = ({ employeeId, employee }) => {
         weeklyOffs:   att.weeklyOff    ?? 0,
         holidays:     att.holidays     ?? 0,
         lateMarks:    att.lateMarks    ?? 0,
-        payableDays:  att.payableDays  ?? 0,
+        payableDays:  livePeriodPayableDays ?? 0,
         hra, medicalAllowance, travelAllowance, foodAllowance,
         specialAllowance, bonus, overtime, otherEarnings,
         professionalTax, pf, esi, tds, advance, loan, lateFine, otherDeductions,
@@ -357,7 +361,7 @@ const PayrollTab = ({ employeeId, employee }) => {
           <AttCard label="Weekly Off"   value={att.weeklyOff}    color="slate"  loading={summaryLoading} />
           <AttCard label="Holidays"     value={att.holidays}     color="indigo" loading={summaryLoading} />
           <AttCard label="Late Marks"   value={att.lateMarks}    color="amber"  loading={summaryLoading} />
-          <AttCard label="Payable Days" value={att.payableDays}  color="green"  loading={summaryLoading} />
+          <AttCard label="Payable Days" value={livePeriodPayableDays}  color="green"  loading={summaryLoading} />
         </div>
 
         {/* Payable days formula note */}
@@ -366,7 +370,7 @@ const PayrollTab = ({ employeeId, employee }) => {
             Payable Days = Present ({att.present ?? 0}) + Paid Leave ({att.paidLeave ?? 0}) +
             Holidays ({att.holidays ?? 0}) + Weekly Off ({att.weeklyOff ?? 0}) +
             Half Day × 0.5 ({att.halfDay ?? 0} × 0.5 = {((att.halfDay ?? 0) * 0.5).toFixed(1)})
-            = <strong className="text-slate-600">{att.payableDays}</strong>
+            = <strong className="text-slate-600">{livePeriodPayableDays}</strong>
           </p>
         )}
       </div>
