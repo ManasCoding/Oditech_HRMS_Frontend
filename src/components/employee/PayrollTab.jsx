@@ -1,7 +1,7 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import {
   Calendar, FileText, DollarSign, Loader2, CheckCircle2, Lock,
-  TrendingUp, TrendingDown, ArrowRight, ChevronRight
+  TrendingUp, TrendingDown, ArrowRight, RefreshCw, AlertCircle
 } from 'lucide-react';
 import api from '../../services/api';
 import toast from 'react-hot-toast';
@@ -11,8 +11,8 @@ const fmt = (n) =>
   new Intl.NumberFormat('en-IN', { style: 'currency', currency: 'INR', maximumFractionDigits: 0 }).format(n || 0);
 
 /**
- * Given payroll month (1-12) and year, compute 21st-prev → 20th-current period.
- * Mirrors the backend helper so the UI always shows the right period.
+ * Client-side payroll period mirror (matches backend helper).
+ * Used only for the period-badge display before data loads.
  */
 const getPayrollPeriod = (month, year) => {
   let prevMonth = month - 1, prevYear = year;
@@ -20,7 +20,7 @@ const getPayrollPeriod = (month, year) => {
   const pad = (n) => String(n).padStart(2, '0');
   return {
     periodStart: `${prevYear}-${pad(prevMonth)}-21`,
-    periodEnd:   `${year}-${pad(month)}-20`
+    periodEnd:   `${year}-${pad(month)}-20`,
   };
 };
 
@@ -47,7 +47,7 @@ const InputField = ({ label, value, onChange, disabled }) => (
   </div>
 );
 
-const AttCard = ({ label, value, color = 'slate' }) => {
+const AttCard = ({ label, value, color = 'slate', loading = false }) => {
   const map = {
     slate:  'bg-slate-50 border-slate-200 text-slate-700',
     green:  'bg-emerald-50 border-emerald-100 text-emerald-700',
@@ -59,34 +59,41 @@ const AttCard = ({ label, value, color = 'slate' }) => {
     violet: 'bg-violet-50 border-violet-100 text-violet-700',
   };
   return (
-    <div className={`rounded-xl p-4 border ${map[color]}`}>
+    <div className={`rounded-xl p-4 border ${map[color]} relative overflow-hidden`}>
       <p className="text-[10px] font-black uppercase tracking-widest mb-1 opacity-60">{label}</p>
-      <p className="text-2xl font-black">{value}</p>
+      {loading ? (
+        <div className="h-8 flex items-center">
+          <div className="w-6 h-6 rounded-full border-2 border-current border-t-transparent animate-spin opacity-40" />
+        </div>
+      ) : (
+        <p className="text-2xl font-black">{value ?? '—'}</p>
+      )}
     </div>
   );
 };
 
 // ─── Main Component ────────────────────────────────────────────────────────────
 const PayrollTab = ({ employeeId, employee }) => {
-  const [month, setMonth]           = useState(new Date().getMonth() + 1);
-  const [year, setYear]             = useState(new Date().getFullYear());
-  const [loading, setLoading]       = useState(false);
-  const [generating, setGenerating] = useState(false);
-  const [payrollData, setPayrollData] = useState(null);
-  const [isGenerated, setIsGenerated] = useState(false);
-  const [hasAttendanceData, setHasAttendanceData] = useState(true);
-  const [history, setHistory]       = useState([]);
+  const [month, setMonth]               = useState(new Date().getMonth() + 1);
+  const [year, setYear]                 = useState(new Date().getFullYear());
+  const [loading, setLoading]           = useState(false);
+  const [summaryLoading, setSummaryLoading] = useState(false);
+  const [generating, setGenerating]     = useState(false);
+  const [payrollData, setPayrollData]   = useState(null);   // generated payroll OR live preview data
+  const [isGenerated, setIsGenerated]   = useState(false);
+  const [attendanceSummary, setAttendanceSummary] = useState(null); // always live
+  const [history, setHistory]           = useState([]);
 
   // Salary inputs
-  const [basicSalary, setBasicSalary]           = useState(30000);
-  const [hra, setHra]                           = useState(0);
-  const [medicalAllowance, setMedicalAllowance] = useState(0);
-  const [travelAllowance, setTravelAllowance]   = useState(0);
-  const [foodAllowance, setFoodAllowance]       = useState(0);
-  const [specialAllowance, setSpecialAllowance] = useState(0);
-  const [bonus, setBonus]                       = useState(0);
-  const [overtime, setOvertime]                 = useState(0);
-  const [otherEarnings, setOtherEarnings]       = useState(0);
+  const [basicSalary, setBasicSalary]               = useState(30000);
+  const [hra, setHra]                               = useState(0);
+  const [medicalAllowance, setMedicalAllowance]     = useState(0);
+  const [travelAllowance, setTravelAllowance]       = useState(0);
+  const [foodAllowance, setFoodAllowance]           = useState(0);
+  const [specialAllowance, setSpecialAllowance]     = useState(0);
+  const [bonus, setBonus]                           = useState(0);
+  const [overtime, setOvertime]                     = useState(0);
+  const [otherEarnings, setOtherEarnings]           = useState(0);
 
   // Deductions
   const [professionalTax, setProfessionalTax] = useState(0);
@@ -98,87 +105,137 @@ const PayrollTab = ({ employeeId, employee }) => {
   const [lateFine, setLateFine]               = useState(0);
   const [otherDeductions, setOtherDeductions] = useState(0);
 
-  // Computed period for current selection (client-side — mirrors backend)
-  const { periodStart, periodEnd } = getPayrollPeriod(month, year);
+  // Client-side period fallback (before API responds)
+  const { periodStart: clientPeriodStart, periodEnd: clientPeriodEnd } = getPayrollPeriod(month, year);
 
-  const fetchPayroll = async () => {
+  // The attendance data shown in the summary cards always comes from the live summary endpoint
+  const att = attendanceSummary || {};
+  const periodFrom = att.payrollPeriod?.from || clientPeriodStart;
+  const periodTo   = att.payrollPeriod?.to   || clientPeriodEnd;
+
+  // ── Fetch live attendance summary ─────────────────────────────────────────
+  const fetchAttendanceSummary = useCallback(async () => {
+    if (!employeeId) return;
+    try {
+      setSummaryLoading(true);
+      const res = await api.get(`/payroll/attendance-summary/${employeeId}/${month}/${year}`);
+      if (res.data.success) {
+        setAttendanceSummary(res.data.data);
+      }
+    } catch (err) {
+      console.error('Failed to load attendance summary', err);
+      toast.error('Failed to load attendance summary');
+    } finally {
+      setSummaryLoading(false);
+    }
+  }, [employeeId, month, year]);
+
+  // ── Fetch payroll preview (checks if already generated) ──────────────────
+  const fetchPayroll = useCallback(async () => {
+    if (!employeeId) return;
     try {
       setLoading(true);
       const res = await api.get(`/payroll/${employeeId}/${month}/${year}`);
       if (res.data.success) {
         setPayrollData(res.data.data);
         setIsGenerated(res.data.isGenerated);
-        setHasAttendanceData(res.data.isGenerated ? true : res.data.hasAttendanceData);
         if (res.data.isGenerated) {
           const d = res.data.data;
           setBasicSalary(d.basicSalary || 30000);
-          setHra(d.hra || 0);                   setMedicalAllowance(d.medicalAllowance || 0);
-          setTravelAllowance(d.travelAllowance || 0); setFoodAllowance(d.foodAllowance || 0);
-          setSpecialAllowance(d.specialAllowance || 0); setBonus(d.bonus || 0);
-          setOvertime(d.overtime || 0);         setOtherEarnings(d.otherEarnings || 0);
-          setProfessionalTax(d.professionalTax || 0); setPf(d.pf || 0);
-          setEsi(d.esi || 0);  setTds(d.tds || 0);   setAdvance(d.advance || 0);
-          setLoan(d.loan || 0); setLateFine(d.lateFine || 0); setOtherDeductions(d.otherDeductions || 0);
+          setHra(d.hra || 0);
+          setMedicalAllowance(d.medicalAllowance || 0);
+          setTravelAllowance(d.travelAllowance || 0);
+          setFoodAllowance(d.foodAllowance || 0);
+          setSpecialAllowance(d.specialAllowance || 0);
+          setBonus(d.bonus || 0);
+          setOvertime(d.overtime || 0);
+          setOtherEarnings(d.otherEarnings || 0);
+          setProfessionalTax(d.professionalTax || 0);
+          setPf(d.pf || 0);
+          setEsi(d.esi || 0);
+          setTds(d.tds || 0);
+          setAdvance(d.advance || 0);
+          setLoan(d.loan || 0);
+          setLateFine(d.lateFine || 0);
+          setOtherDeductions(d.otherDeductions || 0);
         }
       }
     } catch { toast.error('Failed to load payroll data'); }
     finally { setLoading(false); }
-  };
+  }, [employeeId, month, year]);
 
-  const fetchHistory = async () => {
+  const fetchHistory = useCallback(async () => {
+    if (!employeeId) return;
     try {
       const res = await api.get(`/payroll/history/${employeeId}`);
       if (res.data.success) setHistory(res.data.data);
     } catch (e) { console.error(e); }
-  };
+  }, [employeeId]);
 
   useEffect(() => {
-    if (employeeId) { fetchPayroll(); fetchHistory(); }
-  }, [employeeId, month, year]);
+    fetchPayroll();
+    fetchAttendanceSummary();
+    fetchHistory();
+  }, [fetchPayroll, fetchAttendanceSummary, fetchHistory]);
 
-  // ── Live salary preview calculations ──────────────────────────────────────
-  const att = payrollData || {};
-  const workDays = att.workingDays || 26;
-  const pd = att.perDaySalary || (basicSalary / workDays);
+  // ── Live salary preview (before payroll is generated) ────────────────────
+  // All values come from attendanceSummary — no hardcoded fallbacks
+  const workDays = att.workingDays ?? 0;
+  const pd = workDays > 0 ? basicSalary / workDays : 0;
 
   const totalAllowances = hra + medicalAllowance + travelAllowance + foodAllowance +
     specialAllowance + bonus + overtime + otherEarnings;
   const grossSalary = basicSalary + totalAllowances;
 
-  const absentDeduction      = (att.absentDays || 0) * pd;
-  const unpaidLeaveDeduction = (att.unpaidLeaves || 0) * pd;
-  const halfDayDeduction     = (att.halfDays || 0) * (pd / 2);
+  const absentDeduction      = (att.absent      ?? 0) * pd;
+  const unpaidLeaveDeduction = (att.unpaidLeave  ?? 0) * pd;
+  const halfDayDeduction     = (att.halfDay      ?? 0) * (pd / 2);
+
   const totalDeductions = professionalTax + pf + esi + tds + advance + loan +
     lateFine + otherDeductions + absentDeduction + unpaidLeaveDeduction + halfDayDeduction;
   const netSalary = Math.max(0, grossSalary - totalDeductions);
 
-  const displayGross      = isGenerated ? (att.grossSalary || 0)      : grossSalary;
-  const displayDeductions = isGenerated ? (att.totalDeductions || 0)   : totalDeductions;
-  const displayNet        = isGenerated ? (att.netSalary || 0)         : netSalary;
+  // When payroll is locked, use stored values; otherwise use live calculated values
+  const displayGross      = isGenerated ? (payrollData?.grossSalary      ?? 0) : grossSalary;
+  const displayDeductions = isGenerated ? (payrollData?.totalDeductions   ?? 0) : totalDeductions;
+  const displayNet        = isGenerated ? (payrollData?.netSalary         ?? 0) : netSalary;
+
+  const hasAttendanceData = (att.present ?? 0) > 0 || (att.halfDay ?? 0) > 0 || (att.absent ?? 0) > 0;
 
   const handleGenerate = async () => {
     if (!basicSalary || basicSalary <= 0) return toast.error('Enter a valid basic salary');
     if (!window.confirm(
       `Generate payroll for ${new Date(year, month - 1).toLocaleString('default', { month: 'long' })} ${year}?\n` +
-      `Cycle: ${formatDateLabel(periodStart)} → ${formatDateLabel(periodEnd)}\n\nThis will lock it until deleted.`
+      `Cycle: ${formatDateLabel(periodFrom)} → ${formatDateLabel(periodTo)}\n\nThis will lock it until deleted.`
     )) return;
     try {
       setGenerating(true);
       const adminInfo = JSON.parse(localStorage.getItem('adminInfo') || '{}');
       const res = await api.post('/payroll/generate', {
         employeeId, month, year,
-        basicSalary, workingDays: att.workingDays || 26,
-        presentDays: att.presentDays || 0, absentDays: att.absentDays || 0,
-        halfDays: att.halfDays || 0, paidLeaves: att.paidLeaves || 0,
-        unpaidLeaves: att.unpaidLeaves || 0, weeklyOffs: att.weeklyOffs || 0,
-        holidays: att.holidays || 0, lateMarks: att.lateMarks || 0,
-        payableDays: att.payableDays || 0,
+        basicSalary,
+        // attendance stats — backend re-fetches live, these are informational
+        workingDays:  att.workingDays  ?? 0,
+        presentDays:  att.present      ?? 0,
+        absentDays:   att.absent       ?? 0,
+        halfDays:     att.halfDay      ?? 0,
+        paidLeaves:   att.paidLeave    ?? 0,
+        unpaidLeaves: att.unpaidLeave  ?? 0,
+        weeklyOffs:   att.weeklyOff    ?? 0,
+        holidays:     att.holidays     ?? 0,
+        lateMarks:    att.lateMarks    ?? 0,
+        payableDays:  att.payableDays  ?? 0,
         hra, medicalAllowance, travelAllowance, foodAllowance,
         specialAllowance, bonus, overtime, otherEarnings,
         professionalTax, pf, esi, tds, advance, loan, lateFine, otherDeductions,
-        adminId: adminInfo._id
+        adminId: adminInfo._id,
       });
-      if (res.data.success) { toast.success('Payroll generated!'); fetchPayroll(); fetchHistory(); }
+      if (res.data.success) {
+        toast.success('Payroll generated!');
+        fetchPayroll();
+        fetchAttendanceSummary();
+        fetchHistory();
+      }
     } catch (e) { toast.error(e.response?.data?.message || 'Error generating payroll'); }
     finally { setGenerating(false); }
   };
@@ -189,7 +246,10 @@ const PayrollTab = ({ employeeId, employee }) => {
       setLoading(true);
       await api.delete(`/payroll/${id}`);
       toast.success('Payroll deleted');
-      if (isGenerated && payrollData?._id === id) { setPayrollData(null); setIsGenerated(false); }
+      if (isGenerated && payrollData?._id === id) {
+        setPayrollData(null);
+        setIsGenerated(false);
+      }
       fetchHistory();
     } catch { toast.error('Failed to delete'); }
     finally { setLoading(false); }
@@ -197,7 +257,7 @@ const PayrollTab = ({ employeeId, employee }) => {
 
   const monthName = new Date(year, month - 1).toLocaleString('default', { month: 'long' });
 
-  if (loading && !payrollData) return (
+  if (loading && !payrollData && !attendanceSummary) return (
     <div className="flex justify-center items-center h-48">
       <Loader2 className="animate-spin text-primary w-8 h-8" />
     </div>
@@ -206,10 +266,9 @@ const PayrollTab = ({ employeeId, employee }) => {
   return (
     <div className="space-y-5">
 
-      {/* ── Header Controls with Cycle Badge ──────────────────────────────── */}
+      {/* ── Header Controls ────────────────────────────────────────────────── */}
       <div className="bg-white rounded-2xl p-5 shadow-sm border border-border">
         <div className="flex flex-wrap gap-4 items-start justify-between">
-          {/* Left: title + period */}
           <div className="flex items-start gap-3">
             <div className="w-11 h-11 rounded-xl bg-gradient-to-br from-primary/20 to-primary/10 flex items-center justify-center shrink-0">
               <DollarSign size={20} className="text-primary" />
@@ -219,21 +278,15 @@ const PayrollTab = ({ employeeId, employee }) => {
               <p className="text-xs font-bold text-slate-500 mt-0.5">
                 Payroll Month: <span className="text-slate-800">{monthName} {year}</span>
               </p>
-              {/* Cycle period badge */}
               <div className="mt-2 inline-flex items-center gap-2 bg-primary/8 border border-primary/20 rounded-xl px-3 py-1.5">
                 <Calendar size={13} className="text-primary shrink-0" />
-                <span className="text-[11px] font-black text-primary">
-                  {formatDateLabel(periodStart)}
-                </span>
+                <span className="text-[11px] font-black text-primary">{formatDateLabel(periodFrom)}</span>
                 <ArrowRight size={12} className="text-primary/60" />
-                <span className="text-[11px] font-black text-primary">
-                  {formatDateLabel(periodEnd)}
-                </span>
+                <span className="text-[11px] font-black text-primary">{formatDateLabel(periodTo)}</span>
               </div>
             </div>
           </div>
 
-          {/* Right: selectors + cycle label */}
           <div className="flex flex-col items-end gap-2">
             <div className="flex gap-2 bg-slate-50 p-1 rounded-xl border border-border">
               <select value={month} onChange={e => setMonth(Number(e.target.value))} disabled={loading}
@@ -251,46 +304,75 @@ const PayrollTab = ({ employeeId, employee }) => {
                 ))}
               </select>
             </div>
-            <span className="text-[9px] font-black text-slate-400 uppercase tracking-widest bg-slate-100 px-2 py-1 rounded-md">
-              Payroll Cycle: 21st → 20th
-            </span>
+            <div className="flex items-center gap-2">
+              <span className="text-[9px] font-black text-slate-400 uppercase tracking-widest bg-slate-100 px-2 py-1 rounded-md">
+                Payroll Cycle: 21st → 20th
+              </span>
+              <button
+                onClick={() => { fetchAttendanceSummary(); fetchPayroll(); }}
+                disabled={summaryLoading}
+                title="Refresh attendance data"
+                className="p-1.5 rounded-lg bg-slate-100 hover:bg-primary/10 text-slate-400 hover:text-primary transition-colors disabled:opacity-50"
+              >
+                <RefreshCw size={13} className={summaryLoading ? 'animate-spin' : ''} />
+              </button>
+            </div>
           </div>
         </div>
       </div>
 
-      {/* ── Attendance Summary ─────────────────────────────────────────────── */}
-      {!isGenerated && !hasAttendanceData ? (
-        <div className="bg-amber-50 border border-amber-200 rounded-2xl p-6 text-center shadow-sm">
-          <p className="text-amber-700 font-bold">No attendance data found for this payroll period.</p>
-          <p className="text-amber-600 text-sm mt-1">Please ensure attendance is marked before generating payroll.</p>
-        </div>
-      ) : payrollData && (
-        <div className="bg-white rounded-2xl p-6 shadow-sm border border-border">
-          <div className="flex items-center justify-between mb-5">
-            <h3 className="text-[10px] font-black uppercase tracking-widest text-slate-400 flex items-center gap-2">
-              <Calendar size={14} /> Attendance — Auto-fetched for payroll period
-            </h3>
+      {/* ── Attendance Summary — always live from backend ──────────────────── */}
+      <div className="bg-white rounded-2xl p-6 shadow-sm border border-border">
+        <div className="flex items-center justify-between mb-5">
+          <h3 className="text-[10px] font-black uppercase tracking-widest text-slate-400 flex items-center gap-2">
+            <Calendar size={14} /> Attendance — Auto-fetched for Payroll Period
+          </h3>
+          <div className="flex items-center gap-2">
+            {summaryLoading && (
+              <Loader2 size={13} className="animate-spin text-primary" />
+            )}
             <span className="text-[10px] font-black text-primary bg-primary/8 border border-primary/15 rounded-lg px-2.5 py-1">
-              {formatDateLabel(att.periodStart || periodStart)} → {formatDateLabel(att.periodEnd || periodEnd)}
+              {formatDateLabel(periodFrom)} → {formatDateLabel(periodTo)}
             </span>
           </div>
-          <div className="grid grid-cols-2 sm:grid-cols-4 lg:grid-cols-5 xl:grid-cols-10 gap-3">
-            <AttCard label="Working Days" value={att.workingDays || 0} color="slate" />
-            <AttCard label="Present"      value={att.presentDays || 0} color="green" />
-            <AttCard label="Absent"       value={att.absentDays || 0}  color="red" />
-            <AttCard label="Half Day"     value={att.halfDays || 0}    color="amber" />
-            <AttCard label="Paid Leave"   value={att.paidLeaves || 0}  color="blue" />
-            <AttCard label="Unpaid Leave" value={att.unpaidLeaves || 0} color="orange" />
-            <AttCard label="Weekly Off"   value={att.weeklyOffs || 0}  color="slate" />
-            <AttCard label="Holidays"     value={att.holidays || 0}    color="indigo" />
-            <AttCard label="Late Marks"   value={att.lateMarks || 0}   color="amber" />
-            <AttCard label="Payable Days" value={att.payableDays || 0} color="green" />
-          </div>
         </div>
-      )}
+
+        {/* No data warning */}
+        {!summaryLoading && !hasAttendanceData && (
+          <div className="flex items-center gap-3 bg-amber-50 border border-amber-200 rounded-xl px-4 py-3 mb-4">
+            <AlertCircle size={16} className="text-amber-500 shrink-0" />
+            <p className="text-amber-700 text-sm font-medium">
+              No attendance records found for this payroll period. Missing working days are counted as Absent.
+            </p>
+          </div>
+        )}
+
+        <div className="grid grid-cols-2 sm:grid-cols-4 lg:grid-cols-5 xl:grid-cols-10 gap-3">
+          <AttCard label="Working Days" value={att.workingDays}  color="slate"  loading={summaryLoading} />
+          <AttCard label="Present"      value={att.present}      color="green"  loading={summaryLoading} />
+          <AttCard label="Absent"       value={att.absent}       color="red"    loading={summaryLoading} />
+          <AttCard label="Half Day"     value={att.halfDay}      color="amber"  loading={summaryLoading} />
+          <AttCard label="Paid Leave"   value={att.paidLeave}    color="blue"   loading={summaryLoading} />
+          <AttCard label="Unpaid Leave" value={att.unpaidLeave}  color="orange" loading={summaryLoading} />
+          <AttCard label="Weekly Off"   value={att.weeklyOff}    color="slate"  loading={summaryLoading} />
+          <AttCard label="Holidays"     value={att.holidays}     color="indigo" loading={summaryLoading} />
+          <AttCard label="Late Marks"   value={att.lateMarks}    color="amber"  loading={summaryLoading} />
+          <AttCard label="Payable Days" value={att.payableDays}  color="green"  loading={summaryLoading} />
+        </div>
+
+        {/* Payable days formula note */}
+        {!summaryLoading && attendanceSummary && (
+          <p className="mt-3 text-[10px] text-slate-400 font-medium">
+            Payable Days = Present ({att.present ?? 0}) + Paid Leave ({att.paidLeave ?? 0}) +
+            Holidays ({att.holidays ?? 0}) + Weekly Off ({att.weeklyOff ?? 0}) +
+            Half Day × 0.5 ({att.halfDay ?? 0} × 0.5 = {((att.halfDay ?? 0) * 0.5).toFixed(1)})
+            = <strong className="text-slate-600">{att.payableDays}</strong>
+          </p>
+        )}
+      </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-5">
-        {/* ── Left: Inputs ────────────────────────────────────────────────── */}
+        {/* ── Left: Inputs ──────────────────────────────────────────────────── */}
         <div className="lg:col-span-2 space-y-5">
 
           {/* Basic Salary */}
@@ -315,14 +397,14 @@ const PayrollTab = ({ employeeId, employee }) => {
               <TrendingUp size={14} /> Earnings &amp; Allowances
             </h3>
             <div className="grid grid-cols-2 sm:grid-cols-3 gap-4">
-              <InputField label="HRA"                value={hra}               onChange={setHra}               disabled={isGenerated} />
-              <InputField label="Medical Allowance"  value={medicalAllowance}  onChange={setMedicalAllowance}  disabled={isGenerated} />
-              <InputField label="Travel Allowance"   value={travelAllowance}   onChange={setTravelAllowance}   disabled={isGenerated} />
-              <InputField label="Food Allowance"     value={foodAllowance}     onChange={setFoodAllowance}     disabled={isGenerated} />
-              <InputField label="Special Allowance"  value={specialAllowance}  onChange={setSpecialAllowance}  disabled={isGenerated} />
-              <InputField label="Bonus"              value={bonus}             onChange={setBonus}             disabled={isGenerated} />
-              <InputField label="Overtime"           value={overtime}          onChange={setOvertime}           disabled={isGenerated} />
-              <InputField label="Other Earnings"     value={otherEarnings}     onChange={setOtherEarnings}     disabled={isGenerated} />
+              <InputField label="HRA"               value={hra}              onChange={setHra}              disabled={isGenerated} />
+              <InputField label="Medical Allowance" value={medicalAllowance} onChange={setMedicalAllowance} disabled={isGenerated} />
+              <InputField label="Travel Allowance"  value={travelAllowance}  onChange={setTravelAllowance}  disabled={isGenerated} />
+              <InputField label="Food Allowance"    value={foodAllowance}    onChange={setFoodAllowance}    disabled={isGenerated} />
+              <InputField label="Special Allowance" value={specialAllowance} onChange={setSpecialAllowance} disabled={isGenerated} />
+              <InputField label="Bonus"             value={bonus}            onChange={setBonus}            disabled={isGenerated} />
+              <InputField label="Overtime"          value={overtime}         onChange={setOvertime}          disabled={isGenerated} />
+              <InputField label="Other Earnings"    value={otherEarnings}    onChange={setOtherEarnings}    disabled={isGenerated} />
             </div>
             <div className="mt-4 pt-4 border-t border-border flex justify-between items-center">
               <span className="text-sm font-black text-slate-600">Total Allowances</span>
@@ -346,25 +428,25 @@ const PayrollTab = ({ employeeId, employee }) => {
               <InputField label="Other Deductions" value={otherDeductions} onChange={setOtherDeductions} disabled={isGenerated} />
             </div>
 
-            {/* Auto-calculated attendance deductions info */}
-            {(att.absentDays > 0 || att.unpaidLeaves > 0 || att.halfDays > 0) && (
+            {/* Auto-calculated attendance deductions */}
+            {((att.absent ?? 0) > 0 || (att.unpaidLeave ?? 0) > 0 || (att.halfDay ?? 0) > 0) && (
               <div className="mt-4 bg-rose-50 border border-rose-100 rounded-xl p-4">
                 <p className="text-[10px] font-black uppercase tracking-widest text-rose-500 mb-2">
                   Auto-Calculated from Attendance
                 </p>
-                {att.absentDays > 0 && (
+                {(att.absent ?? 0) > 0 && (
                   <div className="flex justify-between text-sm font-medium text-rose-700 py-0.5">
-                    <span>Absent ({att.absentDays} days)</span><span>-{fmt(absentDeduction)}</span>
+                    <span>Absent ({att.absent} days)</span><span>-{fmt(absentDeduction)}</span>
                   </div>
                 )}
-                {att.unpaidLeaves > 0 && (
+                {(att.unpaidLeave ?? 0) > 0 && (
                   <div className="flex justify-between text-sm font-medium text-rose-700 py-0.5">
-                    <span>Unpaid Leave ({att.unpaidLeaves} days)</span><span>-{fmt(unpaidLeaveDeduction)}</span>
+                    <span>Unpaid Leave ({att.unpaidLeave} days)</span><span>-{fmt(unpaidLeaveDeduction)}</span>
                   </div>
                 )}
-                {att.halfDays > 0 && (
+                {(att.halfDay ?? 0) > 0 && (
                   <div className="flex justify-between text-sm font-medium text-rose-700 py-0.5">
-                    <span>Half Day ({att.halfDays} days)</span><span>-{fmt(halfDayDeduction)}</span>
+                    <span>Half Day ({att.halfDay} days)</span><span>-{fmt(halfDayDeduction)}</span>
                   </div>
                 )}
               </div>
@@ -377,23 +459,17 @@ const PayrollTab = ({ employeeId, employee }) => {
           </div>
         </div>
 
-        {/* ── Right: Summary Card ─────────────────────────────────────────── */}
+        {/* ── Right: Summary Card ───────────────────────────────────────────── */}
         <div className="space-y-4">
-          {/* Salary Summary */}
           <div className="bg-slate-900 rounded-2xl p-6 shadow-xl text-white sticky top-4">
             <p className="text-[9px] font-black uppercase tracking-widest text-slate-400 mb-1">Payroll Month</p>
             <p className="text-base font-black text-white mb-1">{monthName} {year}</p>
 
-            {/* Period pill */}
             <div className="flex items-center gap-1.5 bg-white/10 rounded-xl px-3 py-2 mb-6 w-fit">
               <Calendar size={12} className="text-slate-400 shrink-0" />
-              <span className="text-[10px] font-black text-slate-300">
-                {formatDateLabel(att.periodStart || periodStart)}
-              </span>
+              <span className="text-[10px] font-black text-slate-300">{formatDateLabel(periodFrom)}</span>
               <ArrowRight size={10} className="text-slate-500" />
-              <span className="text-[10px] font-black text-slate-300">
-                {formatDateLabel(att.periodEnd || periodEnd)}
-              </span>
+              <span className="text-[10px] font-black text-slate-300">{formatDateLabel(periodTo)}</span>
             </div>
 
             <div className="space-y-3">
@@ -413,8 +489,11 @@ const PayrollTab = ({ employeeId, employee }) => {
 
             <div className="mt-6">
               {!isGenerated ? (
-                <button onClick={handleGenerate} disabled={generating || loading || !hasAttendanceData}
-                  className="w-full bg-primary hover:bg-primary/90 text-white font-black rounded-xl py-3.5 flex items-center justify-center gap-2 shadow-lg shadow-primary/20 transition-all active:scale-[0.98] disabled:opacity-50">
+                <button
+                  onClick={handleGenerate}
+                  disabled={generating || loading || summaryLoading}
+                  className="w-full bg-primary hover:bg-primary/90 text-white font-black rounded-xl py-3.5 flex items-center justify-center gap-2 shadow-lg shadow-primary/20 transition-all active:scale-[0.98] disabled:opacity-50"
+                >
                   {generating ? <Loader2 size={18} className="animate-spin" /> : <CheckCircle2 size={18} />}
                   Generate Payroll
                 </button>
@@ -447,8 +526,8 @@ const PayrollTab = ({ employeeId, employee }) => {
               </thead>
               <tbody className="divide-y divide-slate-50">
                 {history.map(r => {
-                  const rPeriodStart = r.periodStart || getPayrollPeriod(r.month, r.year).periodStart;
-                  const rPeriodEnd   = r.periodEnd   || getPayrollPeriod(r.month, r.year).periodEnd;
+                  const rStart = r.periodStart || getPayrollPeriod(r.month, r.year).periodStart;
+                  const rEnd   = r.periodEnd   || getPayrollPeriod(r.month, r.year).periodEnd;
                   return (
                     <tr key={r._id} className="hover:bg-slate-50 transition-colors">
                       <td className="py-3 pr-4">
@@ -460,9 +539,9 @@ const PayrollTab = ({ employeeId, employee }) => {
                       <td className="py-3 pr-4">
                         <span className="inline-flex items-center gap-1 text-xs font-semibold text-slate-600 bg-slate-50 border border-border rounded-lg px-2 py-1 whitespace-nowrap">
                           <Calendar size={10} className="text-primary" />
-                          {formatDateLabel(rPeriodStart)}
+                          {formatDateLabel(rStart)}
                           <ArrowRight size={9} className="text-slate-400" />
-                          {formatDateLabel(rPeriodEnd)}
+                          {formatDateLabel(rEnd)}
                         </span>
                       </td>
                       <td className="py-3 pr-4 font-semibold text-slate-600">{fmt(r.basicSalary)}</td>
