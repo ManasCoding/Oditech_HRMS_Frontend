@@ -7,6 +7,7 @@ const STATUS_OPTIONS = [
   'Present',
   'Absent',
   'Half Day',
+  'Late',
   'Paid Leave',
   'Unpaid Leave',
   'Holiday',
@@ -16,9 +17,10 @@ const STATUS_OPTIONS = [
 const STATUS_COLORS = {
   'Present': 'bg-[#E8F8F0] text-[#00A86B] border-[#00A86B]/20',
   'Absent': 'bg-[#FDECEC] text-[#E53935] border-[#E53935]/20',
-  'Half Day': 'bg-[#E3F2FD] text-[#1E88E5] border-[#1E88E5]/20',
+  'Half Day': 'bg-[#F0FDFA] text-[#0D9488] border-[#0D9488]/20',
+  'Late': 'bg-[#FFF3E0] text-[#FB8C00] border-[#FB8C00]/20',
   'Paid Leave': 'bg-[#F3E8FF] text-[#8E44AD] border-[#8E44AD]/20',
-  'Unpaid Leave': 'bg-[#FFF3E0] text-[#FB8C00] border-[#FB8C00]/20',
+  'Unpaid Leave': 'bg-[#FFFBEB] text-[#D97706] border-[#D97706]/20',
   'Holiday': 'bg-[#E8EAF6] text-[#3F51B5] border-[#3F51B5]/20',
   'Weekend': 'bg-[#F5F5F5] text-[#757575] border-[#757575]/20'
 };
