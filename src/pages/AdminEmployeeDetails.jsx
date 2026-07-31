@@ -38,7 +38,6 @@ import api from '../services/api';
 import { io } from 'socket.io-client';
 import PayrollTab from '../components/employee/PayrollTab';
 import PayslipsTab from '../components/employee/PayslipsTab';
-import PayrollAttendanceSummary from '../components/shared/PayrollAttendanceSummary';
 
 const SOCKET_URL = (import.meta.env.VITE_API_BASE_URL || 'https://oditech-hrms-backend-2.onrender.com/api').replace('/api', '');
 
@@ -824,8 +823,67 @@ const AdminEmployeeDetails = () => {
 
       {activeTab === 'Attendance' && (
         <div className="animate-in fade-in slide-in-from-bottom-4 duration-500">
-          <div className="mb-8">
-            <PayrollAttendanceSummary employeeId={id} month={currentMonth + 1} year={currentYear} />
+          <div className="grid grid-cols-1 md:grid-cols-6 gap-6 mb-8">
+            <div className="bg-white p-6 rounded-[32px] border border-border shadow-sm group hover:border-emerald-200 transition-all">
+              <div className="flex items-center gap-4">
+                <div className="w-12 h-12 bg-emerald-50 text-emerald-500 rounded-2xl flex items-center justify-center shadow-inner group-hover:scale-110 transition-transform"><Calendar size={22} /></div>
+                <div>
+                  <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Present</p>
+                  <p className="text-xl font-black text-slate-800">{dynamicStats.present} Days</p>
+                  <p className="text-[10px] font-bold text-emerald-500">{dynamicStats.rate}%</p>
+                </div>
+              </div>
+            </div>
+            <div className="bg-white p-6 rounded-[32px] border border-border shadow-sm group hover:border-rose-200 transition-all">
+              <div className="flex items-center gap-4">
+                <div className="w-12 h-12 bg-rose-50 text-rose-500 rounded-2xl flex items-center justify-center shadow-inner group-hover:scale-110 transition-transform"><Calendar size={22} /></div>
+                <div>
+                  <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Absent</p>
+                  <p className="text-xl font-black text-slate-800">{dynamicStats.absent} Days</p>
+                  <p className="text-[10px] font-bold text-rose-500">{Math.round((dynamicStats.absent / (dynamicStats.workingDays || 1)) * 100)}%</p>
+                </div>
+              </div>
+            </div>
+            <div className="bg-white p-6 rounded-[32px] border border-border shadow-sm group hover:border-teal-200 transition-all">
+              <div className="flex items-center gap-4">
+                <div className="w-12 h-12 bg-teal-50 text-teal-500 rounded-2xl flex items-center justify-center shadow-inner group-hover:scale-110 transition-transform"><Clock size={22} /></div>
+                <div>
+                  <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Half Day</p>
+                  <p className="text-xl font-black text-slate-800">{dynamicStats.halfDay} Days</p>
+                  <p className="text-[10px] font-bold text-teal-500">{Math.round((dynamicStats.halfDay / (dynamicStats.workingDays || 1)) * 100)}%</p>
+                </div>
+              </div>
+            </div>
+            <div className="bg-white p-6 rounded-[32px] border border-border shadow-sm group hover:border-orange-200 transition-all">
+              <div className="flex items-center gap-4">
+                <div className="w-12 h-12 bg-orange-50 text-orange-500 rounded-2xl flex items-center justify-center shadow-inner group-hover:scale-110 transition-transform"><AlertCircle size={22} /></div>
+                <div>
+                  <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Late</p>
+                  <p className="text-xl font-black text-slate-800">{dynamicStats.late} Days</p>
+                  <p className="text-[10px] font-bold text-orange-500">{Math.round((dynamicStats.late / (dynamicStats.workingDays || 1)) * 100)}%</p>
+                </div>
+              </div>
+            </div>
+            <div className="bg-white p-6 rounded-[32px] border border-border shadow-sm group hover:border-violet-200 transition-all">
+              <div className="flex items-center gap-4">
+                <div className="w-12 h-12 bg-violet-50 text-violet-500 rounded-2xl flex items-center justify-center shadow-inner group-hover:scale-110 transition-transform"><Plane size={22} /></div>
+                <div>
+                  <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest">On Leave</p>
+                  <p className="text-xl font-black text-slate-800">{dynamicStats.leave} Days</p>
+                  <p className="text-[10px] font-bold text-violet-500">{Math.round((dynamicStats.leave / (dynamicStats.workingDays || 1)) * 100)}%</p>
+                </div>
+              </div>
+            </div>
+            <div className="bg-white p-6 rounded-[32px] border border-border shadow-sm group hover:border-primary/20 transition-all bg-slate-50/30">
+              <div className="flex items-center gap-4">
+                <div className="w-12 h-12 bg-primary/10 text-primary rounded-2xl flex items-center justify-center shadow-inner group-hover:scale-110 transition-transform"><Briefcase size={22} /></div>
+                <div>
+                  <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Working Days</p>
+                  <p className="text-xl font-black text-slate-800">{dynamicStats.workingDays} Days</p>
+                  <p className="text-[10px] font-bold text-slate-400">{monthNames[currentMonth].slice(0,3)} {currentYear}</p>
+                </div>
+              </div>
+            </div>
           </div>
 
           <div className="grid grid-cols-1 xl:grid-cols-12 gap-8">
