@@ -48,91 +48,119 @@ const SalarySlipA4 = ({ data, employee, containerId = 'salary-slip-print' }) => 
       </div>
 
       {/* Premium Header */}
-      <div style={{ background: '#021024', backgroundImage: 'radial-gradient(circle at 0% 0%, #062452 0%, #021024 100%)', borderRadius: '16px', padding: '24px 28px', display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '24px', position: 'relative', overflow: 'hidden', border: '1px solid #0f2b5b', boxShadow: '0 8px 30px rgba(0,0,0,0.15)' }}>
-        {/* Background glow effects */}
-        <div style={{ position: 'absolute', bottom: '-40px', left: '-20px', width: '200px', height: '100px', background: 'rgba(37, 99, 235, 0.4)', filter: 'blur(40px)', borderRadius: '50%' }}></div>
+      <div style={{ background: '#01122a', borderRadius: '16px', padding: '24px 32px', display: 'flex', justifyContent: 'space-between', alignItems: 'stretch', marginBottom: '24px', position: 'relative', overflow: 'hidden', border: '1px solid #0f2b5b', boxShadow: '0 8px 30px rgba(0,0,0,0.2)' }}>
         
+        {/* Background elements */}
+        <div style={{ position: 'absolute', top: 0, left: 0, right: 0, bottom: 0, opacity: 0.05, backgroundImage: 'radial-gradient(#3b82f6 1.5px, transparent 1.5px)', backgroundSize: '12px 12px' }}></div>
+        <div style={{ position: 'absolute', bottom: '-60px', left: '-40px', width: '250px', height: '150px', background: 'rgba(37, 99, 235, 0.3)', filter: 'blur(50px)', borderRadius: '50%' }}></div>
+        
+        {/* Decorative Bottom Left Waves */}
+        <svg style={{ position: 'absolute', bottom: 0, left: 0, width: '350px', height: '80px', pointerEvents: 'none' }} viewBox="0 0 350 80" preserveAspectRatio="none">
+           <path d="M0,80 C100,80 150,20 350,0 L350,80 Z" fill="#041f4d" />
+           <path d="M0,80 C80,80 120,40 250,0 L0,0 Z" fill="transparent" stroke="#f59e0b" strokeWidth="2" opacity="0.8" />
+           <path d="M0,80 C120,80 180,40 300,0 L0,0 Z" fill="transparent" stroke="#3b82f6" strokeWidth="4" opacity="0.6" />
+        </svg>
+
         {/* Col 1: Logo & Company Name */}
-        <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', width: '25%', zIndex: 1, borderRight: '1px solid rgba(255,255,255,0.08)', paddingRight: '20px' }}>
-          <div style={{ width: '70px', height: '70px', marginBottom: '8px', position: 'relative' }}>
+        <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', width: '24%', zIndex: 1 }}>
+          <div style={{ width: '85px', height: '85px', marginBottom: '12px', position: 'relative' }}>
             <img src="/logo.png" alt="Oditech" style={{ width: '100%', height: '100%', objectFit: 'contain' }} onError={(e) => { e.target.style.display='none'; e.target.nextSibling.style.display='flex'; }} />
             {/* Fallback Icon */}
-            <div style={{ display: 'none', width: '100%', height: '100%', borderRadius: '50%', border: '2px solid #f59e0b', alignItems: 'center', justifyContent: 'center', color: '#f59e0b', background: '#021024' }}>
-              <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="10"></circle><polygon points="16.24 7.76 14.12 14.12 7.76 16.24 9.88 9.88 16.24 7.76"></polygon></svg>
+            <div style={{ display: 'none', width: '100%', height: '100%', borderRadius: '50%', border: '2px solid #facc15', alignItems: 'center', justifyContent: 'center', position: 'relative', background: '#021024' }}>
+               <div style={{ position: 'absolute', inset: '6px', borderRadius: '50%', border: '2px dashed #3b82f6' }}></div>
+               <svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="#facc15" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="10"></circle><polygon points="16.24 7.76 14.12 14.12 7.76 16.24 9.88 9.88 16.24 7.76"></polygon></svg>
+               {/* Circuit lines */}
+               <div style={{ position: 'absolute', right: '-20px', top: '50%', transform: 'translateY(-50%)', width: '30px', height: '2px', background: '#3b82f6' }}></div>
+               <div style={{ position: 'absolute', right: '-20px', top: '30%', transform: 'translateY(-50%)', width: '25px', height: '2px', background: '#3b82f6' }}></div>
+               <div style={{ position: 'absolute', right: '-20px', top: '70%', transform: 'translateY(-50%)', width: '25px', height: '2px', background: '#3b82f6' }}></div>
             </div>
           </div>
-          <div style={{ color: '#fff', fontSize: '18px', fontWeight: '900', letterSpacing: '1px' }}>ODITECH</div>
-          <div style={{ color: '#93c5fd', fontSize: '10px', fontWeight: '700', letterSpacing: '1px' }}>GLOBAL Pvt. Ltd</div>
-          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '4px', marginTop: '6px' }}>
-            <div style={{ width: '4px', height: '4px', background: '#f59e0b', transform: 'rotate(45deg)' }}></div>
-            <div style={{ width: '30px', height: '1px', background: '#f59e0b' }}></div>
-            <div style={{ width: '4px', height: '4px', background: '#f59e0b', transform: 'rotate(45deg)' }}></div>
+          <div style={{ color: '#fff', fontSize: '24px', fontWeight: '900', letterSpacing: '1px' }}>ODITECH</div>
+          <div style={{ color: '#93c5fd', fontSize: '11px', fontWeight: '700', letterSpacing: '1.5px', marginTop: '2px' }}>GLOBAL Pvt. Ltd</div>
+          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '4px', marginTop: '8px' }}>
+            <div style={{ width: '5px', height: '5px', background: '#f59e0b', transform: 'rotate(45deg)' }}></div>
+            <div style={{ width: '40px', height: '1.5px', background: '#f59e0b' }}></div>
+            <div style={{ width: '5px', height: '5px', background: '#f59e0b', transform: 'rotate(45deg)' }}></div>
           </div>
         </div>
 
+        {/* Vertical Divider */}
+        <div style={{ width: '1px', background: 'linear-gradient(to bottom, transparent, rgba(255,255,255,0.2), transparent)', height: '120px', zIndex: 1 }}></div>
+
         {/* Col 2: Contact Info */}
-        <div style={{ width: '32%', zIndex: 1, paddingLeft: '20px' }}>
-          <div style={{ color: '#fff', fontSize: '18px', fontWeight: '900', marginBottom: '14px', letterSpacing: '0.5px' }}>ODITECH GLOBAL</div>
-          <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
-            <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
-              <div style={{ width: '22px', height: '22px', borderRadius: '50%', background: '#1d4ed8', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
-                <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="#fff" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"></path><circle cx="12" cy="10" r="3"></circle></svg>
+        <div style={{ width: '30%', zIndex: 1, paddingLeft: '10px' }}>
+          <div style={{ color: '#fff', fontSize: '20px', fontWeight: '900', marginBottom: '16px', letterSpacing: '0.5px' }}>ODITECH GLOBAL</div>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '14px' }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+              <div style={{ width: '24px', height: '24px', borderRadius: '50%', background: '#2563eb', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0, boxShadow: '0 0 10px rgba(37,99,235,0.5)' }}>
+                <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="#fff" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"></path><circle cx="12" cy="10" r="3"></circle></svg>
               </div>
-              <span style={{ color: '#e2e8f0', fontSize: '11px', fontWeight: '500' }}>Bhubaneswar, Odisha, India</span>
+              <span style={{ color: '#e2e8f0', fontSize: '12px', fontWeight: '500' }}>Bhubaneswar, Odisha, India</span>
             </div>
-            <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
-              <div style={{ width: '22px', height: '22px', borderRadius: '50%', background: '#1d4ed8', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
-                <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="#fff" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"></path><polyline points="22,6 12,13 2,6"></polyline></svg>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+              <div style={{ width: '24px', height: '24px', borderRadius: '50%', background: '#2563eb', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0, boxShadow: '0 0 10px rgba(37,99,235,0.5)' }}>
+                <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="#fff" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"></path><polyline points="22,6 12,13 2,6"></polyline></svg>
               </div>
-              <span style={{ color: '#e2e8f0', fontSize: '11px', fontWeight: '500' }}>official@oditechglobal.com</span>
+              <span style={{ color: '#e2e8f0', fontSize: '12px', fontWeight: '500' }}>official@oditechglobal.com</span>
             </div>
-            <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
-              <div style={{ width: '22px', height: '22px', borderRadius: '50%', background: '#1d4ed8', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
-                <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="#fff" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6-6 19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72 12.84 12.84 0 0 0 .7 2.81 2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45 12.84 12.84 0 0 0 2.81.7A2 2 0 0 1 22 16.92z"></path></svg>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+              <div style={{ width: '24px', height: '24px', borderRadius: '50%', background: '#2563eb', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0, boxShadow: '0 0 10px rgba(37,99,235,0.5)' }}>
+                <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="#fff" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6-6 19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72 12.84 12.84 0 0 0 .7 2.81 2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45 12.84 12.84 0 0 0 2.81.7A2 2 0 0 1 22 16.92z"></path></svg>
               </div>
-              <span style={{ color: '#e2e8f0', fontSize: '11px', fontWeight: '500' }}>9124670011</span>
+              <span style={{ color: '#e2e8f0', fontSize: '12px', fontWeight: '500' }}>9124670011</span>
             </div>
           </div>
         </div>
 
         {/* Col 3: Salary Slip Details */}
-        <div style={{ width: '43%', zIndex: 1, background: '#03142e', borderRadius: '12px', border: '1px solid #1e3a8a', padding: '16px 20px', boxShadow: 'inset 0 0 20px rgba(0,0,0,0.5)' }}>
-          <div style={{ textAlign: 'center', color: '#fff', fontSize: '18px', fontWeight: '900', letterSpacing: '1px', marginBottom: '10px' }}>SALARY SLIP</div>
-          <div style={{ width: '100%', height: '1px', background: 'radial-gradient(circle, #1d4ed8 0%, transparent 100%)', marginBottom: '16px' }}></div>
+        <div style={{ width: '42%', zIndex: 1, background: '#020f24', borderRadius: '14px', border: '1px solid #1e40af', padding: '20px 24px', boxShadow: '0 4px 15px rgba(0,0,0,0.3)' }}>
+          <div style={{ textAlign: 'center', color: '#fff', fontSize: '22px', fontWeight: '900', letterSpacing: '1px', marginBottom: '8px' }}>SALARY SLIP</div>
           
-          <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
+          {/* Custom Divider with Diamond */}
+          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', marginBottom: '16px' }}>
+            <div style={{ flex: 1, height: '1px', background: 'linear-gradient(to left, #1e40af, transparent)' }}></div>
+            <div style={{ width: '4px', height: '4px', background: '#3b82f6', transform: 'rotate(45deg)', margin: '0 4px' }}></div>
+            <div style={{ flex: 1, height: '1px', background: 'linear-gradient(to right, #1e40af, transparent)' }}></div>
+          </div>
+          
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '14px' }}>
+            
             <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-              <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                <div style={{ width: '22px', height: '22px', borderRadius: '50%', background: 'rgba(59, 130, 246, 0.1)', border: '1px solid rgba(59, 130, 246, 0.2)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                  <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="#60a5fa" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><rect x="3" y="4" width="18" height="18" rx="2" ry="2"></rect><line x1="16" y1="2" x2="16" y2="6"></line><line x1="8" y1="2" x2="8" y2="6"></line><line x1="3" y1="10" x2="21" y2="10"></line></svg>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+                <div style={{ width: '24px', height: '24px', borderRadius: '50%', background: 'rgba(59, 130, 246, 0.1)', border: '1px solid rgba(59, 130, 246, 0.4)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                  <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="#60a5fa" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><rect x="3" y="4" width="18" height="18" rx="2" ry="2"></rect><line x1="16" y1="2" x2="16" y2="6"></line><line x1="8" y1="2" x2="8" y2="6"></line><line x1="3" y1="10" x2="21" y2="10"></line></svg>
                 </div>
-                <span style={{ color: '#e2e8f0', fontSize: '10.5px', fontWeight: '600' }}>Payroll Month:</span>
+                <span style={{ color: '#e2e8f0', fontSize: '11px', fontWeight: '600' }}>Payroll Month:</span>
               </div>
-              <span style={{ color: '#60a5fa', fontSize: '11px', fontWeight: '800' }}>{monthName} {data.year}</span>
+              <span style={{ color: '#60a5fa', fontSize: '12px', fontWeight: '800' }}>{monthName} {data.year}</span>
             </div>
             
-            <div style={{ width: '100%', height: '1px', background: 'rgba(255,255,255,0.04)' }}></div>
+            <div style={{ width: '100%', height: '1px', background: '#0f2b5b' }}></div>
             
             <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-              <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                <div style={{ width: '22px', height: '22px', borderRadius: '50%', background: 'rgba(250, 204, 21, 0.1)', border: '1px solid rgba(250, 204, 21, 0.2)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                  <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="#facc15" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><rect x="3" y="4" width="18" height="18" rx="2" ry="2"></rect><line x1="16" y1="2" x2="16" y2="6"></line><line x1="8" y1="2" x2="8" y2="6"></line><line x1="3" y1="10" x2="21" y2="10"></line></svg>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+                <div style={{ width: '24px', height: '24px', borderRadius: '50%', background: 'rgba(250, 204, 21, 0.1)', border: '1px solid rgba(250, 204, 21, 0.4)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                  <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="#facc15" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><rect x="3" y="4" width="18" height="18" rx="2" ry="2"></rect><line x1="16" y1="2" x2="16" y2="6"></line><line x1="8" y1="2" x2="8" y2="6"></line><line x1="3" y1="10" x2="21" y2="10"></line></svg>
                 </div>
-                <span style={{ color: '#e2e8f0', fontSize: '10.5px', fontWeight: '600' }}>Payroll Period:</span>
+                <span style={{ color: '#e2e8f0', fontSize: '11px', fontWeight: '600' }}>Payroll Period:</span>
               </div>
-              <span style={{ color: '#facc15', fontSize: '10px', fontWeight: '800' }}>{new Date(data.periodStart).toLocaleDateString('en-IN', { day: '2-digit', month: 'short', year: 'numeric' })} to {new Date(data.periodEnd).toLocaleDateString('en-IN', { day: '2-digit', month: 'short', year: 'numeric' })}</span>
+              <span style={{ color: '#facc15', fontSize: '11px', fontWeight: '800' }}>{new Date(data.periodStart).toLocaleDateString('en-IN', { day: '2-digit', month: 'short', year: 'numeric' })} to {new Date(data.periodEnd).toLocaleDateString('en-IN', { day: '2-digit', month: 'short', year: 'numeric' })}</span>
             </div>
 
-            <div style={{ width: '100%', height: '1px', background: 'rgba(255,255,255,0.04)' }}></div>
+            <div style={{ width: '100%', height: '1px', background: '#0f2b5b' }}></div>
             
             <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-              <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                <div style={{ width: '22px', height: '22px', borderRadius: '50%', background: 'rgba(74, 222, 128, 0.1)', border: '1px solid rgba(74, 222, 128, 0.2)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                  <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="#4ade80" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path><polyline points="14 2 14 8 20 8"></polyline><line x1="16" y1="13" x2="8" y2="13"></line><line x1="16" y1="17" x2="8" y2="17"></line><polyline points="10 9 9 9 8 9"></polyline></svg>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+                <div style={{ width: '24px', height: '24px', borderRadius: '50%', background: 'rgba(74, 222, 128, 0.1)', border: '1px solid rgba(74, 222, 128, 0.4)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                  <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="#4ade80" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path><polyline points="14 2 14 8 20 8"></polyline><line x1="16" y1="13" x2="8" y2="13"></line><line x1="16" y1="17" x2="8" y2="17"></line><polyline points="10 9 9 9 8 9"></polyline></svg>
                 </div>
-                <span style={{ color: '#e2e8f0', fontSize: '10.5px', fontWeight: '600' }}>Generated:</span>
+                <span style={{ color: '#e2e8f0', fontSize: '11px', fontWeight: '600' }}>Generated:</span>
               </div>
-              <span style={{ color: '#4ade80', fontSize: '11px', fontWeight: '800' }}>{generatedDate}</span>
+              <span style={{ color: '#4ade80', fontSize: '12px', fontWeight: '800' }}>{generatedDate}</span>
+            </div>
+          </div>
+        </div>
+      </div>ontWeight: '800' }}>{generatedDate}</span>
             </div>
           </div>
         </div>
