@@ -187,7 +187,7 @@ const AdminEmployeeDetails = () => {
           } else {
              const dateStr = currentDate.toISOString().split('T')[0];
              const isHoliday = holidaysRes.data?.holidays?.find(h => h.holidayDate === dateStr);
-             const isWeekend = currentDate.getDay() === 0 || currentDate.getDay() === 6;
+             const isWeekend = currentDate.getDay() === 0;
              
              let finalStatus = 'Absent';
              if (isHoliday) finalStatus = 'Holiday';
