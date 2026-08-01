@@ -9,7 +9,7 @@ import toast from 'react-hot-toast';
 const fmt = (n) => new Intl.NumberFormat('en-IN', { style: 'currency', currency: 'INR', maximumFractionDigits: 0 }).format(n || 0);
 
 // ─── A4 Salary Slip Template ──────────────────────────────────────────────────
-const SalarySlipA4 = ({ data, employee }) => {
+const SalarySlipA4 = ({ data, employee, containerId = 'salary-slip-print' }) => {
   const monthName = new Date(data.year, data.month - 1).toLocaleString('default', { month: 'long' });
   const generatedDate = new Date(data.generatedDate || data.createdAt).toLocaleDateString('en-IN', { day: '2-digit', month: 'short', year: 'numeric' });
 
@@ -41,33 +41,99 @@ const SalarySlipA4 = ({ data, employee }) => {
   const maxRows = Math.max(earningsRows.length, deductionRows.length);
 
   return (
-    <div id="salary-slip-print" style={{ fontFamily: "'Segoe UI', Arial, sans-serif", background: '#fff', width: '794px', minHeight: '1123px', margin: '0 auto', padding: '36px 40px', boxSizing: 'border-box', position: 'relative', fontSize: '12px', color: '#1a1a2e' }}>
+    <div id={containerId} style={{ fontFamily: "'Segoe UI', Arial, sans-serif", background: '#fff', width: '794px', height: '1123px', overflow: 'hidden', margin: '0 auto', padding: '36px 40px', boxSizing: 'border-box', position: 'relative', fontSize: '12px', color: '#1a1a2e' }}>
       {/* Watermark */}
       <div style={{ position: 'absolute', top: '50%', left: '50%', transform: 'translate(-50%,-50%) rotate(-35deg)', fontSize: '80px', fontWeight: '900', color: 'rgba(99,102,241,0.04)', whiteSpace: 'nowrap', pointerEvents: 'none', userSelect: 'none', zIndex: 0 }}>
         ODITECH HRMS
       </div>
 
-      {/* Header */}
-      <div style={{ background: 'linear-gradient(135deg, #4f46e5 0%, #7c3aed 100%)', borderRadius: '16px', padding: '24px 28px', display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '24px' }}>
-        <div>
-          <div style={{ display: 'flex', alignItems: 'center', gap: '12px', marginBottom: '8px' }}>
-            <div style={{ width: '40px', height: '40px', background: 'rgba(255,255,255,0.2)', borderRadius: '10px', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '20px' }}>🏢</div>
-            <div style={{ color: '#fff', fontSize: '22px', fontWeight: '900', letterSpacing: '-0.5px' }}>ODITECH GLOBAL</div>
+      {/* Premium Header */}
+      <div style={{ background: '#021024', backgroundImage: 'radial-gradient(circle at 0% 0%, #062452 0%, #021024 100%)', borderRadius: '16px', padding: '24px 28px', display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '24px', position: 'relative', overflow: 'hidden', border: '1px solid #0f2b5b', boxShadow: '0 8px 30px rgba(0,0,0,0.15)' }}>
+        {/* Background glow effects */}
+        <div style={{ position: 'absolute', bottom: '-40px', left: '-20px', width: '200px', height: '100px', background: 'rgba(37, 99, 235, 0.4)', filter: 'blur(40px)', borderRadius: '50%' }}></div>
+        
+        {/* Col 1: Logo & Company Name */}
+        <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', width: '25%', zIndex: 1, borderRight: '1px solid rgba(255,255,255,0.08)', paddingRight: '20px' }}>
+          <div style={{ width: '70px', height: '70px', marginBottom: '8px', position: 'relative' }}>
+            <img src="/logo.png" alt="Oditech" style={{ width: '100%', height: '100%', objectFit: 'contain' }} onError={(e) => { e.target.style.display='none'; e.target.nextSibling.style.display='flex'; }} />
+            {/* Fallback Icon */}
+            <div style={{ display: 'none', width: '100%', height: '100%', borderRadius: '50%', border: '2px solid #f59e0b', alignItems: 'center', justifyContent: 'center', color: '#f59e0b', background: '#021024' }}>
+              <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="10"></circle><polygon points="16.24 7.76 14.12 14.12 7.76 16.24 9.88 9.88 16.24 7.76"></polygon></svg>
+            </div>
           </div>
-          <div style={{ color: 'rgba(255,255,255,0.8)', fontSize: '11px' }}>Bhubaneswar, Odisha, India</div>
-          <div style={{ color: 'rgba(255,255,255,0.7)', fontSize: '10px' }}>hr@oditechglobal.com | +91-XXXXXXXXXX</div>
+          <div style={{ color: '#fff', fontSize: '18px', fontWeight: '900', letterSpacing: '1px' }}>ODITECH</div>
+          <div style={{ color: '#93c5fd', fontSize: '10px', fontWeight: '700', letterSpacing: '1px' }}>GLOBAL Pvt. Ltd</div>
+          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '4px', marginTop: '6px' }}>
+            <div style={{ width: '4px', height: '4px', background: '#f59e0b', transform: 'rotate(45deg)' }}></div>
+            <div style={{ width: '30px', height: '1px', background: '#f59e0b' }}></div>
+            <div style={{ width: '4px', height: '4px', background: '#f59e0b', transform: 'rotate(45deg)' }}></div>
+          </div>
         </div>
-        <div style={{ textAlign: 'right' }}>
-          <div style={{ background: 'rgba(255,255,255,0.15)', borderRadius: '10px', padding: '12px 20px', textAlign: 'right' }}>
-            <div style={{ color: '#fff', fontSize: '18px', fontWeight: '900', letterSpacing: '1px' }}>SALARY SLIP</div>
-            <div style={{ color: 'rgba(255,255,255,0.85)', fontSize: '12px', marginTop: '4px' }}>
-              Payroll Month: <strong>{monthName} {data.year}</strong>
+
+        {/* Col 2: Contact Info */}
+        <div style={{ width: '32%', zIndex: 1, paddingLeft: '20px' }}>
+          <div style={{ color: '#fff', fontSize: '18px', fontWeight: '900', marginBottom: '14px', letterSpacing: '0.5px' }}>ODITECH GLOBAL</div>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+              <div style={{ width: '22px', height: '22px', borderRadius: '50%', background: '#1d4ed8', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+                <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="#fff" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"></path><circle cx="12" cy="10" r="3"></circle></svg>
+              </div>
+              <span style={{ color: '#e2e8f0', fontSize: '11px', fontWeight: '500' }}>Bhubaneswar, Odisha, India</span>
             </div>
-            <div style={{ color: 'rgba(255,255,255,0.85)', fontSize: '12px', marginTop: '2px' }}>
-              Payroll Period:<br/>
-              {new Date(data.periodStart).toLocaleDateString('en-IN', { day: '2-digit', month: 'short', year: 'numeric' })} to {new Date(data.periodEnd).toLocaleDateString('en-IN', { day: '2-digit', month: 'short', year: 'numeric' })}
+            <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+              <div style={{ width: '22px', height: '22px', borderRadius: '50%', background: '#1d4ed8', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+                <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="#fff" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"></path><polyline points="22,6 12,13 2,6"></polyline></svg>
+              </div>
+              <span style={{ color: '#e2e8f0', fontSize: '11px', fontWeight: '500' }}>official@oditechglobal.com</span>
             </div>
-            <div style={{ color: 'rgba(255,255,255,0.7)', fontSize: '10px', marginTop: '4px' }}>Generated: {generatedDate}</div>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+              <div style={{ width: '22px', height: '22px', borderRadius: '50%', background: '#1d4ed8', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+                <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="#fff" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6-6 19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72 12.84 12.84 0 0 0 .7 2.81 2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45 12.84 12.84 0 0 0 2.81.7A2 2 0 0 1 22 16.92z"></path></svg>
+              </div>
+              <span style={{ color: '#e2e8f0', fontSize: '11px', fontWeight: '500' }}>9124670011</span>
+            </div>
+          </div>
+        </div>
+
+        {/* Col 3: Salary Slip Details */}
+        <div style={{ width: '43%', zIndex: 1, background: '#03142e', borderRadius: '12px', border: '1px solid #1e3a8a', padding: '16px 20px', boxShadow: 'inset 0 0 20px rgba(0,0,0,0.5)' }}>
+          <div style={{ textAlign: 'center', color: '#fff', fontSize: '18px', fontWeight: '900', letterSpacing: '1px', marginBottom: '10px' }}>SALARY SLIP</div>
+          <div style={{ width: '100%', height: '1px', background: 'radial-gradient(circle, #1d4ed8 0%, transparent 100%)', marginBottom: '16px' }}></div>
+          
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                <div style={{ width: '22px', height: '22px', borderRadius: '50%', background: 'rgba(59, 130, 246, 0.1)', border: '1px solid rgba(59, 130, 246, 0.2)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                  <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="#60a5fa" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><rect x="3" y="4" width="18" height="18" rx="2" ry="2"></rect><line x1="16" y1="2" x2="16" y2="6"></line><line x1="8" y1="2" x2="8" y2="6"></line><line x1="3" y1="10" x2="21" y2="10"></line></svg>
+                </div>
+                <span style={{ color: '#e2e8f0', fontSize: '10.5px', fontWeight: '600' }}>Payroll Month:</span>
+              </div>
+              <span style={{ color: '#60a5fa', fontSize: '11px', fontWeight: '800' }}>{monthName} {data.year}</span>
+            </div>
+            
+            <div style={{ width: '100%', height: '1px', background: 'rgba(255,255,255,0.04)' }}></div>
+            
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                <div style={{ width: '22px', height: '22px', borderRadius: '50%', background: 'rgba(250, 204, 21, 0.1)', border: '1px solid rgba(250, 204, 21, 0.2)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                  <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="#facc15" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><rect x="3" y="4" width="18" height="18" rx="2" ry="2"></rect><line x1="16" y1="2" x2="16" y2="6"></line><line x1="8" y1="2" x2="8" y2="6"></line><line x1="3" y1="10" x2="21" y2="10"></line></svg>
+                </div>
+                <span style={{ color: '#e2e8f0', fontSize: '10.5px', fontWeight: '600' }}>Payroll Period:</span>
+              </div>
+              <span style={{ color: '#facc15', fontSize: '10px', fontWeight: '800' }}>{new Date(data.periodStart).toLocaleDateString('en-IN', { day: '2-digit', month: 'short', year: 'numeric' })} to {new Date(data.periodEnd).toLocaleDateString('en-IN', { day: '2-digit', month: 'short', year: 'numeric' })}</span>
+            </div>
+
+            <div style={{ width: '100%', height: '1px', background: 'rgba(255,255,255,0.04)' }}></div>
+            
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                <div style={{ width: '22px', height: '22px', borderRadius: '50%', background: 'rgba(74, 222, 128, 0.1)', border: '1px solid rgba(74, 222, 128, 0.2)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                  <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="#4ade80" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path><polyline points="14 2 14 8 20 8"></polyline><line x1="16" y1="13" x2="8" y2="13"></line><line x1="16" y1="17" x2="8" y2="17"></line><polyline points="10 9 9 9 8 9"></polyline></svg>
+                </div>
+                <span style={{ color: '#e2e8f0', fontSize: '10.5px', fontWeight: '600' }}>Generated:</span>
+              </div>
+              <span style={{ color: '#4ade80', fontSize: '11px', fontWeight: '800' }}>{generatedDate}</span>
+            </div>
           </div>
         </div>
       </div>
@@ -264,7 +330,7 @@ const PayslipsTab = ({ employeeId, employee }) => {
 
   const handlePrint = () => {
     const style = document.createElement('style');
-    style.innerHTML = `@media print { body * { visibility: hidden; } #salary-slip-print, #salary-slip-print * { visibility: visible; } #salary-slip-print { position: fixed; left: 0; top: 0; width: 100%; } }`;
+    style.innerHTML = `@media print { @page { size: A4; margin: 0; } body * { visibility: hidden; } #salary-slip-hidden, #salary-slip-hidden * { visibility: visible !important; } #salary-slip-hidden { position: absolute; left: 0; top: 0; width: 794px; transform: scale(1) !important; transform-origin: top left; } }`;
     document.head.appendChild(style);
     window.print();
     setTimeout(() => document.head.removeChild(style), 1000);
@@ -274,23 +340,21 @@ const PayslipsTab = ({ employeeId, employee }) => {
     try {
       setDownloadingId(slip._id);
       setSelectedSlip(slip);
-      setShowSlipModal(true);
-      // Give the DOM a moment to render
+      // Give the DOM a moment to render the off-screen element
       await new Promise(r => setTimeout(r, 600));
 
       const html2pdf = (await import('html2pdf.js')).default;
-      const element = document.getElementById('salary-slip-print');
+      const element = document.getElementById('salary-slip-hidden');
       if (!element) { toast.error('Slip not rendered yet, try again'); return; }
 
       const monthName = new Date(slip.year, slip.month - 1).toLocaleString('default', { month: 'long' });
       await html2pdf()
         .set({
-          margin: [10, 10, 10, 10],
+          margin: 0,
           filename: `Salary_Slip_${slip.employeeName || employee?.fullName}_${monthName}_${slip.year}.pdf`,
           image: { type: 'jpeg', quality: 0.98 },
-          html2canvas: { scale: 2, useCORS: true, allowTaint: true },
-          jsPDF: { unit: 'mm', format: 'a4', orientation: 'portrait' },
-          pagebreak: { mode: ['avoid-all'] }
+          html2canvas: { scale: 2, useCORS: true, allowTaint: true, windowWidth: 794 },
+          jsPDF: { unit: 'mm', format: 'a4', orientation: 'portrait' }
         })
         .from(element)
         .save();
@@ -319,6 +383,11 @@ const PayslipsTab = ({ employeeId, employee }) => {
 
   return (
     <div className="space-y-6">
+      {/* Hidden container for print/download */}
+      <div style={{ position: 'absolute', top: '-9999px', left: '-9999px', zIndex: -100 }}>
+        {selectedSlip && <SalarySlipA4 data={selectedSlip} employee={employee} containerId="salary-slip-hidden" />}
+      </div>
+
       {/* Header */}
       <div className="bg-white rounded-2xl p-5 shadow-sm border border-border flex items-center justify-between">
         <div className="flex items-center gap-3">
@@ -386,7 +455,7 @@ const PayslipsTab = ({ employeeId, employee }) => {
                           className="p-2 rounded-lg bg-indigo-50 text-indigo-600 hover:bg-indigo-100 transition-colors disabled:opacity-50">
                           {downloadingId === slip._id ? <Loader2 size={14} className="animate-spin" /> : <Download size={14} />}
                         </button>
-                        <button onClick={() => { openSlip(slip); setTimeout(handlePrint, 400); }} title="Print"
+                        <button onClick={() => { setSelectedSlip(slip); setTimeout(handlePrint, 400); }} title="Print"
                           className="p-2 rounded-lg bg-slate-100 text-slate-600 hover:bg-slate-200 transition-colors">
                           <Printer size={14} />
                         </button>
@@ -439,7 +508,7 @@ const PayslipsTab = ({ employeeId, employee }) => {
             {/* Slip Content */}
             <div className="overflow-x-auto p-4 bg-slate-50">
               <div style={{ transformOrigin: 'top left' }}>
-                <SalarySlipA4 data={selectedSlip} employee={employee} />
+                <SalarySlipA4 data={selectedSlip} employee={employee} containerId="salary-slip-modal-view" />
               </div>
             </div>
           </div>
