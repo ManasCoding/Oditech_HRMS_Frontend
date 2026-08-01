@@ -55,6 +55,11 @@ const AttendanceCalendar = ({ employeeId }) => {
     socket.on('holidayUpdated', () => {
       fetchHolidays();
     });
+    socket.on('attendanceUpdated', (data) => {
+      if (data.employeeId === employeeId) {
+        fetchAttendance();
+      }
+    });
 
     return () => {
       socket.disconnect();

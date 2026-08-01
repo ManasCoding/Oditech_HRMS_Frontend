@@ -1,5 +1,6 @@
 import React, { useEffect, useState, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
+import { io } from 'socket.io-client';
 import AdminLayout from '../layouts/AdminLayout';
 import api from '../services/api';
 import { 
@@ -24,6 +25,8 @@ const StatCard = ({ label, value, percentage, color, isActive, onClick }) => (
     )}
   </button>
 );
+
+const SOCKET_URL = (import.meta.env.VITE_API_BASE_URL || 'https://oditech-hrms-backend-2.onrender.com/api').replace('/api', '');
 
 const AdminDashboard = () => {
   const navigate = useNavigate();
@@ -76,6 +79,15 @@ const AdminDashboard = () => {
 
   useEffect(() => {
     fetchFilteredEmployees();
+  }, [fetchFilteredEmployees]);
+
+  useEffect(() => {
+    const socket = io(SOCKET_URL);
+    socket.on('attendanceUpdated', () => {
+      fetchStats();
+      fetchFilteredEmployees();
+    });
+    return () => socket.disconnect();
   }, [fetchFilteredEmployees]);
 
   const today = new Date().toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' });

@@ -233,6 +233,9 @@ const AdminEmployeeDetails = () => {
     socket.on('timesheetUpdated', (data) => {
       if (data.employeeId === id) fetchRealStats();
     });
+    socket.on('attendanceUpdated', (data) => {
+      if (data.employeeId === id) fetchRealStats();
+    });
     
     return () => socket.disconnect();
   }, [id, currentMonth, currentYear]);

@@ -130,6 +130,11 @@ const AdminAttendance = () => {
         fetchStats(false);
       }
     });
+    socket.on('attendanceUpdated', (data) => {
+      if (data.date === filters.date) {
+        fetchStats(false);
+      }
+    });
     return () => socket.disconnect();
   }, [filters.date, fetchStats]);
 
