@@ -36,12 +36,14 @@ import AdminWeeklyTimesheet from '../components/AdminWeeklyTimesheet';
 import InlineAttendanceStatusEditor from '../components/admin/InlineAttendanceStatusEditor';
 import api from '../services/api';
 import { io } from 'socket.io-client';
+import { useAttendance } from '../context/AttendanceContext';
 import PayrollTab from '../components/employee/PayrollTab';
 import PayslipsTab from '../components/employee/PayslipsTab';
 
 const SOCKET_URL = (import.meta.env.VITE_API_BASE_URL || 'https://oditech-hrms-backend-2.onrender.com/api').replace('/api', '');
 
 const AdminEmployeeDetails = () => {
+  const { refreshKey } = useAttendance();
   const { id } = useParams();
   const navigate = useNavigate();
   const [employee, setEmployee] = useState(null);
@@ -225,7 +227,6 @@ const AdminEmployeeDetails = () => {
       fetchEmployeeDetails();
       fetchRealStats();
     }
-    
     const socket = io(SOCKET_URL);
     socket.on('timesheetSubmitted', (data) => {
       if (data.employeeId === id) fetchRealStats();
@@ -233,12 +234,9 @@ const AdminEmployeeDetails = () => {
     socket.on('timesheetUpdated', (data) => {
       if (data.employeeId === id) fetchRealStats();
     });
-    socket.on('attendanceUpdated', (data) => {
-      if (data.employeeId === id) fetchRealStats();
-    });
     
     return () => socket.disconnect();
-  }, [id, currentMonth, currentYear]);
+  }, [id, currentMonth, currentYear, refreshKey]);
 
   useEffect(() => {
     if (activeTab === 'Messages' && id && employeeNotes.length === 0 && !notesLoading) {

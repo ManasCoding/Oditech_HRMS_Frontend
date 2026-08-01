@@ -9,6 +9,7 @@ import {
 } from 'lucide-react';
 import ActiveAnnouncements from '../components/ActiveAnnouncements';
 import AttendanceCalendar from '../components/AttendanceCalendar';
+import { useAttendance } from '../context/AttendanceContext';
 
 const StatCard = ({ label, value, subValue, colorClass, bgClass, textClass, icon }) => (
   <div className={`bg-white rounded-2xl shadow-[0_8px_30px_rgb(0,0,0,0.04)] border border-slate-100 p-6 flex flex-col items-center justify-center border-t-4 ${colorClass} hover:-translate-y-1 transition-transform duration-300`}>
@@ -22,6 +23,7 @@ const StatCard = ({ label, value, subValue, colorClass, bgClass, textClass, icon
 );
 
 const EmployeeDashboard = () => {
+  const { refreshKey } = useAttendance();
   const navigate = useNavigate();
   const [user] = useState(JSON.parse(localStorage.getItem('user')) || { name: 'Employee', slug: '' });
   const employeeId = user.id;
@@ -68,7 +70,7 @@ const EmployeeDashboard = () => {
 
   useEffect(() => {
     fetchDashboardData();
-  }, [fetchDashboardData]);
+  }, [fetchDashboardData, refreshKey]);
 
   const changePeriod = (dir) => {
     let newMonth = currentPeriod.month + dir;

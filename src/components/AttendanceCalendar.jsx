@@ -2,10 +2,12 @@ import React, { useState, useEffect } from 'react';
 import { Calendar, ChevronLeft, ChevronRight } from 'lucide-react';
 import api from '../services/api';
 import { io } from 'socket.io-client';
+import { useAttendance } from '../context/AttendanceContext';
 
 const SOCKET_URL = (import.meta.env.VITE_API_BASE_URL || 'https://oditech-hrms-backend-2.onrender.com/api').replace('/api', '');
 
 const AttendanceCalendar = ({ employeeId }) => {
+  const { refreshKey } = useAttendance();
   const [currentDate, setCurrentDate] = useState(new Date());
   const [attendanceData, setAttendanceData] = useState([]);
   const [holidays, setHolidays] = useState([]);
@@ -55,16 +57,11 @@ const AttendanceCalendar = ({ employeeId }) => {
     socket.on('holidayUpdated', () => {
       fetchHolidays();
     });
-    socket.on('attendanceUpdated', (data) => {
-      if (data.employeeId === employeeId) {
-        fetchAttendance();
-      }
-    });
 
     return () => {
       socket.disconnect();
     };
-  }, [employeeId]);
+  }, [employeeId, refreshKey]);
 
   const handlePrevMonth = () => {
     setCurrentDate(new Date(currentDate.getFullYear(), currentDate.getMonth() - 1, 1));

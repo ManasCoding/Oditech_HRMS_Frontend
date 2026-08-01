@@ -2,6 +2,7 @@ import React, { useState, useRef, useEffect } from 'react';
 import { Edit3, Check, X, Loader2 } from 'lucide-react';
 import toast from 'react-hot-toast';
 import api from '../../services/api';
+import { useAttendance } from '../../context/AttendanceContext';
 
 const STATUS_OPTIONS = [
   'Present',
@@ -24,6 +25,7 @@ const STATUS_COLORS = {
 };
 
 const InlineAttendanceStatusEditor = ({ record, employeeId, onUpdateSuccess }) => {
+  const { triggerRefresh } = useAttendance();
   const [isOpen, setIsOpen] = useState(false);
   const [showConfirm, setShowConfirm] = useState(false);
   const [selectedStatus, setSelectedStatus] = useState('');
@@ -84,8 +86,9 @@ const InlineAttendanceStatusEditor = ({ record, employeeId, onUpdateSuccess }) =
 
       if (response.data.success) {
         toast.success('Attendance updated successfully');
+        triggerRefresh(); // Global refresh
         if (onUpdateSuccess) {
-          onUpdateSuccess();
+          onUpdateSuccess(); // Local refresh
         }
       } else {
         throw new Error(response.data.message || 'Update failed');

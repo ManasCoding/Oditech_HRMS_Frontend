@@ -3,15 +3,16 @@ import {
   Calendar, FileText, DollarSign, Loader2, CheckCircle2, Lock,
   TrendingUp, TrendingDown, ArrowRight, RefreshCw, AlertCircle, Clock, Plane, Briefcase
 } from 'lucide-react';
-import { io } from 'socket.io-client';
+
 import api from '../../services/api';
 import toast from 'react-hot-toast';
+import { useAttendance } from '../../context/AttendanceContext';
 
 // ─── Utilities ─────────────────────────────────────────────────────────────────
 const fmt = (n) =>
   new Intl.NumberFormat('en-IN', { style: 'currency', currency: 'INR', maximumFractionDigits: 0 }).format(n || 0);
 
-const SOCKET_URL = (import.meta.env.VITE_API_BASE_URL || 'https://oditech-hrms-backend-2.onrender.com/api').replace('/api', '');
+// Removed SOCKET_URL
 
 /**
  * Client-side payroll period mirror (matches backend helper).
@@ -93,6 +94,7 @@ const AttCard = ({ label, value, color = 'slate', loading = false, icon: Icon, s
 
 // ─── Main Component ────────────────────────────────────────────────────────────
 const PayrollTab = ({ employeeId, employee }) => {
+  const { refreshKey } = useAttendance();
   const [month, setMonth]               = useState(new Date().getMonth() + 1);
   const [year, setYear]                 = useState(new Date().getFullYear());
   const [loading, setLoading]           = useState(false);
@@ -196,18 +198,9 @@ const PayrollTab = ({ employeeId, employee }) => {
     fetchPayroll();
     fetchAttendanceSummary();
     fetchHistory();
-  }, [fetchPayroll, fetchAttendanceSummary, fetchHistory]);
+  }, [fetchPayroll, fetchAttendanceSummary, fetchHistory, refreshKey]);
 
-  useEffect(() => {
-    const socket = io(SOCKET_URL);
-    socket.on('attendanceUpdated', (data) => {
-      if (data.employeeId === employeeId) {
-        fetchAttendanceSummary();
-        fetchPayroll();
-      }
-    });
-    return () => socket.disconnect();
-  }, [employeeId, fetchAttendanceSummary, fetchPayroll]);
+  // Removed socket effect
 
   // ── Live salary preview (before payroll is generated) ────────────────────
   // All values come from attendanceSummary — no hardcoded fallbacks

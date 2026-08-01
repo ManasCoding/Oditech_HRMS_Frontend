@@ -2,11 +2,13 @@ import React from 'react';
 import { BrowserRouter as Router } from 'react-router-dom';
 import { Toaster } from 'react-hot-toast';
 import AppRouter from './routes/AppRouter';
+import { AttendanceProvider } from './context/AttendanceContext';
 
 function App() {
   return (
-    <Router>
-      <AppRouter />
+    <AttendanceProvider>
+      <Router>
+        <AppRouter />
       <Toaster
         position="top-right"
         toastOptions={{
@@ -24,7 +26,8 @@ function App() {
           error: { iconTheme: { primary: '#ef4444', secondary: '#fff' } },
         }}
       />
-    </Router>
+      </Router>
+    </AttendanceProvider>
   );
 }
 

@@ -8,11 +8,11 @@ import {
 import { 
   LineChart, Line, BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Cell 
 } from 'recharts';
-import { io } from 'socket.io-client';
 import api from '../services/api';
 import CustomDropdown from '../components/CustomDropdown';
+import { useAttendance } from '../context/AttendanceContext';
 
-const SOCKET_URL = (import.meta.env.VITE_API_BASE_URL || 'https://oditech-hrms-backend-2.onrender.com/api').replace('/api', '');
+// Removed SOCKET_URL
 
 const StatCard = ({ label, value, percentage, topBorderClass, isActive, onClick }) => (
   <div 
@@ -49,6 +49,7 @@ const departmentData = [
 ];
 
 const AdminAttendance = () => {
+  const { refreshKey } = useAttendance();
   const [loading, setLoading] = useState(true);
   const [stats, setStats] = useState({
     totalEmployees: 0, presentToday: 0, halfDayToday: 0, absentToday: 0, lateToday: 0, leavesToday: 0
@@ -120,23 +121,10 @@ const AdminAttendance = () => {
   }, [filters.date]);
 
   useEffect(() => {
-    fetchStats();
-  }, [fetchStats]);
+    fetchStats(false);
+  }, [fetchStats, refreshKey]);
 
-  useEffect(() => {
-    const socket = io(SOCKET_URL);
-    socket.on('timesheetUpdated', (data) => {
-      if (data.dates.includes(filters.date)) {
-        fetchStats(false);
-      }
-    });
-    socket.on('attendanceUpdated', (data) => {
-      if (data.date === filters.date) {
-        fetchStats(false);
-      }
-    });
-    return () => socket.disconnect();
-  }, [filters.date, fetchStats]);
+  // Removed socket effect
 
   useEffect(() => {
     if (!rawRecords.length) {
