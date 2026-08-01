@@ -158,32 +158,7 @@ const AdminEmployeeDetails = () => {
           });
 
           if (existing) {
-             const parseTime = (dateStr) => {
-               const d = new Date(dateStr);
-               return d.getHours() * 60 + d.getMinutes();
-             };
-
              let derivedStatus = existing.status || 'Present';
-
-             if (existing.checkIn) {
-               const inTime = parseTime(existing.checkIn);
-               if (inTime >= 10 * 60 && inTime <= 13 * 60 + 30) {
-                 derivedStatus = 'Late';
-               } else if (inTime > 13 * 60 + 30) {
-                 derivedStatus = 'Half Day';
-               } else {
-                 derivedStatus = 'Present';
-               }
-             }
-
-             if (existing.checkOut) {
-               const outTime = parseTime(existing.checkOut);
-               if (outTime >= 9 * 60 + 30 && outTime <= 13 * 60 + 30) {
-                 derivedStatus = 'Absent';
-               } else if (outTime > 13 * 60 + 30 && outTime <= 18 * 60 + 30) {
-                 derivedStatus = 'Half Day';
-               }
-             }
 
              filledRecords.push({ ...existing, status: derivedStatus });
           } else {

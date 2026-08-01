@@ -142,15 +142,18 @@ const AdminAttendance = () => {
       
       const hasCheckedIn = r.checkIn && r.checkIn !== "00:00" && r.checkIn !== "1970-01-01T00:00:00.000Z";
 
-      // Priority logic
-      if (isHoliday) {
+      // If an explicit status exists and is not 'Pending' or 'Absent', use it
+      // Otherwise fallback to Holiday, Weekend, or Absent
+      if (r.status && r.status !== 'Pending' && r.status !== 'Absent') {
+        stat = r.status;
+      } else if (isHoliday) {
         stat = 'Holiday';
       } else if (isSunday) {
         stat = 'Weekend';
       } else if (stat === 'On Leave' || stat === 'Approved') {
         stat = 'On Leave';
-      } else if (hasCheckedIn) {
-        stat = stat === 'Late' ? 'Late' : (stat === 'Half Day' ? 'Half Day' : 'Present');
+      } else if (r.status === 'Absent') {
+        stat = 'Absent';
       } else {
         stat = 'Absent';
       }
