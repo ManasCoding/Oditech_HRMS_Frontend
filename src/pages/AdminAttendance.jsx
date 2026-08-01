@@ -116,7 +116,7 @@ const AdminAttendance = () => {
     } catch (err) {
       console.error('Error fetching stats and reports:', err);
     } finally {
-      if (showLoader) setLoading(false);
+      setLoading(false);
     }
   }, [filters.date]);
 
