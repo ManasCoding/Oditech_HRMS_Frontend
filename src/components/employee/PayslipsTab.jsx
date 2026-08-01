@@ -64,7 +64,7 @@ const SalarySlipA4 = ({ data, employee, containerId = 'salary-slip-print' }) => 
         {/* Col 1: Logo & Company Name */}
         <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', width: '24%', zIndex: 1 }}>
           <div style={{ width: '85px', height: '85px', marginBottom: '12px', position: 'relative' }}>
-            <img src="/logo.png" alt="Oditech" style={{ width: '100%', height: '100%', objectFit: 'contain' }} onError={(e) => { e.target.style.display='none'; e.target.nextSibling.style.display='flex'; }} />
+            <img src="/logo.jpeg" alt="Oditech" style={{ width: '100%', height: '100%', objectFit: 'contain' }} onError={(e) => { e.target.style.display='none'; e.target.nextSibling.style.display='flex'; }} />
             {/* Fallback Icon */}
             <div style={{ display: 'none', width: '100%', height: '100%', borderRadius: '50%', border: '2px solid #facc15', alignItems: 'center', justifyContent: 'center', position: 'relative', background: '#021024' }}>
                <div style={{ position: 'absolute', inset: '6px', borderRadius: '50%', border: '2px dashed #3b82f6' }}></div>
