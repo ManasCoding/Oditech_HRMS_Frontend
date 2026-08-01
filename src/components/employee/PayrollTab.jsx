@@ -134,35 +134,27 @@ const PayrollTab = ({ employeeId, employee }) => {
   const periodFrom = att.payrollPeriod?.from || clientPeriodStart;
   const periodTo   = att.payrollPeriod?.to   || clientPeriodEnd;
 
-  // ── Fetch live attendance summary ─────────────────────────────────────────
-  const fetchAttendanceSummary = useCallback(async () => {
-    if (!employeeId) return;
-    try {
-      setSummaryLoading(true);
-      const res = await api.get(`/payroll/attendance-summary/${employeeId}/${month}/${year}`);
-      if (res.data.success) {
-        setAttendanceSummary(res.data.data);
-        console.log(res.data.data)
-      }
-    } catch (err) {
-      console.error('Failed to load attendance summary', err);
-      toast.error('Failed to load attendance summary');
-    } finally {
-      setSummaryLoading(false);
-    }
-  }, [employeeId, month, year]);
-
-  // ── Fetch payroll preview (checks if already generated) ──────────────────
-  const fetchPayroll = useCallback(async () => {
+  // ── Fetch all payroll + attendance data ──────────────────────────────────
+  const fetchAllData = useCallback(async () => {
     if (!employeeId) return;
     try {
       setLoading(true);
-      const res = await api.get(`/payroll/${employeeId}/${month}/${year}`);
-      if (res.data.success) {
-        setPayrollData(res.data.data);
-        setIsGenerated(res.data.isGenerated);
-        if (res.data.isGenerated) {
-          const d = res.data.data;
+      setSummaryLoading(true);
+
+      const [summaryRes, payrollRes, historyRes] = await Promise.all([
+        api.get(`/payroll/attendance-summary/${employeeId}/${month}/${year}`),
+        api.get(`/payroll/${employeeId}/${month}/${year}`),
+        api.get(`/payroll/history/${employeeId}`),
+      ]);
+
+      if (summaryRes.data.success) {
+        setAttendanceSummary(summaryRes.data.data);
+      }
+      if (payrollRes.data.success) {
+        setPayrollData(payrollRes.data.data);
+        setIsGenerated(payrollRes.data.isGenerated);
+        if (payrollRes.data.isGenerated) {
+          const d = payrollRes.data.data;
           setBasicSalary(d.basicSalary || 30000);
           setHra(d.hra || 0);
           setMedicalAllowance(d.medicalAllowance || 0);
@@ -182,25 +174,19 @@ const PayrollTab = ({ employeeId, employee }) => {
           setOtherDeductions(d.otherDeductions || 0);
         }
       }
-    } catch { toast.error('Failed to load payroll data'); }
-    finally { setLoading(false); }
+      if (historyRes.data.success) setHistory(historyRes.data.data);
+    } catch (err) {
+      toast.error('Failed to load payroll data');
+      console.error(err);
+    } finally {
+      setLoading(false);
+      setSummaryLoading(false);
+    }
   }, [employeeId, month, year]);
 
-  const fetchHistory = useCallback(async () => {
-    if (!employeeId) return;
-    try {
-      const res = await api.get(`/payroll/history/${employeeId}`);
-      if (res.data.success) setHistory(res.data.data);
-    } catch (e) { console.error(e); }
-  }, [employeeId]);
-
   useEffect(() => {
-    fetchPayroll();
-    fetchAttendanceSummary();
-    fetchHistory();
-  }, [fetchPayroll, fetchAttendanceSummary, fetchHistory, refreshKey]);
-
-  // Removed socket effect
+    fetchAllData();
+  }, [fetchAllData, refreshKey]);
 
   // ── Live salary preview (before payroll is generated) ────────────────────
   // All values come from attendanceSummary — no hardcoded fallbacks
@@ -256,9 +242,7 @@ const PayrollTab = ({ employeeId, employee }) => {
       });
       if (res.data.success) {
         toast.success('Payroll generated!');
-        fetchPayroll();
-        fetchAttendanceSummary();
-        fetchHistory();
+        fetchAllData();
       }
     } catch (e) { toast.error(e.response?.data?.message || 'Error generating payroll'); }
     finally { setGenerating(false); }
@@ -274,7 +258,7 @@ const PayrollTab = ({ employeeId, employee }) => {
         setPayrollData(null);
         setIsGenerated(false);
       }
-      fetchHistory();
+      fetchAllData();
     } catch { toast.error('Failed to delete'); }
     finally { setLoading(false); }
   };
@@ -333,7 +317,7 @@ const PayrollTab = ({ employeeId, employee }) => {
                 Payroll Cycle: 21st → 20th
               </span>
               <button
-                onClick={() => { fetchAttendanceSummary(); fetchPayroll(); }}
+                onClick={() => fetchAllData()}
                 disabled={summaryLoading}
                 title="Refresh attendance data"
                 className="p-1.5 rounded-lg bg-slate-100 hover:bg-primary/10 text-slate-400 hover:text-primary transition-colors disabled:opacity-50"
