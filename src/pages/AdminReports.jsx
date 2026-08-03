@@ -3,7 +3,7 @@ import AdminLayout from '../layouts/AdminLayout';
 import { 
   Users, Clock, Filter, Download, Search, 
   Eye, Calendar, ChevronLeft, ChevronRight, 
-  Briefcase, FileText, PieChart, TrendingUp, X 
+  Briefcase, FileText, PieChart, TrendingUp 
 } from 'lucide-react';
 import { 
   PieChart as RePieChart, Pie, Cell, ResponsiveContainer, Tooltip 
