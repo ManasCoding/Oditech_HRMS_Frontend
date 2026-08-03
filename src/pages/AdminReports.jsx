@@ -8,6 +8,7 @@ import {
 import { 
   PieChart as RePieChart, Pie, Cell, ResponsiveContainer, Tooltip 
 } from 'recharts';
+import * as XLSX from 'xlsx';
 import api from '../services/api';
 import CustomDropdown from '../components/CustomDropdown';
 
@@ -49,6 +50,13 @@ const AdminReports = () => {
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [modalLoading, setModalLoading] = useState(false);
   const [departments, setDepartments] = useState(['All Departments', 'Digital Marketing', 'Web Development', 'SEO', 'HR', 'Others']);
+
+  // Payroll Excel Export Modal
+  const [isPayrollModalOpen, setIsPayrollModalOpen] = useState(false);
+  const [payrollExporting, setPayrollExporting] = useState(false);
+  const currentDate = new Date();
+  const [payrollExportMonth, setPayrollExportMonth] = useState(currentDate.getMonth() + 1); // 1-12
+  const [payrollExportYear, setPayrollExportYear] = useState(currentDate.getFullYear());
 
   const fetchDepartments = async () => {
     try {
@@ -151,6 +159,198 @@ const AdminReports = () => {
     document.body.appendChild(link);
     link.click();
     document.body.removeChild(link);
+  };
+
+  const MONTH_NAMES = [
+    '', 'JANUARY', 'FEBRUARY', 'MARCH', 'APRIL', 'MAY', 'JUNE',
+    'JULY', 'AUGUST', 'SEPTEMBER', 'OCTOBER', 'NOVEMBER', 'DECEMBER'
+  ];
+
+  const handlePayrollExcelExport = async () => {
+    setPayrollExporting(true);
+    try {
+      const res = await api.get(`/payroll/attendance-summary-all/${payrollExportMonth}/${payrollExportYear}`);
+      if (!res.data.success) { alert('Failed to fetch payroll data.'); return; }
+
+      const { periodStart, periodEnd, data: summaries } = res.data;
+      // periodStart: "YYYY-MM-21", periodEnd: "YYYY-MM-20"
+      const startLabel = periodStart; // e.g. 2026-06-21
+      const endLabel   = periodEnd;   // e.g. 2026-07-20
+
+      const prevMonthNum = payrollExportMonth === 1 ? 12 : payrollExportMonth - 1;
+      const prevYear = payrollExportMonth === 1 ? payrollExportYear - 1 : payrollExportYear;
+      const titleStr = `SALARY CALCULATION – 21 ${MONTH_NAMES[prevMonthNum]} ${prevYear} TO 20 ${MONTH_NAMES[payrollExportMonth]} ${payrollExportYear}`;
+
+      const wb = XLSX.utils.book_new();
+      const ws = {};
+
+      // ── Helper to set a cell ─────────────────────────────────────────────────
+      const setCell = (addr, v, bold = false, bg = null, border = false, wrapText = false, sz = 10, italic = false, hAlign = 'center') => {
+        const font = { bold, italic, sz };
+        const fill = bg ? { fgColor: { rgb: bg }, patternType: 'solid' } : { patternType: 'none' };
+        const bStyle = border
+          ? { top: { style: 'thin' }, bottom: { style: 'thin' }, left: { style: 'thin' }, right: { style: 'thin' } }
+          : {};
+        ws[addr] = { v, t: typeof v === 'number' ? 'n' : 's', s: { font, fill, alignment: { horizontal: hAlign, vertical: 'center', wrapText }, border: bStyle } };
+      };
+
+      // Columns: A=Employee, B=Basic Salary, C=Working Days, D=Present/Full, E=Absent/Leave,
+      //          F=Half-Day, G=Paid Holiday, H=Weekend/Sunday, I=Payable Days,
+      //          J=Per-Day Salary, K=Calculation, L=Final Amount to Release,
+      //          M=Absent Deduction, N=Half-Day Deduction
+      const COLS = ['A','B','C','D','E','F','G','H','I','J','K','L','M','N'];
+      const totalCols = COLS.length;
+      const lastCol = COLS[totalCols - 1];
+
+      // ── Row 1: Title ─────────────────────────────────────────────────────────
+      setCell('A1', titleStr, true, 'FFFFFF', false, false, 13, false, 'center');
+      ws['!merges'] = [{ s: { r: 0, c: 0 }, e: { r: 0, c: totalCols - 1 } }];
+
+      // ── Row 2: Payroll Period ────────────────────────────────────────────────
+      setCell('A2', 'Payroll Period', true, null, false, false, 9, false, 'left');
+      setCell('B2', `${startLabel} to ${endLabel}`, false, null, false, false, 9, false, 'left');
+      setCell('C2', 'Formula', true, null, false, false, 9, false, 'left');
+      setCell('D2', 'Basic Salary ÷ 24 × Payable Working Days', false, null, false, false, 9, false, 'left');
+      ws['!merges'].push({ s: { r: 1, c: 1 }, e: { r: 1, c: 1 } });
+      ws['!merges'].push({ s: { r: 1, c: 3 }, e: { r: 1, c: totalCols - 1 } });
+
+      // ── Row 3: Total Calendar Days ───────────────────────────────────────────
+      const calStart = new Date(periodStart + 'T00:00:00');
+      const calEnd   = new Date(periodEnd   + 'T00:00:00');
+      const totalCalDays = Math.round((calEnd - calStart) / 86400000) + 1;
+      setCell('A3', 'Total Calendar Days', true, null, false, false, 9, false, 'left');
+      setCell('B3', totalCalDays, false, null, false, false, 9, false, 'left');
+      ws['!merges'].push({ s: { r: 2, c: 1 }, e: { r: 2, c: totalCols - 1 } });
+
+      // ── Row 4: Total Working Days ────────────────────────────────────────────
+      const firstSummary = summaries[0]?.summary;
+      const totalWorkingDays = firstSummary?.workingDays ?? 0;
+      setCell('A4', 'Total Working Days', true, null, false, false, 9, false, 'left');
+      setCell('B4', totalWorkingDays, false, null, false, false, 9, false, 'left');
+      ws['!merges'].push({ s: { r: 3, c: 1 }, e: { r: 3, c: totalCols - 1 } });
+
+      // ── Row 5: Blank spacer ──────────────────────────────────────────────────
+      // (empty)
+
+      // ── Row 6: Column Headers ────────────────────────────────────────────────
+      const HEADERS = [
+        'Employee', 'Basic Salary (₹)', 'Working Days', 'Present / Full Days',
+        'Absent / Leave', 'Half-Day', 'Paid Holiday', 'Weekend / Sunday',
+        'Payable Days', 'Per-Day Salary (₹)', 'Calculation',
+        'Final Amount to Release (₹)', 'Absent Deduction (₹)', 'Half-Day Deduction (₹)'
+      ];
+      COLS.forEach((col, i) => {
+        setCell(`${col}6`, HEADERS[i], true, 'D9EAD3', true, true, 9, false, 'center');
+      });
+
+      // ── Data Rows (starting row 7) ───────────────────────────────────────────
+      let totalWorkingSum = 0, totalPresentSum = 0, totalAbsentSum = 0;
+      let totalHalfDaySum = 0, totalPaidLeaveSum = 0, totalWeeklyOffSum = 0;
+      let totalPayableSum = 0;
+
+      summaries.forEach((item, idx) => {
+        const rowNum = 7 + idx;
+        const s = item.summary;
+        const emp = item.employee;
+
+        // Payable days from calcAttendanceSummary
+        const payDays = s.payableDays ?? 0;
+
+        totalWorkingSum   += s.workingDays ?? 0;
+        totalPresentSum   += s.present     ?? 0;
+        totalAbsentSum    += s.absent      ?? 0;
+        totalHalfDaySum   += s.halfDay     ?? 0;
+        totalPaidLeaveSum += s.holidays    ?? 0;  // paid holidays
+        totalWeeklyOffSum += s.weeklyOff   ?? 0;
+        totalPayableSum   += payDays;
+
+        const rowBg = idx % 2 === 0 ? null : 'F8F9FA';
+
+        setCell(`A${rowNum}`, emp.fullName,        false, rowBg, true, false, 9, false, 'left');
+        setCell(`B${rowNum}`, '',                   false, rowBg, true, false, 9, false, 'right');  // left blank for manual entry
+        setCell(`C${rowNum}`, s.workingDays ?? 0,  false, rowBg, true, false, 9, false, 'center');
+        setCell(`D${rowNum}`, s.present     ?? 0,  false, rowBg, true, false, 9, false, 'center');
+        setCell(`E${rowNum}`, s.absent      ?? 0,  false, rowBg, true, false, 9, false, 'center');
+        setCell(`F${rowNum}`, s.halfDay     ?? 0,  false, rowBg, true, false, 9, false, 'center');
+        setCell(`G${rowNum}`, s.holidays    ?? 0,  false, rowBg, true, false, 9, false, 'center');
+        setCell(`H${rowNum}`, s.weeklyOff   ?? 0,  false, rowBg, true, false, 9, false, 'center');
+        setCell(`I${rowNum}`, payDays,              false, rowBg, true, false, 9, false, 'center');
+        setCell(`J${rowNum}`, '',                   false, rowBg, true, false, 9, false, 'right');  // blank: needs basic salary
+        setCell(`K${rowNum}`, '',                   false, rowBg, true, false, 9, false, 'left');   // calculation blank
+        setCell(`L${rowNum}`, '₹0.00',             false, 'FFF2CC', true, false, 9, false, 'right'); // final amount
+        setCell(`M${rowNum}`, '₹0.00',             false, rowBg, true, false, 9, false, 'right');
+        setCell(`N${rowNum}`, '₹0.00',             false, rowBg, true, false, 9, false, 'right');
+      });
+
+      // ── TOTAL Row ────────────────────────────────────────────────────────────
+      const totalRow = 7 + summaries.length;
+      const totalBg  = 'CFE2F3';
+      setCell(`A${totalRow}`, 'TOTAL',           true, totalBg, true, false, 9, false, 'center');
+      setCell(`B${totalRow}`, '₹0.00',           true, totalBg, true, false, 9, false, 'right');
+      setCell(`C${totalRow}`, totalWorkingSum,   true, totalBg, true, false, 9, false, 'center');
+      setCell(`D${totalRow}`, totalPresentSum,   true, totalBg, true, false, 9, false, 'center');
+      setCell(`E${totalRow}`, totalAbsentSum,    true, totalBg, true, false, 9, false, 'center');
+      setCell(`F${totalRow}`, totalHalfDaySum,   true, totalBg, true, false, 9, false, 'center');
+      setCell(`G${totalRow}`, totalPaidLeaveSum, true, totalBg, true, false, 9, false, 'center');
+      setCell(`H${totalRow}`, totalWeeklyOffSum, true, totalBg, true, false, 9, false, 'center');
+      setCell(`I${totalRow}`, totalPayableSum,   true, totalBg, true, false, 9, false, 'center');
+      setCell(`J${totalRow}`, '',                true, totalBg, true, false, 9, false, 'center');
+      setCell(`K${totalRow}`, 'TOTAL AMOUNT TO BE RELEASED', true, totalBg, true, false, 9, false, 'center');
+      setCell(`L${totalRow}`, '₹0.00',           true, totalBg, true, false, 9, false, 'right');
+      setCell(`M${totalRow}`, '₹0.00',           true, totalBg, true, false, 9, false, 'right');
+      setCell(`N${totalRow}`, '₹0.00',           true, totalBg, true, false, 9, false, 'right');
+
+      // ── Blank row ────────────────────────────────────────────────────────────
+      const notesRow = totalRow + 2;
+      setCell(`A${notesRow}`, 'PAYROLL SUMMARY', true, null, false, false, 10, false, 'left');
+      setCell(`D${notesRow}`, 'CALCULATION METHOD FOR REVIEW', true, null, false, false, 10, false, 'left');
+
+      const n1 = notesRow + 1;
+      setCell(`A${n1}`, 'Total Basic Salary Entered', false, null, false, false, 9, false, 'left');
+      setCell(`B${n1}`, '₹0.00', false, null, false, false, 9, false, 'left');
+      setCell(`D${n1}`, `1. Working D: ${totalWorkingDays} days (${totalCalDays} calendar days – Sundays)`, false, null, false, false, 9, false, 'left');
+      ws['!merges'].push({ s: { r: n1 - 1, c: 3 }, e: { r: n1 - 1, c: totalCols - 1 } });
+
+      const n2 = notesRow + 2;
+      setCell(`A${n2}`, 'Working Days Per Employee', false, null, false, false, 9, false, 'left');
+      setCell(`B${n2}`, totalWorkingDays, false, null, false, false, 9, false, 'left');
+      setCell(`D${n2}`, '2. Payable D: Present + (Half-Day × 0.5) + Paid Holiday', false, null, false, false, 9, false, 'left');
+      ws['!merges'].push({ s: { r: n2 - 1, c: 3 }, e: { r: n2 - 1, c: totalCols - 1 } });
+
+      // ── Column Widths ─────────────────────────────────────────────────────────
+      ws['!cols'] = [
+        { wch: 24 }, // A Employee
+        { wch: 16 }, // B Basic Salary
+        { wch: 13 }, // C Working Days
+        { wch: 18 }, // D Present
+        { wch: 14 }, // E Absent
+        { wch: 10 }, // F Half-Day
+        { wch: 13 }, // G Paid Holiday
+        { wch: 16 }, // H Weekend/Sunday
+        { wch: 13 }, // I Payable Days
+        { wch: 16 }, // J Per-Day Salary
+        { wch: 32 }, // K Calculation
+        { wch: 22 }, // L Final Amount
+        { wch: 18 }, // M Absent Deduction
+        { wch: 20 }, // N Half-Day Deduction
+      ];
+
+      // ── Row Heights ───────────────────────────────────────────────────────────
+      ws['!rows'] = [{ hpt: 28 }, { hpt: 16 }, { hpt: 16 }, { hpt: 16 }, { hpt: 8 }, { hpt: 36 }];
+
+      // Set sheet range
+      ws['!ref'] = `A1:${lastCol}${n2}`;
+
+      XLSX.utils.book_append_sheet(wb, ws, 'Salary Calculation');
+      const fileName = `Salary_Calculation_${MONTH_NAMES[prevMonthNum]}_${prevYear}_to_${MONTH_NAMES[payrollExportMonth]}_${payrollExportYear}.xlsx`;
+      XLSX.writeFile(wb, fileName);
+      setIsPayrollModalOpen(false);
+    } catch (err) {
+      console.error('Payroll export error:', err);
+      alert('Error exporting payroll data. Please try again.');
+    } finally {
+      setPayrollExporting(false);
+    }
   };
 
   return (
@@ -556,6 +756,94 @@ const AdminReports = () => {
                     Close Details
                   </button>
                </div>
+            </div>
+          </div>
+        )}
+        {/* ── Payroll Excel Export Modal ─────────────────────────────────── */}
+        {isPayrollModalOpen && (
+          <div className="fixed inset-0 bg-slate-900/70 backdrop-blur-sm z-[110] flex items-center justify-center p-4">
+            <div className="bg-white rounded-[40px] w-full max-w-md shadow-2xl overflow-hidden">
+              {/* Header */}
+              <div className="p-8 border-b border-slate-50 flex items-center justify-between">
+                <div>
+                  <h3 className="text-xl font-black text-[#1e293b]">Payroll Excel Export</h3>
+                  <p className="text-xs font-bold text-slate-400 uppercase tracking-widest mt-1">Download salary calculation sheet for all employees</p>
+                </div>
+                <button
+                  onClick={() => setIsPayrollModalOpen(false)}
+                  className="w-10 h-10 bg-slate-50 text-slate-400 rounded-xl flex items-center justify-center hover:bg-slate-100 transition-colors"
+                >
+                  <X size={20} />
+                </button>
+              </div>
+
+              {/* Body */}
+              <div className="p-8 space-y-6">
+                {/* Period label */}
+                <div className="p-4 bg-emerald-50 border border-emerald-100 rounded-2xl">
+                  <p className="text-[10px] font-black text-emerald-600 uppercase tracking-widest mb-1">Payroll Period</p>
+                  <p className="text-sm font-black text-[#1e293b]">
+                    21 {['','Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'][payrollExportMonth === 1 ? 12 : payrollExportMonth - 1]}&nbsp;
+                    {payrollExportMonth === 1 ? payrollExportYear - 1 : payrollExportYear} &nbsp;→&nbsp; 20 {['','Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'][payrollExportMonth]}&nbsp;
+                    {payrollExportYear}
+                  </p>
+                </div>
+
+                <div className="grid grid-cols-2 gap-4">
+                  {/* Month picker */}
+                  <div className="space-y-2">
+                    <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">Month</label>
+                    <select
+                      value={payrollExportMonth}
+                      onChange={(e) => setPayrollExportMonth(Number(e.target.value))}
+                      className="w-full px-4 py-3 bg-slate-50 border border-slate-100 rounded-xl text-sm font-bold text-[#1e293b] focus:outline-none focus:ring-2 focus:ring-emerald-500/20"
+                    >
+                      {['January','February','March','April','May','June','July','August','September','October','November','December'].map((m, i) => (
+                        <option key={i+1} value={i+1}>{m}</option>
+                      ))}
+                    </select>
+                  </div>
+
+                  {/* Year picker */}
+                  <div className="space-y-2">
+                    <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">Year</label>
+                    <select
+                      value={payrollExportYear}
+                      onChange={(e) => setPayrollExportYear(Number(e.target.value))}
+                      className="w-full px-4 py-3 bg-slate-50 border border-slate-100 rounded-xl text-sm font-bold text-[#1e293b] focus:outline-none focus:ring-2 focus:ring-emerald-500/20"
+                    >
+                      {[currentDate.getFullYear() - 1, currentDate.getFullYear(), currentDate.getFullYear() + 1].map(y => (
+                        <option key={y} value={y}>{y}</option>
+                      ))}
+                    </select>
+                  </div>
+                </div>
+
+                <div className="p-4 bg-blue-50 border border-blue-100 rounded-2xl text-xs text-blue-700 font-bold leading-relaxed">
+                  <span className="font-black">Note:</span> Basic Salary and Per-Day Salary columns will be left blank for manual entry. All attendance data (Present, Absent, Half-Day, etc.) is pulled live from the payroll calculator.
+                </div>
+              </div>
+
+              {/* Footer */}
+              <div className="p-8 bg-slate-50/50 border-t border-slate-100 flex justify-end gap-3">
+                <button
+                  onClick={() => setIsPayrollModalOpen(false)}
+                  className="px-6 py-3 bg-slate-100 text-slate-600 rounded-xl text-xs font-black uppercase tracking-widest hover:bg-slate-200 transition-all"
+                >
+                  Cancel
+                </button>
+                <button
+                  onClick={handlePayrollExcelExport}
+                  disabled={payrollExporting}
+                  className="flex items-center gap-2 px-8 py-3 bg-emerald-500 text-white rounded-xl text-xs font-black uppercase tracking-widest shadow-lg shadow-emerald-200 hover:bg-emerald-600 transition-all active:scale-95 disabled:opacity-60 disabled:cursor-not-allowed"
+                >
+                  {payrollExporting ? (
+                    <><div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" /> Generating...</>
+                  ) : (
+                    <><Download size={16} /> Download Excel</>
+                  )}
+                </button>
+              </div>
             </div>
           </div>
         )}

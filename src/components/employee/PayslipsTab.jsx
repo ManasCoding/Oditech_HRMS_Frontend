@@ -149,10 +149,6 @@ const SalarySlipA4 = ({ data, employee, containerId = 'salary-slip-print' }) => 
             </div>
           </div>
         </div>
-      </div>ontWeight: '800' }}>{generatedDate}</span>
-            </div>
-          </div>
-        </div>
       </div>
 
       {/* Employee Info */}
