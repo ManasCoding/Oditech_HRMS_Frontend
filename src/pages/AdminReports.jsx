@@ -3,7 +3,7 @@ import AdminLayout from '../layouts/AdminLayout';
 import { 
   Users, Clock, Filter, Download, Search, 
   Eye, Calendar, ChevronLeft, ChevronRight, 
-  Briefcase, FileText, PieChart, TrendingUp 
+  Briefcase, FileText, PieChart, TrendingUp, X 
 } from 'lucide-react';
 import { 
   PieChart as RePieChart, Pie, Cell, ResponsiveContainer, Tooltip 
@@ -548,7 +548,7 @@ const AdminReports = () => {
                     </div>
                     <span className="text-xs font-black uppercase tracking-widest">Download Full Excel</span>
                  </button>
-                 <button className="w-full flex items-center gap-3 p-3 bg-white/10 hover:bg-white/20 border border-white/10 rounded-2xl transition-all">
+                 <button onClick={() => setIsPayrollModalOpen(true)} className="w-full flex items-center gap-3 p-3 bg-white/10 hover:bg-white/20 border border-white/10 rounded-2xl transition-all">
                     <div className="w-8 h-8 bg-emerald-500/20 text-emerald-400 rounded-lg flex items-center justify-center">
                        <FileText size={16} />
                     </div>
