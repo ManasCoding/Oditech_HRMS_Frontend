@@ -64,8 +64,20 @@ const AdminEmployeeDetails = () => {
     department: '',
     role: '',
     password: '',
-    status: ''
+    status: '',
+    // Bank Details
+    accountHolderName: '',
+    bankName: '',
+    accountNumber: '',
+    ifscCode: '',
+    branchName: '',
+    panNumber: '',
+    aadharNumber: '',
+    upiId: ''
   });
+  
+  const [showBankDetailsModal, setShowBankDetailsModal] = useState(false);
+  const [bankDetailsSaving, setBankDetailsSaving] = useState(false);
 
   // Global Calendar State
   const [currentMonth, setCurrentMonth] = useState(new Date().getMonth());
@@ -108,17 +120,25 @@ const AdminEmployeeDetails = () => {
         }
       }
 
-      if (found) {
-        setEmployee(found);
-        setEditForm({
-          fullName: found.fullName || '',
-          email: found.email || '',
-          phone: found.phone || '',
-          department: found.department || '',
-          role: found.role || '',
-          password: found.password || '',
-          status: found.status || 'Active'
-        });
+        if (found) {
+          setEmployee(found);
+          setEditForm({
+            fullName: found.fullName || '',
+            email: found.email || '',
+            phone: found.phone || '',
+            department: found.department || '',
+            role: found.role || '',
+            password: '',
+            status: found.status || 'Active',
+            accountHolderName: found.accountHolderName || '',
+            bankName: found.bankName || '',
+            accountNumber: found.accountNumber || '',
+            ifscCode: found.ifscCode || '',
+            branchName: found.branchName || '',
+            panNumber: found.panNumber || '',
+            aadharNumber: found.aadharNumber || '',
+            upiId: found.upiId || ''
+          });
       } else {
         console.error('Profile fetch error: employee not found for id', id);
       }
@@ -305,7 +325,15 @@ const AdminEmployeeDetails = () => {
         department: employee.department || '',
         role: employee.role || '',
         password: employee.password || '',
-        status: employee.status || 'Active'
+        status: employee.status || 'Active',
+        accountHolderName: employee.accountHolderName || '',
+        bankName: employee.bankName || '',
+        accountNumber: employee.accountNumber || '',
+        ifscCode: employee.ifscCode || '',
+        branchName: employee.branchName || '',
+        panNumber: employee.panNumber || '',
+        aadharNumber: employee.aadharNumber || '',
+        upiId: employee.upiId || ''
       });
     }
     setIsEditing(!isEditing);
@@ -318,10 +346,11 @@ const AdminEmployeeDetails = () => {
     try {
       const res = await api.put(`/admin/employees/${id}`, editForm);
       if (res.data.success) {
+        setSuccess('Employee details updated successfully');
         setEmployee(res.data.employee);
         setIsEditing(false);
-        setSuccess('Profile updated successfully!');
-        setTimeout(() => setSuccess(''), 3000);
+        setShowBankDetailsModal(false);
+        fetchEmployeeDetails();
       }
     } catch (err) {
       setError(err.response?.data?.message || 'Failed to update profile');
@@ -1279,9 +1308,17 @@ const AdminEmployeeDetails = () => {
                   <h3 className="text-xl font-black text-slate-800 tracking-tight">Document Upload</h3>
                   <p className="text-slate-400 text-xs font-bold mt-1">Upload all relevant employee documents. Supported formats: PDF, JPG, PNG (Max size: 10MB per file)</p>
                </div>
-               <button className="flex items-center gap-2 px-4 py-2 bg-white border border-slate-200 text-slate-600 rounded-xl text-[10px] font-black uppercase tracking-widest hover:bg-slate-50 transition-all shadow-sm">
-                 <TrendingUp size={14} className="rotate-90" /> Upload All
-               </button>
+               <div className="flex gap-3">
+                 <button 
+                    onClick={() => setShowBankDetailsModal(true)}
+                    className="flex items-center gap-2 px-4 py-2 bg-white border border-emerald-200 text-emerald-600 rounded-xl text-[10px] font-black uppercase tracking-widest hover:bg-emerald-50 transition-all shadow-sm"
+                 >
+                   <Save size={14} /> Add Bank Details
+                 </button>
+                 <button className="flex items-center gap-2 px-4 py-2 bg-white border border-slate-200 text-slate-600 rounded-xl text-[10px] font-black uppercase tracking-widest hover:bg-slate-50 transition-all shadow-sm">
+                   <TrendingUp size={14} className="rotate-90" /> Upload All
+                 </button>
+               </div>
             </div>
 
             <div className="p-8">
@@ -1747,6 +1784,134 @@ const AdminEmployeeDetails = () => {
 
       {activeTab === 'Payslips' && (
         <PayslipsTab employeeId={id} employee={employee} />
+      )}
+
+      {/* Bank Details Modal */}
+      {showBankDetailsModal && (
+        <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 sm:p-6">
+          <div className="absolute inset-0 bg-slate-900/40 backdrop-blur-sm" onClick={() => setShowBankDetailsModal(false)}></div>
+          <div className="relative w-full max-w-2xl bg-white rounded-3xl shadow-2xl overflow-hidden flex flex-col max-h-[90vh]">
+            <div className="flex items-center justify-between p-6 border-b border-slate-100 bg-slate-50/50">
+              <h3 className="text-xl font-black text-slate-800 tracking-tight flex items-center gap-2">
+                <Briefcase size={20} className="text-emerald-500" />
+                Bank & Identity Details
+              </h3>
+              <button onClick={() => setShowBankDetailsModal(false)} className="p-2 text-slate-400 hover:text-slate-600 hover:bg-slate-100 rounded-full transition-colors">
+                <X size={20} />
+              </button>
+            </div>
+            
+            <div className="p-6 overflow-y-auto">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                <div>
+                  <label className="block text-[11px] font-black text-slate-400 uppercase tracking-widest mb-2">Account Holder Name</label>
+                  <input
+                    type="text"
+                    value={editForm.accountHolderName}
+                    onChange={(e) => setEditForm({...editForm, accountHolderName: e.target.value})}
+                    placeholder="E.g. John Doe"
+                    className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl text-sm font-medium text-slate-800 focus:outline-none focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500 transition-all"
+                  />
+                </div>
+                <div>
+                  <label className="block text-[11px] font-black text-slate-400 uppercase tracking-widest mb-2">Bank Name</label>
+                  <input
+                    type="text"
+                    value={editForm.bankName}
+                    onChange={(e) => setEditForm({...editForm, bankName: e.target.value})}
+                    placeholder="E.g. HDFC Bank"
+                    className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl text-sm font-medium text-slate-800 focus:outline-none focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500 transition-all"
+                  />
+                </div>
+                <div>
+                  <label className="block text-[11px] font-black text-slate-400 uppercase tracking-widest mb-2">Account Number</label>
+                  <input
+                    type="text"
+                    value={editForm.accountNumber}
+                    onChange={(e) => setEditForm({...editForm, accountNumber: e.target.value})}
+                    placeholder="E.g. 1234567890"
+                    className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl text-sm font-medium text-slate-800 focus:outline-none focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500 transition-all"
+                  />
+                </div>
+                <div>
+                  <label className="block text-[11px] font-black text-slate-400 uppercase tracking-widest mb-2">IFSC Code</label>
+                  <input
+                    type="text"
+                    value={editForm.ifscCode}
+                    onChange={(e) => setEditForm({...editForm, ifscCode: e.target.value})}
+                    placeholder="E.g. HDFC0001234"
+                    className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl text-sm font-medium text-slate-800 focus:outline-none focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500 transition-all uppercase"
+                  />
+                </div>
+                <div>
+                  <label className="block text-[11px] font-black text-slate-400 uppercase tracking-widest mb-2">Branch Name</label>
+                  <input
+                    type="text"
+                    value={editForm.branchName}
+                    onChange={(e) => setEditForm({...editForm, branchName: e.target.value})}
+                    placeholder="E.g. Main Branch"
+                    className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl text-sm font-medium text-slate-800 focus:outline-none focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500 transition-all"
+                  />
+                </div>
+                <div>
+                  <label className="block text-[11px] font-black text-slate-400 uppercase tracking-widest mb-2">UPI ID</label>
+                  <input
+                    type="text"
+                    value={editForm.upiId}
+                    onChange={(e) => setEditForm({...editForm, upiId: e.target.value})}
+                    placeholder="E.g. user@okhdfcbank"
+                    className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl text-sm font-medium text-slate-800 focus:outline-none focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500 transition-all"
+                  />
+                </div>
+                <div>
+                  <label className="block text-[11px] font-black text-slate-400 uppercase tracking-widest mb-2">PAN Number</label>
+                  <input
+                    type="text"
+                    value={editForm.panNumber}
+                    onChange={(e) => setEditForm({...editForm, panNumber: e.target.value})}
+                    placeholder="E.g. ABCDE1234F"
+                    className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl text-sm font-medium text-slate-800 focus:outline-none focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500 transition-all uppercase"
+                  />
+                </div>
+                <div>
+                  <label className="block text-[11px] font-black text-slate-400 uppercase tracking-widest mb-2">Aadhaar Number</label>
+                  <input
+                    type="text"
+                    value={editForm.aadharNumber}
+                    onChange={(e) => setEditForm({...editForm, aadharNumber: e.target.value})}
+                    placeholder="E.g. 1234 5678 9012"
+                    className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl text-sm font-medium text-slate-800 focus:outline-none focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500 transition-all"
+                  />
+                </div>
+              </div>
+            </div>
+            
+            <div className="p-6 border-t border-slate-100 bg-slate-50 flex items-center justify-end gap-3 mt-auto">
+              <button
+                onClick={() => setShowBankDetailsModal(false)}
+                className="px-5 py-2.5 text-sm font-bold text-slate-600 bg-white border border-slate-200 rounded-xl hover:bg-slate-50 transition-colors"
+              >
+                Cancel
+              </button>
+              <button
+                onClick={handleSave}
+                disabled={saving}
+                className="px-5 py-2.5 text-sm font-bold text-white bg-emerald-500 rounded-xl hover:bg-emerald-600 transition-all shadow-lg shadow-emerald-500/30 flex items-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed"
+              >
+                {saving ? (
+                  <>
+                    <svg className="animate-spin h-4 w-4 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24"><circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle><path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path></svg>
+                    Saving...
+                  </>
+                ) : (
+                  <>
+                    <Save size={16} /> Save Bank Details
+                  </>
+                )}
+              </button>
+            </div>
+          </div>
+        </div>
       )}
 
     </AdminLayout>

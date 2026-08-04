@@ -27,9 +27,11 @@ const AttendanceCalendar = ({ employeeId }) => {
   const fetchAttendance = async () => {
     if (!employeeId) return;
     try {
-      const res = await api.get(`/employee/attendance/log/${employeeId}`);
+      const month = currentDate.getMonth() + 1;
+      const year = currentDate.getFullYear();
+      const res = await api.get(`/employee/attendance/log/${employeeId}?month=${month}&year=${year}`);
       if (res.data.success) {
-        setAttendanceData(res.data.logs || []);
+        setAttendanceData(res.data.records || res.data.logs || []);
       }
     } catch (err) {
       console.error('Error fetching attendance log:', err);
@@ -61,7 +63,7 @@ const AttendanceCalendar = ({ employeeId }) => {
     return () => {
       socket.disconnect();
     };
-  }, [employeeId, refreshKey]);
+  }, [employeeId, refreshKey, currentDate]);
 
   const handlePrevMonth = () => {
     setCurrentDate(new Date(currentDate.getFullYear(), currentDate.getMonth() - 1, 1));
