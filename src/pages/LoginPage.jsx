@@ -5,16 +5,21 @@ import { login } from '../services/api';
 
 const LoginPage = ({ isAdmin = false }) => {
   const [loginId, setLoginId] = useState('');
+  const [employeeCode, setEmployeeCode] = useState('');
+  const [employeeType, setEmployeeType] = useState('regular');
   const [password, setPassword] = useState('');
   const [error, setError] = useState('');
   const navigate = useNavigate();
+
+  const getPrefix = () => employeeType === 'regular' ? 'OG25-' : 'OD-IN-';
 
   const handleSubmit = async (e) => {
     e.preventDefault();
     setError('');
     
     try {
-      const data = await login(loginId, password, isAdmin);
+      const finalLoginId = isAdmin ? loginId : `${getPrefix()}${employeeCode}`;
+      const data = await login(finalLoginId, password, isAdmin, isAdmin ? undefined : employeeType);
       if (data.success) {
         localStorage.setItem('user', JSON.stringify(data.user));
         if (data.token) localStorage.setItem('token', data.token);
@@ -58,19 +63,63 @@ const LoginPage = ({ isAdmin = false }) => {
           )}
 
           <form onSubmit={handleSubmit} className="space-y-6">
+            {!isAdmin && (
+              <div className="flex p-1 bg-slate-100 rounded-lg">
+                <button
+                  type="button"
+                  onClick={() => setEmployeeType('regular')}
+                  className={`flex-1 py-2 text-sm font-semibold rounded-md transition-all duration-200 ${
+                    employeeType === 'regular'
+                      ? 'bg-white text-slate-800 shadow-sm'
+                      : 'text-slate-500 hover:text-slate-700'
+                  }`}
+                >
+                  Regular Employee
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setEmployeeType('intern')}
+                  className={`flex-1 py-2 text-sm font-semibold rounded-md transition-all duration-200 ${
+                    employeeType === 'intern'
+                      ? 'bg-white text-slate-800 shadow-sm'
+                      : 'text-slate-500 hover:text-slate-700'
+                  }`}
+                >
+                  Intern
+                </button>
+              </div>
+            )}
+
             <div className="space-y-2">
               <label className="block text-text-main text-sm font-semibold" htmlFor="login_id">
-                {isAdmin ? 'Username' : 'Work Email or Employee Code'}
+                {isAdmin ? 'Username' : 'Employee Code'}
               </label>
-              <input
-                type="text"
-                id="login_id"
-                value={loginId}
-                onChange={(e) => setLoginId(e.target.value)}
-                className="w-full p-3.5 bg-background border border-border rounded-xl text-sm text-text-main transition-all duration-200 focus:outline-none focus:border-slate-400 focus:bg-surface focus:ring-4 focus:ring-slate-900/5"
-                placeholder={isAdmin ? "admin_username" : "EMP001 or name@company.com"}
-                required
-              />
+              {isAdmin ? (
+                <input
+                  type="text"
+                  id="login_id"
+                  value={loginId}
+                  onChange={(e) => setLoginId(e.target.value)}
+                  className="w-full p-3.5 bg-background border border-border rounded-xl text-sm text-text-main transition-all duration-200 focus:outline-none focus:border-slate-400 focus:bg-surface focus:ring-4 focus:ring-slate-900/5"
+                  placeholder="admin_username"
+                  required
+                />
+              ) : (
+                <div className="flex items-stretch w-full bg-background border border-border rounded-xl transition-all duration-200 focus-within:border-slate-400 focus-within:bg-surface focus-within:ring-4 focus-within:ring-slate-900/5 overflow-hidden">
+                  <div className="flex items-center justify-center pl-3.5 pr-2 bg-slate-50/50 text-slate-500 font-medium text-sm select-none border-r border-border">
+                    {getPrefix()}
+                  </div>
+                  <input
+                    type="text"
+                    id="login_id"
+                    value={employeeCode}
+                    onChange={(e) => setEmployeeCode(e.target.value.replace(/[^0-9]/g, ''))}
+                    className="flex-1 p-3.5 bg-transparent border-none text-sm text-text-main focus:outline-none focus:ring-0 w-full"
+                    placeholder="001"
+                    required
+                  />
+                </div>
+              )}
             </div>
 
             <div className="space-y-2">

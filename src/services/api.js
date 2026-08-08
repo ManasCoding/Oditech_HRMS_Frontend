@@ -12,9 +12,11 @@ const api = axios.create({
   },
 });
 
-export const login = async (loginId, password, isAdmin) => {
+export const login = async (loginId, password, isAdmin, employeeType) => {
   try {
-    const response = await api.post('/login', { loginId, password, isAdmin });
+    const payload = { loginId, password, isAdmin };
+    if (employeeType) payload.employeeType = employeeType;
+    const response = await api.post('/login', payload);
     return response.data;
   } catch (error) {
     throw error.response?.data || { message: 'Network error' };
