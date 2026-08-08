@@ -11,7 +11,7 @@ const LoginPage = ({ isAdmin = false }) => {
   const [error, setError] = useState('');
   const navigate = useNavigate();
 
-  const getPrefix = () => employeeType === 'regular' ? 'OG25-' : 'OD-IN-';
+  const getPrefix = () => employeeType === 'regular' ? 'OG25' : 'OD-IN-';
 
   const handleSubmit = async (e) => {
     e.preventDefault();
@@ -116,6 +116,7 @@ const LoginPage = ({ isAdmin = false }) => {
                     onChange={(e) => setEmployeeCode(e.target.value.replace(/[^0-9]/g, ''))}
                     className="flex-1 p-3.5 bg-transparent border-none text-sm text-text-main focus:outline-none focus:ring-0 w-full"
                     placeholder="001"
+                    autoComplete="off"
                     required
                   />
                 </div>
