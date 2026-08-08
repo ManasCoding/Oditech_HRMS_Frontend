@@ -136,7 +136,10 @@ const AdminAttendance = () => {
   const handleApprove = async (id) => {
     setApprovalProcessing(id);
     try {
-      const res = await api.put(`/admin/attendance/late-approvals/${id}/approve`);
+      const adminUser = JSON.parse(localStorage.getItem('user') || '{}');
+      const res = await api.put(`/admin/attendance/late-approvals/${id}/approve`, {
+        adminId: adminUser._id
+      });
       if (res.data.success) {
         // Remove from pending list and refetch main attendance
         setLateApprovals(prev => prev.filter(r => r._id !== id));
