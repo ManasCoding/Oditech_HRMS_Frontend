@@ -3,7 +3,7 @@ import AdminLayout from '../layouts/AdminLayout';
 import { 
   Users, Clock, Search, Calendar, MoreHorizontal,
   ChevronLeft, ChevronRight, X, Download, FileText,
-  UserCheck, Briefcase, Eye
+  UserCheck, Briefcase, Eye, CheckCircle2, XCircle, Hourglass, AlertTriangle
 } from 'lucide-react';
 import { 
   LineChart, Line, BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Cell 
@@ -60,6 +60,14 @@ const AdminAttendance = () => {
   });
   const [holidays, setHolidays] = useState([]);
 
+  // ── Late Approvals State ─────────────────────────────────────────────────────
+  const [lateApprovals, setLateApprovals] = useState([]);
+  const [lateApprovalsLoading, setLateApprovalsLoading] = useState(false);
+  const [rejectModal, setRejectModal] = useState(null); // { id, employeeName }
+  const [rejectReason, setRejectReason] = useState('');
+  const [approvalProcessing, setApprovalProcessing] = useState(null); // id being processed
+  // ─────────────────────────────────────────────────────────────────────────────
+
   const [filters, setFilters] = useState({
     date: new Date().toISOString().split('T')[0],
     department: 'All Departments',
@@ -105,6 +113,62 @@ const AdminAttendance = () => {
     fetchDepartments();
     fetchHolidays();
   }, []);
+
+  // ── Late Approvals Fetch ─────────────────────────────────────────────────────
+  const fetchLateApprovals = useCallback(async () => {
+    setLateApprovalsLoading(true);
+    try {
+      const res = await api.get(`/admin/attendance/late-approvals?date=${filters.date}&status=Pending`);
+      if (res.data.success) {
+        setLateApprovals(res.data.records || []);
+      }
+    } catch (err) {
+      console.error('Error fetching late approvals:', err);
+    } finally {
+      setLateApprovalsLoading(false);
+    }
+  }, [filters.date]);
+
+  useEffect(() => {
+    fetchLateApprovals();
+  }, [fetchLateApprovals, refreshKey]);
+
+  const handleApprove = async (id) => {
+    setApprovalProcessing(id);
+    try {
+      const res = await api.put(`/admin/attendance/late-approvals/${id}/approve`);
+      if (res.data.success) {
+        // Remove from pending list and refetch main attendance
+        setLateApprovals(prev => prev.filter(r => r._id !== id));
+        fetchStats(false);
+      }
+    } catch (err) {
+      console.error('Approve failed:', err);
+    } finally {
+      setApprovalProcessing(null);
+    }
+  };
+
+  const handleRejectConfirm = async () => {
+    if (!rejectModal) return;
+    setApprovalProcessing(rejectModal.id);
+    try {
+      const res = await api.put(`/admin/attendance/late-approvals/${rejectModal.id}/reject`, {
+        rejectionReason: rejectReason
+      });
+      if (res.data.success) {
+        setLateApprovals(prev => prev.filter(r => r._id !== rejectModal.id));
+        fetchStats(false);
+      }
+    } catch (err) {
+      console.error('Reject failed:', err);
+    } finally {
+      setApprovalProcessing(null);
+      setRejectModal(null);
+      setRejectReason('');
+    }
+  };
+  // ─────────────────────────────────────────────────────────────────────────────
 
   const fetchStats = useCallback(async (showLoader = true) => {
     if (showLoader) setLoading(true);
@@ -445,6 +509,110 @@ const AdminAttendance = () => {
            })()}
         </div>
 
+        {/* ── Late Check-In Approvals Section ──────────────────────────────── */}
+        <div className="bg-white rounded-[32px] border border-slate-100 shadow-sm overflow-hidden">
+          <div className="flex items-center justify-between p-6 border-b border-slate-100">
+            <div className="flex items-center gap-3">
+              <div className="w-10 h-10 bg-amber-50 rounded-xl flex items-center justify-center">
+                <Hourglass size={20} className="text-amber-600" />
+              </div>
+              <div>
+                <h3 className="text-lg font-black text-[#1e293b]">Late Check-In Approvals</h3>
+                <p className="text-xs text-slate-400 font-bold uppercase tracking-widest">
+                  {filters.date} · {lateApprovals.length} pending
+                </p>
+              </div>
+            </div>
+            {lateApprovals.length > 0 && (
+              <span className="px-3 py-1 bg-amber-100 text-amber-700 text-xs font-black rounded-full uppercase tracking-widest animate-pulse">
+                {lateApprovals.length} Awaiting
+              </span>
+            )}
+          </div>
+
+          {lateApprovalsLoading ? (
+            <div className="p-10 text-center text-slate-400 font-bold">Loading...</div>
+          ) : lateApprovals.length === 0 ? (
+            <div className="p-10 text-center">
+              <CheckCircle2 size={40} className="text-emerald-400 mx-auto mb-3" />
+              <p className="text-slate-400 font-bold text-sm">No pending late check-in requests for this date.</p>
+            </div>
+          ) : (
+            <div className="divide-y divide-slate-50">
+              {lateApprovals.map((record) => {
+                const emp = record.employeeId;
+                const checkInTime = record.checkIn ? new Date(record.checkIn).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', hour12: true }) : '—';
+                const requestedAt = record.approvalRequestedAt ? new Date(record.approvalRequestedAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', hour12: true }) : '—';
+                const lateMinutes = record.lateMinutes || 0;
+                const isProcessing = approvalProcessing === record._id;
+
+                return (
+                  <div key={record._id} className="flex flex-col md:flex-row md:items-center gap-4 p-5 hover:bg-amber-50/30 transition-colors">
+                    {/* Employee Info */}
+                    <div className="flex items-center gap-4 flex-1 min-w-0">
+                      <div className="w-12 h-12 rounded-full bg-slate-100 flex items-center justify-center overflow-hidden border-2 border-white shadow-sm shrink-0">
+                        {emp?.profileImage ? (
+                          <img src={emp.profileImage} className="w-full h-full object-cover" alt={emp?.fullName} onError={(e) => { e.target.onerror = null; e.target.style.display = 'none'; }} />
+                        ) : (
+                          <span className="text-lg font-black text-slate-500">{emp?.fullName?.charAt(0)}</span>
+                        )}
+                      </div>
+                      <div className="min-w-0">
+                        <h4 className="font-black text-[#1e293b] text-sm truncate">{emp?.fullName}</h4>
+                        <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest truncate">{emp?.empCode} · {emp?.department}</p>
+                      </div>
+                    </div>
+
+                    {/* Timing Details */}
+                    <div className="flex gap-6 shrink-0">
+                      <div className="text-center">
+                        <p className="text-[9px] font-black text-slate-400 uppercase tracking-widest mb-1">Check-In</p>
+                        <p className="text-sm font-black text-[#1e293b]">{checkInTime}</p>
+                      </div>
+                      <div className="text-center">
+                        <p className="text-[9px] font-black text-slate-400 uppercase tracking-widest mb-1">Late By</p>
+                        <p className="text-sm font-black text-amber-600">{lateMinutes > 0 ? `${lateMinutes} min` : '—'}</p>
+                      </div>
+                      <div className="text-center">
+                        <p className="text-[9px] font-black text-slate-400 uppercase tracking-widest mb-1">Requested</p>
+                        <p className="text-sm font-black text-slate-500">{requestedAt}</p>
+                      </div>
+                    </div>
+
+                    {/* Status Badge */}
+                    <div className="shrink-0">
+                      <span className="px-3 py-1 bg-amber-100 text-amber-700 text-[10px] font-black uppercase tracking-widest rounded-full">
+                        Pending
+                      </span>
+                    </div>
+
+                    {/* Action Buttons */}
+                    <div className="flex items-center gap-3 shrink-0">
+                      <button
+                        onClick={() => handleApprove(record._id)}
+                        disabled={isProcessing}
+                        className="flex items-center gap-2 px-4 py-2 bg-emerald-500 text-white rounded-xl text-xs font-black hover:bg-emerald-600 transition-all disabled:opacity-50 disabled:cursor-not-allowed shadow-sm"
+                      >
+                        <CheckCircle2 size={14} />
+                        {isProcessing ? 'Processing...' : 'Approve'}
+                      </button>
+                      <button
+                        onClick={() => { setRejectModal({ id: record._id, employeeName: emp?.fullName }); setRejectReason(''); }}
+                        disabled={isProcessing}
+                        className="flex items-center gap-2 px-4 py-2 bg-rose-500 text-white rounded-xl text-xs font-black hover:bg-rose-600 transition-all disabled:opacity-50 disabled:cursor-not-allowed shadow-sm"
+                      >
+                        <XCircle size={14} />
+                        Reject
+                      </button>
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+          )}
+        </div>
+        {/* ── End Late Check-In Approvals ───────────────────────────────────── */}
+
         {/* Bottom Charts */}
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
           <div className="bg-white p-8 rounded-[32px] border border-slate-100 shadow-sm relative">
@@ -554,6 +722,56 @@ const AdminAttendance = () => {
                    </div>
                  </div>
                </div>
+            </div>
+          </div>
+        )}
+
+        {/* ── Reject Reason Modal ──────────────────────────────────────────── */}
+        {rejectModal && (
+          <div className="fixed inset-0 bg-slate-900/40 backdrop-blur-sm z-[200] flex items-center justify-center p-4" onClick={() => { setRejectModal(null); setRejectReason(''); }}>
+            <div className="bg-white rounded-[24px] w-full max-w-md shadow-2xl overflow-hidden p-8 relative animate-in zoom-in-95 duration-200" onClick={e => e.stopPropagation()}>
+              <button onClick={() => { setRejectModal(null); setRejectReason(''); }} className="absolute top-4 right-4 w-8 h-8 bg-slate-100 rounded-full flex items-center justify-center hover:bg-slate-200 transition-all">
+                <X size={16} className="text-slate-600" />
+              </button>
+
+              <div className="flex items-center gap-3 mb-6">
+                <div className="w-12 h-12 bg-rose-50 rounded-2xl flex items-center justify-center">
+                  <AlertTriangle size={24} className="text-rose-500" />
+                </div>
+                <div>
+                  <h3 className="text-lg font-black text-[#1e293b]">Reject Late Check-In</h3>
+                  <p className="text-xs text-slate-400 font-bold">{rejectModal.employeeName}</p>
+                </div>
+              </div>
+
+              <div className="mb-6">
+                <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest block mb-2">
+                  Reason for Rejection (Optional)
+                </label>
+                <textarea
+                  value={rejectReason}
+                  onChange={(e) => setRejectReason(e.target.value)}
+                  placeholder="Enter reason for rejecting the late check-in request..."
+                  rows={4}
+                  className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-2xl text-sm font-medium text-slate-700 focus:outline-none focus:border-rose-300 focus:ring-2 focus:ring-rose-100 resize-none transition-all"
+                />
+              </div>
+
+              <div className="flex gap-3">
+                <button
+                  onClick={() => { setRejectModal(null); setRejectReason(''); }}
+                  className="flex-1 py-3 border-2 border-slate-100 text-slate-400 rounded-2xl font-black text-xs uppercase tracking-widest hover:bg-slate-50 transition-all"
+                >
+                  Cancel
+                </button>
+                <button
+                  onClick={handleRejectConfirm}
+                  disabled={approvalProcessing === rejectModal.id}
+                  className="flex-1 py-3 bg-rose-500 text-white rounded-2xl font-black text-xs uppercase tracking-widest hover:bg-rose-600 transition-all disabled:opacity-50 shadow-lg shadow-rose-200"
+                >
+                  {approvalProcessing === rejectModal.id ? 'Rejecting...' : 'Reject Check-In'}
+                </button>
+              </div>
             </div>
           </div>
         )}

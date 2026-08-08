@@ -5,7 +5,7 @@ import api from '../services/api';
 import {
   Calendar, CheckCircle, XCircle, Clock,
   AlertCircle, ChevronRight, ChevronLeft, LayoutDashboard,
-  ClipboardList, UserCheck, Bell, ArrowRight, PieChart
+  ClipboardList, UserCheck, Bell, ArrowRight, PieChart, Hourglass
 } from 'lucide-react';
 import ActiveAnnouncements from '../components/ActiveAnnouncements';
 import AttendanceCalendar from '../components/AttendanceCalendar';
@@ -164,11 +164,32 @@ const EmployeeDashboard = () => {
           <div className="bg-white rounded-2xl shadow-[0_8px_30px_rgb(0,0,0,0.04)] border border-slate-100 p-6 lg:p-8 flex items-center justify-between min-w-[340px]">
             <div>
               <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-2">Today&apos;s Status</p>
-              <h4 className="text-xl font-bold text-slate-800">
-                {todayStatus
-                  ? `Checked In at ${new Date(todayStatus.checkIn).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}`
-                  : 'Not Checked In'}
-              </h4>
+              {todayStatus ? (
+                <>
+                  <h4 className="text-xl font-bold text-slate-800">
+                    {todayStatus.checkInApprovalStatus === 'Pending'
+                      ? 'Awaiting Approval'
+                      : `Checked In at ${new Date(todayStatus.checkIn).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}`}
+                  </h4>
+                  {todayStatus.checkInApprovalStatus === 'Pending' && (
+                    <span className="inline-block mt-1 text-[10px] font-black bg-amber-100 text-amber-700 px-3 py-1 rounded-full uppercase tracking-widest">
+                      Late · Pending Admin Approval
+                    </span>
+                  )}
+                  {todayStatus.checkInApprovalStatus === 'Approved' && (
+                    <span className="inline-block mt-1 text-[10px] font-black bg-amber-100 text-amber-700 px-3 py-1 rounded-full uppercase tracking-widest">
+                      Late · Approved
+                    </span>
+                  )}
+                  {todayStatus.checkInApprovalStatus === 'Rejected' && (
+                    <span className="inline-block mt-1 text-[10px] font-black bg-rose-100 text-rose-700 px-3 py-1 rounded-full uppercase tracking-widest">
+                      Check-In Rejected
+                    </span>
+                  )}
+                </>
+              ) : (
+                <h4 className="text-xl font-bold text-slate-800">Not Checked In</h4>
+              )}
             </div>
             {!todayStatus ? (
               <button
@@ -177,6 +198,14 @@ const EmployeeDashboard = () => {
               >
                 Check In
               </button>
+            ) : todayStatus.checkInApprovalStatus === 'Pending' ? (
+              <div className="w-14 h-14 rounded-full bg-amber-50 text-amber-500 border border-amber-200 flex items-center justify-center">
+                <Hourglass size={24} strokeWidth={2.5} />
+              </div>
+            ) : todayStatus.checkInApprovalStatus === 'Rejected' ? (
+              <div className="w-14 h-14 rounded-full bg-rose-50 text-rose-500 border border-rose-100 flex items-center justify-center">
+                <XCircle size={24} strokeWidth={2.5} />
+              </div>
             ) : (
               <div className="w-14 h-14 rounded-full bg-emerald-50 text-emerald-500 border border-emerald-100 flex items-center justify-center">
                 <UserCheck size={24} strokeWidth={2.5} />
