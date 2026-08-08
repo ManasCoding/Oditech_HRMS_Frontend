@@ -208,7 +208,11 @@ const AdminAttendance = () => {
 
       // If an explicit status exists and is not 'Pending' or 'Absent', use it
       // Otherwise fallback to Holiday, Weekend, or Absent
-      if (r.status && r.status !== 'Pending' && r.status !== 'Absent') {
+      if (r.checkInApprovalStatus === 'Approved') {
+        stat = 'Present';
+      } else if (r.checkInApprovalStatus === 'Rejected') {
+        stat = 'Absent';
+      } else if (r.status && r.status !== 'Pending' && r.status !== 'Absent') {
         stat = r.status;
       } else if (isHoliday) {
         stat = 'Holiday';
