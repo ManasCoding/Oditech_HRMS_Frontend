@@ -19,6 +19,7 @@ import AdminLeaveAccrual from '../pages/AdminLeaveAccrual';
 import AdminSettings from '../pages/AdminSettings';
 import AdminReports from '../pages/AdminReports';
 import AdminPolicy from '../pages/AdminPolicy';
+import AdminPerformance from '../pages/AdminPerformance';
 
 import AdminEmployees from '../pages/AdminEmployees';
 import AdminExEmployees from '../pages/AdminExEmployees';
@@ -109,6 +110,7 @@ const AppRouter = () => {
       <Route path="/admin/settings" element={<AdminSettings />} />
       <Route path="/admin/reports" element={<AdminReports />} />
       <Route path="/admin/policy" element={<AdminPolicy />} />
+      <Route path="/admin/performance" element={<AdminPerformance />} />
       <Route path="/admin/resignations" element={<AdminResignation />} />
       <Route path="/admin/resignations/:id" element={<AdminResignationDetails />} />
 

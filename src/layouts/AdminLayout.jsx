@@ -14,7 +14,8 @@ import {
   BookOpen,
   Menu,
   X,
-  FileMinus
+  FileMinus,
+  TrendingUp
 } from 'lucide-react';
 
 const AdminLayout = ({ children, title, subtitle, hideHeader = false }) => {
@@ -38,6 +39,7 @@ const AdminLayout = ({ children, title, subtitle, hideHeader = false }) => {
     { name: 'Attendance Management', icon: <Calendar size={18} />, path: '/admin/attendance' },
     { name: 'Leave Management', icon: <Clock size={18} />, path: '/admin/leaves' },
     { name: 'Reports', icon: <FileText size={18} />, path: '/admin/reports' },
+    { name: 'Performance', icon: <TrendingUp size={18} />, path: '/admin/performance' },
     { name: 'System Settings', icon: <Settings size={18} />, path: '/admin/settings' },
     { name: 'Company Policy', icon: <BookOpen size={18} />, path: '/admin/policy' },
     { name: 'Resignations', icon: <FileMinus size={18} />, path: '/admin/resignations' },
