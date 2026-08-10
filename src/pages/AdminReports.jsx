@@ -51,6 +51,7 @@ const AdminReports = () => {
   const [modalLoading, setModalLoading] = useState(false);
   const [currentEmployeeId, setCurrentEmployeeId] = useState(null);
   const [currentReportStatus, setCurrentReportStatus] = useState(null);
+  const [currentWorkDate, setCurrentWorkDate] = useState(null);
   const [rating, setRating] = useState(0);
   const [hoverRating, setHoverRating] = useState(0);
   const [feedback, setFeedback] = useState('');
@@ -97,6 +98,7 @@ const AdminReports = () => {
     setIsModalOpen(true);
     setCurrentEmployeeId(employeeId);
     setCurrentReportStatus(workStatus);
+    setCurrentWorkDate(date);
     setRating(0);
     setHoverRating(0);
     setFeedback('');
@@ -119,10 +121,12 @@ const AdminReports = () => {
     }
     setRatingLoading(true);
     try {
-      const res = await api.post(`/performance/${currentEmployeeId}/quick-review`, {
+      const res = await api.post(`/performance/ratings`, {
+        employeeId: currentEmployeeId,
+        workDate: currentWorkDate,
         rating,
-        comments: feedback,
-        reviewer: 'Admin'
+        feedback,
+        adminId: null // Handled backend or null for now
       });
       alert('Rating submitted successfully!');
       setIsModalOpen(false);

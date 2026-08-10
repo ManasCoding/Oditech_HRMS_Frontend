@@ -50,20 +50,28 @@ const AdminPerformance = () => {
   const fetchData = async () => {
     try {
       setLoading(true);
-      const [statsRes, topRes, listRes] = await Promise.all([
-        api.get('/performance/dashboard-stats'),
-        api.get('/performance/top'),
-        api.get('/performance/list')
-      ]);
-      setStats(statsRes.data);
-      setTopPerformers(topRes.data);
-      setEmployees(listRes.data);
+      const res = await api.get('/performance');
+      if (res.data.success) {
+        const distObj = res.data.data.distribution;
+        const formattedDist = [
+          { name: '5 Stars', value: distObj.fiveStars, fill: '#10b981' },
+          { name: '4 Stars', value: distObj.fourStars, fill: '#3b82f6' },
+          { name: '3 Stars', value: distObj.threeStars, fill: '#eab308' },
+          { name: '2 Stars', value: distObj.twoStars, fill: '#f97316' },
+          { name: '1 Star', value: distObj.oneStar, fill: '#ef4444' },
+        ];
+        
+        setStats({ ...res.data.data.summary, distribution: formattedDist, totalRatingsCount: distObj.total });
+        setTopPerformers(res.data.data.employees.filter(emp => emp.averageRating >= 4.5).slice(0, 5));
+        setEmployees(res.data.data.employees);
+      }
     } catch (error) {
       console.error("Error fetching performance data", error);
     } finally {
       setLoading(false);
     }
   };
+
 
   useEffect(() => {
     fetchData();
@@ -96,16 +104,19 @@ const AdminPerformance = () => {
     return 'bg-rose-500';
   };
 
-  const renderStars = (rating) => {
+  const renderStars = (emp) => {
+    if (!emp.totalRatings || emp.totalRatings === 0) {
+      return <span className="text-sm text-slate-500 font-medium">No rating yet</span>;
+    }
     const stars = [];
     for (let i = 1; i <= 5; i++) {
       stars.push(
-        <span key={i} className={`text-lg ${i <= Math.round(rating) ? 'text-yellow-400' : 'text-slate-200'}`}>
+        <span key={i} className={`text-lg ${i <= Math.round(emp.averageRating) ? 'text-yellow-400' : 'text-slate-200'}`}>
           ★
         </span>
       );
     }
-    return <div className="flex items-center gap-1">{stars} <span className="ml-2 font-bold text-slate-700">{rating}</span></div>;
+    return <div className="flex items-center gap-1">{stars} <span className="ml-2 font-bold text-slate-700">{emp.averageRating} / 5</span></div>;
   };
 
   // Pagination logic
@@ -214,7 +225,7 @@ const AdminPerformance = () => {
                 </PieChart>
               </ResponsiveContainer>
               <div className="absolute inset-0 flex items-center justify-center flex-col pointer-events-none">
-                <span className="text-3xl font-black text-slate-800">{stats.totalEmployees}</span>
+                <span className="text-3xl font-black text-slate-800">{stats.totalRatingsCount || 0}</span>
                 <span className="text-sm font-semibold text-slate-500">Total</span>
               </div>
             </div>
@@ -224,7 +235,7 @@ const AdminPerformance = () => {
                   <div className="w-3 h-3 rounded-full shrink-0" style={{ backgroundColor: entry.fill }}></div>
                   <div>
                     <p className="text-xs font-bold text-slate-700">{entry.name.split(' (')[0]}</p>
-                    <p className="text-[10px] text-slate-500 font-medium">{entry.value} Employees</p>
+                    <p className="text-[10px] text-slate-500 font-medium">{entry.value} Ratings</p>
                   </div>
                 </div>
               ))}
@@ -285,7 +296,7 @@ const AdminPerformance = () => {
                     <td className="py-4 px-6">
                       <div className="flex items-center gap-3">
                         <img 
-                          src={emp.image || `https://ui-avatars.com/api/?name=${encodeURIComponent(emp.name)}&background=random`} 
+                          src={emp.avatar || `https://ui-avatars.com/api/?name=${encodeURIComponent(emp.name)}&background=random`} 
                           alt={emp.name} 
                           className="w-8 h-8 rounded-full object-cover bg-slate-100"
                         />
@@ -294,7 +305,7 @@ const AdminPerformance = () => {
                     </td>
                     <td className="py-4 px-6 text-sm text-slate-600">{emp.role}</td>
                     <td className="py-4 px-6">
-                      {renderStars(emp.rating)}
+                      {renderStars(emp)}
                     </td>
                     <td className="py-4 px-6">
                       <div className="flex items-center gap-3">
