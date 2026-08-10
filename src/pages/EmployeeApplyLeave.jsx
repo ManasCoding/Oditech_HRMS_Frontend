@@ -7,14 +7,26 @@ import {
   XCircle, 
   AlertCircle,
   FileText,
-  ChevronRight
+  ChevronRight,
+  TrendingUp,
+  History
 } from 'lucide-react';
 import EmployeeLayout from '../layouts/EmployeeLayout';
 import api from '../services/api';
 
+const txIcon = (type) => {
+  if (type === 'MONTHLY_ACCRUAL') return { symbol: '+', color: 'text-emerald-600', bg: 'bg-emerald-50', label: 'Earned' };
+  if (type === 'LEAVE_USED') return { symbol: '−', color: 'text-rose-600', bg: 'bg-rose-50', label: 'Used' };
+  if (type === 'LEAVE_REVERSAL') return { symbol: '+', color: 'text-sky-600', bg: 'bg-sky-50', label: 'Restored' };
+  if (type === 'ADMIN_ADJUSTMENT') return { symbol: '±', color: 'text-amber-600', bg: 'bg-amber-50', label: 'Adjusted' };
+  return { symbol: '•', color: 'text-slate-500', bg: 'bg-slate-50', label: type };
+};
+
 const EmployeeApplyLeave = () => {
   const [user] = useState(JSON.parse(localStorage.getItem('user')) || {});
   const [stats, setStats] = useState(null);
+  const [earnedBalance, setEarnedBalance] = useState(null);
+  const [transactions, setTransactions] = useState([]);
   const [leaves, setLeaves] = useState([]);
   const [loading, setLoading] = useState(true);
   const [submitting, setSubmitting] = useState(false);
@@ -32,17 +44,17 @@ const EmployeeApplyLeave = () => {
 
   const fetchData = async () => {
     try {
-      const [statsRes, leavesRes] = await Promise.all([
+      const [statsRes, leavesRes, balanceRes] = await Promise.all([
         api.get(`/employee/stats/${employeeId}`),
-        api.get(`/employee/leaves/${employeeId}`)
+        api.get(`/employee/leaves/${employeeId}`),
+        api.get(`/employee/leaves/balance/${employeeId}`)
       ]);
 
-      if (statsRes.data.success) {
-        setStats(statsRes.data.stats);
-      }
-
-      if (leavesRes.data.success) {
-        setLeaves(leavesRes.data.leaves);
+      if (statsRes.data.success) setStats(statsRes.data.stats);
+      if (leavesRes.data.success) setLeaves(leavesRes.data.leaves);
+      if (balanceRes.data.success) {
+        setEarnedBalance(balanceRes.data.balance);
+        setTransactions(balanceRes.data.transactions || []);
       }
     } catch (err) {
       console.error('Error fetching data:', err);
@@ -52,11 +64,8 @@ const EmployeeApplyLeave = () => {
   };
 
   useEffect(() => {
-    if (employeeId) {
-      fetchData();
-    }
+    if (employeeId) fetchData();
   }, [employeeId]);
-
 
   const handleApply = async (e) => {
     e.preventDefault();
@@ -68,11 +77,17 @@ const EmployeeApplyLeave = () => {
     setSubmitting(true);
     setError('');
     try {
-      // Calculate days
       const start = new Date(formData.fromDate);
       const end = new Date(formData.toDate);
       const diffTime = Math.abs(end - start);
       const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24)) + 1;
+
+      const available = earnedBalance?.available ?? 0;
+      if (diffDays > available) {
+        setError(`Insufficient leave balance. Available: ${available} day${available === 1 ? '' : 's'}.`);
+        setSubmitting(false);
+        return;
+      }
 
       const payload = {
         employeeId,
@@ -85,21 +100,22 @@ const EmployeeApplyLeave = () => {
       const res = await api.post('/employee/leaves', payload);
       if (res.data.success) {
         setSuccess('Leave application submitted successfully!');
-        setFormData({
-          leaveType: 'Casual Leave',
-          fromDate: '',
-          toDate: '',
-          reason: ''
-        });
+        setFormData({ leaveType: 'Casual Leave', fromDate: '', toDate: '', reason: '' });
         fetchData();
         setTimeout(() => setSuccess(''), 3000);
       }
     } catch (err) {
-      setError('Failed to submit application. Please try again.');
+      setError(err.response?.data?.message || 'Failed to submit application. Please try again.');
     } finally {
       setSubmitting(false);
     }
   };
+
+  const available = earnedBalance?.available ?? 0;
+  const earned = earnedBalance?.earned ?? 0;
+  const used = earnedBalance?.used ?? 0;
+  const pendingDays = earnedBalance?.pendingDays ?? 0;
+  const earnedThisMonth = earnedBalance?.earnedThisMonth ?? 0;
 
   return (
     <EmployeeLayout title="Apply Leave" subtitle="Request time off and track your leave status.">
@@ -113,44 +129,90 @@ const EmployeeApplyLeave = () => {
             
             {loading ? (
               <div className="animate-pulse space-y-4">
-                <div className="h-20 bg-slate-50 rounded-2xl"></div>
+                <div className="h-24 bg-slate-50 rounded-2xl"></div>
                 <div className="h-20 bg-slate-50 rounded-2xl"></div>
               </div>
             ) : (
               <div className="space-y-4">
+                {/* Available */}
                 <div className="p-5 bg-violet-50 rounded-3xl border border-violet-100">
-                  <p className="text-[10px] font-black text-violet-600 uppercase tracking-widest mb-1">Available Quota</p>
-                  <p className="text-3xl font-black text-violet-700">{stats?.availableLeaves || 0} <span className="text-sm font-bold opacity-60 uppercase">Days</span></p>
+                  <p className="text-[10px] font-black text-violet-600 uppercase tracking-widest mb-1">Available Leave</p>
+                  <p className="text-3xl font-black text-violet-700">{available} <span className="text-sm font-bold opacity-60 uppercase">Days</span></p>
+                  {earnedThisMonth > 0 && (
+                    <p className="text-[10px] font-bold text-emerald-600 mt-2 flex items-center gap-1">
+                      <TrendingUp size={10} /> +1 earned this month
+                    </p>
+                  )}
                   <div className="mt-3 w-full bg-violet-200 rounded-full h-1.5">
-                    <div 
-                      className="bg-violet-600 h-full rounded-full" 
-                      style={{ width: `${Math.min(100, (stats?.availableLeaves / (stats?.totalLeaveQuota || 22)) * 100)}%` }}
+                    <div
+                      className="bg-violet-600 h-full rounded-full transition-all duration-500"
+                      style={{ width: `${Math.min(100, (available / Math.max(earned, 1)) * 100)}%` }}
                     ></div>
                   </div>
                 </div>
 
-                <div className="grid grid-cols-3 gap-4">
-                  <div className="p-4 bg-emerald-50 rounded-2xl border border-emerald-100 text-center">
-                    <p className="text-[9px] font-black text-emerald-600 uppercase tracking-widest mb-1">Approved</p>
-                    <p className="text-xl font-black text-emerald-700">{stats?.leavesTakenYearly || 0}</p>
+                {/* Stats grid */}
+                <div className="grid grid-cols-3 gap-3">
+                  <div className="p-3 bg-emerald-50 rounded-2xl border border-emerald-100 text-center">
+                    <p className="text-[9px] font-black text-emerald-600 uppercase tracking-widest mb-1">Earned</p>
+                    <p className="text-xl font-black text-emerald-700">{earned}</p>
                   </div>
-                  <div className="p-4 bg-amber-50 rounded-2xl border border-amber-100 text-center">
+                  <div className="p-3 bg-rose-50 rounded-2xl border border-rose-100 text-center">
+                    <p className="text-[9px] font-black text-rose-600 uppercase tracking-widest mb-1">Used</p>
+                    <p className="text-xl font-black text-rose-700">{used}</p>
+                  </div>
+                  <div className="p-3 bg-amber-50 rounded-2xl border border-amber-100 text-center">
                     <p className="text-[9px] font-black text-amber-600 uppercase tracking-widest mb-1">Pending</p>
-                    <p className="text-xl font-black text-amber-700">{stats?.pendingLeaves || 0}</p>
-                  </div>
-                  <div className="p-4 bg-rose-50 rounded-2xl border border-rose-100 text-center">
-                    <p className="text-[9px] font-black text-rose-600 uppercase tracking-widest mb-1">Rejected</p>
-                    <p className="text-xl font-black text-rose-700">{stats?.rejectedLeaves || 0}</p>
+                    <p className="text-xl font-black text-amber-700">{pendingDays}</p>
                   </div>
                 </div>
               </div>
             )}
           </div>
 
+          {/* Leave Transaction History */}
+          <div className="bg-white rounded-[32px] border border-slate-100 shadow-sm overflow-hidden">
+            <div className="p-6 border-b border-slate-50 flex items-center gap-3">
+              <History size={16} className="text-slate-400" />
+              <h4 className="font-black text-[#1e293b] text-sm">Leave History</h4>
+            </div>
+            <div className="divide-y divide-slate-50 max-h-80 overflow-y-auto">
+              {loading ? (
+                <div className="p-4 animate-pulse space-y-3">
+                  {[1,2,3].map(i => <div key={i} className="h-10 bg-slate-50 rounded-xl" />)}
+                </div>
+              ) : transactions.length === 0 ? (
+                <p className="text-center text-slate-400 text-xs font-bold italic p-6">No leave transactions yet.</p>
+              ) : (
+                transactions.map((tx, idx) => {
+                  const { symbol, color, bg, label } = txIcon(tx.transactionType);
+                  const monthLabel = tx.accrualMonth
+                    ? new Date(tx.accrualMonth + '-01').toLocaleDateString('en-IN', { month: 'long', year: 'numeric' })
+                    : new Date(tx.createdAt).toLocaleDateString('en-IN', { month: 'short', year: 'numeric', day: 'numeric' });
+                  return (
+                    <div key={idx} className="flex items-center gap-3 px-5 py-3 hover:bg-slate-50 transition-colors">
+                      <div className={`w-7 h-7 rounded-full flex items-center justify-center ${bg} shrink-0`}>
+                        <span className={`text-xs font-black ${color}`}>{symbol}</span>
+                      </div>
+                      <div className="flex-1 min-w-0">
+                        <p className={`text-xs font-black ${color}`}>{label} {Math.abs(tx.amount)} Day{Math.abs(tx.amount) !== 1 ? 's' : ''}</p>
+                        <p className="text-[9px] font-bold text-slate-400 uppercase tracking-wider truncate">{monthLabel}</p>
+                      </div>
+                      <div className="text-right shrink-0">
+                        <p className="text-[10px] font-black text-slate-600">Bal: {tx.balanceAfterTransaction}</p>
+                      </div>
+                    </div>
+                  );
+                })
+              )}
+            </div>
+          </div>
+
+          {/* Policy Tip */}
           <div className="bg-[#0f172a] rounded-[32px] p-8 text-white">
-            <h4 className="text-base font-bold mb-4">Leave Policy Tip</h4>
+            <h4 className="text-base font-bold mb-4">Leave Policy</h4>
             <p className="text-slate-400 text-xs leading-relaxed font-medium">
-              Apply at least 2 days in advance for casual leaves. For sick leaves, please submit medical certificates if longer than 2 days.
+              You earn <span className="text-white font-black">1 day</span> every completed month. Unused leaves carry forward — your balance keeps growing.
             </p>
             <button className="mt-6 flex items-center gap-2 text-sky-400 text-xs font-black uppercase tracking-widest hover:text-sky-300 transition-colors">
               Read Policy <ChevronRight size={14} />
@@ -260,7 +322,7 @@ const EmployeeApplyLeave = () => {
             </form>
           </div>
 
-          {/* Recent History */}
+          {/* Recent Applications */}
           <div className="bg-white rounded-[32px] border border-slate-100 shadow-sm overflow-hidden">
             <div className="p-8 border-b border-slate-50 flex items-center justify-between">
               <h3 className="text-xl font-black text-[#1e293b]">Recent Applications</h3>
@@ -272,6 +334,7 @@ const EmployeeApplyLeave = () => {
                 <thead>
                   <tr className="bg-slate-50/50 border-b border-slate-100">
                     <th className="px-8 py-4 text-[9px] font-black text-slate-400 uppercase tracking-widest">Leave Details</th>
+                    <th className="px-8 py-4 text-[9px] font-black text-slate-400 uppercase tracking-widest">Days</th>
                     <th className="px-8 py-4 text-[9px] font-black text-slate-400 uppercase tracking-widest text-center">Status</th>
                     <th className="px-8 py-4 text-[9px] font-black text-slate-400 uppercase tracking-widest text-right">Applied On</th>
                   </tr>
@@ -280,12 +343,12 @@ const EmployeeApplyLeave = () => {
                   {loading ? (
                     [1, 2, 3].map(i => (
                       <tr key={i} className="animate-pulse">
-                        <td colSpan="3" className="px-8 py-6 h-20 bg-slate-50/20"></td>
+                        <td colSpan="4" className="px-8 py-6 h-20 bg-slate-50/20"></td>
                       </tr>
                     ))
                   ) : leaves.length === 0 ? (
                     <tr>
-                      <td colSpan="3" className="px-8 py-12 text-center text-slate-400 font-bold text-sm italic">
+                      <td colSpan="4" className="px-8 py-12 text-center text-slate-400 font-bold text-sm italic">
                         No leave applications found.
                       </td>
                     </tr>
@@ -299,6 +362,9 @@ const EmployeeApplyLeave = () => {
                               {new Date(leave.fromDate).toLocaleDateString()} — {new Date(leave.toDate).toLocaleDateString()}
                             </span>
                           </div>
+                        </td>
+                        <td className="px-8 py-5">
+                          <span className="text-sm font-black text-slate-700">{leave.days}d</span>
                         </td>
                         <td className="px-8 py-5">
                           <div className="flex justify-center">

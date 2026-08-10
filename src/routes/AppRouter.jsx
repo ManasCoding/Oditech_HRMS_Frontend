@@ -15,6 +15,7 @@ import EmployeePolicy from '../pages/EmployeePolicy';
 import AdminDashboard from '../pages/AdminDashboard';
 import AdminAttendance from '../pages/AdminAttendance';
 import AdminLeaves from '../pages/AdminLeaves';
+import AdminLeaveAccrual from '../pages/AdminLeaveAccrual';
 import AdminSettings from '../pages/AdminSettings';
 import AdminReports from '../pages/AdminReports';
 import AdminPolicy from '../pages/AdminPolicy';
@@ -104,6 +105,7 @@ const AppRouter = () => {
       <Route path="/admin/employees/ex" element={<AdminExEmployees />} />
       <Route path="/admin/employees/:id" element={<AdminEmployeeDetails />} />
       <Route path="/admin/leaves" element={<AdminLeaves />} />
+      <Route path="/admin/leaves/accrual" element={<AdminLeaveAccrual />} />
       <Route path="/admin/settings" element={<AdminSettings />} />
       <Route path="/admin/reports" element={<AdminReports />} />
       <Route path="/admin/policy" element={<AdminPolicy />} />
