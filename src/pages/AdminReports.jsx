@@ -3,7 +3,7 @@ import AdminLayout from '../layouts/AdminLayout';
 import { 
   Users, Clock, Filter, Download, Search, 
   Eye, Calendar, ChevronLeft, ChevronRight, 
-  Briefcase, FileText, PieChart, TrendingUp 
+  Briefcase, FileText, PieChart, TrendingUp, X, Star, Info
 } from 'lucide-react';
 import { 
   PieChart as RePieChart, Pie, Cell, ResponsiveContainer, Tooltip 
@@ -49,6 +49,11 @@ const AdminReports = () => {
   const [selectedTasks, setSelectedTasks] = useState(null);
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [modalLoading, setModalLoading] = useState(false);
+  const [currentEmployeeId, setCurrentEmployeeId] = useState(null);
+  const [rating, setRating] = useState(0);
+  const [hoverRating, setHoverRating] = useState(0);
+  const [feedback, setFeedback] = useState('');
+  const [ratingLoading, setRatingLoading] = useState(false);
   const [departments, setDepartments] = useState(['All Departments', 'Digital Marketing', 'Web Development', 'SEO', 'HR', 'Others']);
 
   // Payroll Excel Export Modal
@@ -89,6 +94,10 @@ const AdminReports = () => {
   const fetchEmployeeTasks = async (employeeId, date) => {
     setModalLoading(true);
     setIsModalOpen(true);
+    setCurrentEmployeeId(employeeId);
+    setRating(0);
+    setHoverRating(0);
+    setFeedback('');
     try {
       const res = await api.get(`/employee/tasks/${employeeId}/${date}`);
       if (res.data.success) {
@@ -98,6 +107,28 @@ const AdminReports = () => {
       console.error('Error fetching tasks:', err);
     } finally {
       setModalLoading(false);
+    }
+  };
+
+  const handleRatingSubmit = async () => {
+    if (rating === 0) {
+      alert('Please select a rating first');
+      return;
+    }
+    setRatingLoading(true);
+    try {
+      const res = await api.post(`/performance/${currentEmployeeId}/quick-review`, {
+        rating,
+        comments: feedback,
+        reviewer: 'Admin'
+      });
+      alert('Rating submitted successfully!');
+      setIsModalOpen(false);
+    } catch (err) {
+      console.error('Error submitting rating:', err);
+      alert('Failed to submit rating');
+    } finally {
+      setRatingLoading(false);
     }
   };
 
@@ -703,7 +734,8 @@ const AdminReports = () => {
         {/* Task Details Modal */}
         {isModalOpen && (
           <div className="fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-[100] flex items-center justify-center p-4">
-            <div className="bg-white rounded-[40px] w-full max-w-2xl shadow-2xl overflow-hidden animate-in zoom-in-95 duration-200">
+            <div className="relative flex flex-col items-center gap-4 w-full max-w-2xl">
+            <div className="bg-white rounded-[40px] w-full shadow-2xl overflow-hidden animate-in zoom-in-95 duration-200">
                <div className="p-8 border-b border-slate-50 flex items-center justify-between">
                   <div>
                     <h3 className="text-xl font-black text-[#1e293b]">Hourly Work Details</h3>
@@ -746,6 +778,73 @@ const AdminReports = () => {
                        <p className="text-sm font-bold uppercase tracking-widest">No tasks logged for this day</p>
                     </div>
                   )}
+
+                  {/* Rating Block inside Modal */}
+                  {!modalLoading && selectedTasks && selectedTasks.length > 0 && (
+                    <div className="mt-8 bg-white border border-slate-100 rounded-[24px] shadow-sm p-6 mb-6 relative">
+                       <h4 className="text-sm font-black text-[#1e293b] mb-1">Rate Employee Performance</h4>
+                       <p className="text-xs text-slate-500 font-medium mb-4">Please provide your rating for this work session</p>
+                       
+                       <div className="flex items-center gap-6 mb-6">
+                          <div className="flex items-center gap-2">
+                             {[1, 2, 3, 4, 5].map((star) => (
+                                <button
+                                  key={star}
+                                  onMouseEnter={() => setHoverRating(star)}
+                                  onMouseLeave={() => setHoverRating(0)}
+                                  onClick={() => setRating(star)}
+                                  className="focus:outline-none transition-transform hover:scale-110 active:scale-95"
+                                >
+                                  <Star 
+                                    size={36} 
+                                    className={`${(hoverRating || rating) >= star ? 'text-yellow-400 fill-yellow-400' : 'text-slate-200 fill-slate-200'} transition-colors`}
+                                  />
+                                </button>
+                             ))}
+                          </div>
+                          {rating > 0 && (
+                            <div className="flex flex-col items-center">
+                              <span className="px-3 py-1 bg-emerald-50 text-emerald-600 font-black text-xs rounded-lg border border-emerald-100">
+                                {rating.toFixed(1)} / 5
+                              </span>
+                              <span className="text-[10px] text-slate-400 font-bold mt-1">
+                                {rating === 5 ? 'Excellent' : rating >= 4 ? 'Good' : rating >= 3 ? 'Average' : 'Needs Improvement'}
+                              </span>
+                            </div>
+                          )}
+                       </div>
+
+                       <div className="mb-6 relative">
+                          <label className="block text-xs font-bold text-slate-500 mb-2">Your Feedback (Optional)</label>
+                          <textarea
+                            value={feedback}
+                            onChange={(e) => setFeedback(e.target.value.substring(0, 300))}
+                            placeholder="Share your feedback about this work..."
+                            className="w-full h-24 p-4 bg-white border border-slate-200 rounded-2xl text-sm text-[#1e293b] focus:outline-none focus:ring-4 focus:ring-blue-500/10 resize-none transition-all"
+                          ></textarea>
+                          <div className="absolute bottom-3 right-4 text-[10px] font-bold text-slate-400">
+                             {feedback.length} / 300
+                          </div>
+                       </div>
+
+                       <div className="flex gap-4">
+                          <button 
+                            onClick={() => setIsModalOpen(false)}
+                            className="flex-1 py-3 bg-white text-slate-600 border border-slate-200 rounded-xl text-xs font-black uppercase tracking-widest hover:bg-slate-50 transition-all"
+                          >
+                            Cancel
+                          </button>
+                          <button 
+                            onClick={handleRatingSubmit}
+                            disabled={ratingLoading || rating === 0}
+                            className="flex-1 py-3 bg-[#1e293b] text-white rounded-xl text-xs font-black uppercase tracking-widest shadow-lg shadow-slate-200 hover:bg-slate-800 disabled:opacity-50 disabled:cursor-not-allowed transition-all"
+                          >
+                            {ratingLoading ? 'Submitting...' : 'Submit Rating'}
+                          </button>
+                       </div>
+                    </div>
+                  )}
+
                </div>
 
                <div className="p-8 bg-slate-50/50 border-t border-slate-100 flex justify-end">
@@ -757,6 +856,17 @@ const AdminReports = () => {
                   </button>
                </div>
             </div>
+
+            {/* Info Alert below modal */}
+            <div className="w-full bg-blue-50/95 backdrop-blur-md border border-blue-100 rounded-2xl p-4 flex gap-4 shadow-xl">
+               <div className="w-10 h-10 bg-white rounded-full flex items-center justify-center shrink-0 border border-blue-100 text-blue-500 shadow-sm">
+                 <Info size={20} />
+               </div>
+               <p className="text-sm font-bold text-blue-900 leading-relaxed">
+                 Once you submit the rating, it will be added to the employee's performance data and reflected in the Performance page.
+               </p>
+            </div>
+
           </div>
         )}
         {/* ── Payroll Excel Export Modal ─────────────────────────────────── */}
