@@ -50,6 +50,7 @@ const AdminReports = () => {
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [modalLoading, setModalLoading] = useState(false);
   const [currentEmployeeId, setCurrentEmployeeId] = useState(null);
+  const [currentReportStatus, setCurrentReportStatus] = useState(null);
   const [rating, setRating] = useState(0);
   const [hoverRating, setHoverRating] = useState(0);
   const [feedback, setFeedback] = useState('');
@@ -91,10 +92,11 @@ const AdminReports = () => {
     }
   };
 
-  const fetchEmployeeTasks = async (employeeId, date) => {
+  const fetchEmployeeTasks = async (employeeId, date, workStatus) => {
     setModalLoading(true);
     setIsModalOpen(true);
     setCurrentEmployeeId(employeeId);
+    setCurrentReportStatus(workStatus);
     setRating(0);
     setHoverRating(0);
     setFeedback('');
@@ -687,7 +689,7 @@ const AdminReports = () => {
                            <td className="px-8 py-5">
                               <div className="flex items-center gap-3">
                                  <button 
-                                   onClick={() => fetchEmployeeTasks(report.employeeId._id, report.date)}
+                                   onClick={() => fetchEmployeeTasks(report.employeeId._id, report.date, report.workStatus)}
                                    className="p-2.5 text-slate-400 hover:text-blue-500 hover:bg-blue-50 rounded-xl transition-all border border-transparent hover:border-blue-100"
                                  >
                                     <Eye size={18} />
@@ -779,28 +781,42 @@ const AdminReports = () => {
                     </div>
                   )}
 
-                  {/* Rating Block inside Modal */}
-                  {!modalLoading && selectedTasks && selectedTasks.length > 0 && (
-                    <div className="mt-8 bg-white border border-slate-100 rounded-[24px] shadow-sm p-6 mb-6 relative">
-                       <h4 className="text-sm font-black text-[#1e293b] mb-1">Rate Employee Performance</h4>
-                       <p className="text-xs text-slate-500 font-medium mb-4">Please provide your rating for this work session</p>
-                       
-                       <div className="flex items-center gap-6 mb-6">
+                  {/* Rating Block — always visible for Completed reports; interactive only when tasks exist */}
+                  {!modalLoading && currentReportStatus === 'Completed' && (() => {
+                    const hasTasks = selectedTasks && selectedTasks.length > 0;
+                    return (
+                      <div className={`mt-8 border rounded-[24px] p-6 mb-6 relative transition-all ${hasTasks ? 'bg-white border-slate-100 shadow-sm' : 'bg-slate-50 border-slate-100'}`}>
+                        <div className="flex items-start justify-between mb-1">
+                          <h4 className="text-sm font-black text-[#1e293b]">Rate Employee Performance</h4>
+                          {!hasTasks && (
+                            <span className="px-2.5 py-1 bg-orange-50 text-orange-500 border border-orange-100 rounded-lg text-[9px] font-black uppercase tracking-widest">
+                              No Tasks Submitted
+                            </span>
+                          )}
+                        </div>
+                        <p className="text-xs text-slate-500 font-medium mb-4">
+                          {hasTasks
+                            ? 'Please provide your rating for this work session'
+                            : 'Rating is only available when the employee has submitted task logs for the day'}
+                        </p>
+
+                        <div className={`flex items-center gap-6 mb-6 ${!hasTasks ? 'opacity-40 pointer-events-none select-none' : ''}`}>
                           <div className="flex items-center gap-2">
-                             {[1, 2, 3, 4, 5].map((star) => (
-                                <button
-                                  key={star}
-                                  onMouseEnter={() => setHoverRating(star)}
-                                  onMouseLeave={() => setHoverRating(0)}
-                                  onClick={() => setRating(star)}
-                                  className="focus:outline-none transition-transform hover:scale-110 active:scale-95"
-                                >
-                                  <Star 
-                                    size={36} 
-                                    className={`${(hoverRating || rating) >= star ? 'text-yellow-400 fill-yellow-400' : 'text-slate-200 fill-slate-200'} transition-colors`}
-                                  />
-                                </button>
-                             ))}
+                            {[1, 2, 3, 4, 5].map((star) => (
+                              <button
+                                key={star}
+                                onMouseEnter={() => hasTasks && setHoverRating(star)}
+                                onMouseLeave={() => hasTasks && setHoverRating(0)}
+                                onClick={() => hasTasks && setRating(star)}
+                                disabled={!hasTasks}
+                                className="focus:outline-none transition-transform hover:scale-110 active:scale-95 disabled:cursor-not-allowed"
+                              >
+                                <Star
+                                  size={36}
+                                  className={`${(hoverRating || rating) >= star ? 'text-yellow-400 fill-yellow-400' : 'text-slate-200 fill-slate-200'} transition-colors`}
+                                />
+                              </button>
+                            ))}
                           </div>
                           {rating > 0 && (
                             <div className="flex flex-col items-center">
@@ -812,23 +828,24 @@ const AdminReports = () => {
                               </span>
                             </div>
                           )}
-                       </div>
+                        </div>
 
-                       <div className="mb-6 relative">
+                        <div className={`mb-6 relative ${!hasTasks ? 'opacity-40 pointer-events-none select-none' : ''}`}>
                           <label className="block text-xs font-bold text-slate-500 mb-2">Your Feedback (Optional)</label>
                           <textarea
                             value={feedback}
                             onChange={(e) => setFeedback(e.target.value.substring(0, 300))}
                             placeholder="Share your feedback about this work..."
-                            className="w-full h-24 p-4 bg-white border border-slate-200 rounded-2xl text-sm text-[#1e293b] focus:outline-none focus:ring-4 focus:ring-blue-500/10 resize-none transition-all"
+                            disabled={!hasTasks}
+                            className="w-full h-24 p-4 bg-white border border-slate-200 rounded-2xl text-sm text-[#1e293b] focus:outline-none focus:ring-4 focus:ring-blue-500/10 resize-none transition-all disabled:bg-slate-50 disabled:cursor-not-allowed"
                           ></textarea>
                           <div className="absolute bottom-3 right-4 text-[10px] font-bold text-slate-400">
-                             {feedback.length} / 300
+                            {feedback.length} / 300
                           </div>
-                       </div>
+                        </div>
 
-                       <div className="flex gap-4">
-                          <button 
+                        <div className="flex gap-4">
+                          <button
                             onClick={() => setIsModalOpen(false)}
                             className="flex-1 py-3 bg-white text-slate-600 border border-slate-200 rounded-xl text-xs font-black uppercase tracking-widest hover:bg-slate-50 transition-all"
                           >
