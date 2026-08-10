@@ -41,7 +41,7 @@ const AdminReports = () => {
     date: new Date().toISOString().split('T')[0],
     department: 'All Departments',
     employeeId: 'All Employees',
-    status: 'All Status',
+    status: 'Completed',
     page: 1
   });
 
@@ -153,7 +153,7 @@ const AdminReports = () => {
       date: new Date().toISOString().split('T')[0],
       department: 'All Departments',
       employeeId: 'All Employees',
-      status: 'All Status',
+      status: 'Completed',
       page: 1
     });
     setSearch('');
@@ -479,7 +479,7 @@ const AdminReports = () => {
                   <CustomDropdown 
                     name="status"
                     value={filters.status}
-                    options={['All Status', 'Completed', 'Pending']}
+                    options={['Completed']}
                     onChange={handleFilterChange}
                   />
                 </div>
