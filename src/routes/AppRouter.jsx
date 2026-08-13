@@ -6,6 +6,7 @@ import ForgotPassword from '../pages/ForgotPassword';
 import EmployeeDashboard from '../pages/EmployeeDashboard';
 import EmployeeAttendance from '../pages/EmployeeAttendance';
 import EmployeeCheckIn from '../pages/EmployeeCheckIn';
+import EmployeeCheckOut from '../pages/EmployeeCheckOut';
 import EmployeeProfile from '../pages/EmployeeProfile';
 import EmployeeDirectory from '../pages/EmployeeDirectory';
 import EmployeeSchedule from '../pages/EmployeeSchedule';
@@ -87,6 +88,7 @@ const AppRouter = () => {
       {/* Employee Routes */}
       <Route path="/employee/:employeeSlug/dashboard" element={<EmployeeDashboard />} />
       <Route path="/employee/:employeeSlug/check-in" element={<EmployeeCheckIn />} />
+      <Route path="/employee/:employeeSlug/check-out" element={<EmployeeCheckOut />} />
       <Route path="/employee/:employeeSlug/attendance" element={<EmployeeAttendance />} />
       <Route path="/employee/:employeeSlug/payslip" element={<EmployeePaySlip />} />
       <Route path="/employee/:employeeSlug/profile" element={<EmployeeProfile />} />
