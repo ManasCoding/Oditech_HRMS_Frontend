@@ -84,6 +84,33 @@ const AdminPerformance = () => {
       setShowModal(true);
     } catch (error) {
       console.error("Error fetching profile", error);
+      
+      // Fallback for when the backend returns 404/500 (e.g. on the live server)
+      // Find the basic employee info from the list
+      const empBasic = employees.find(e => e.employeeId === empId) || {};
+      
+      setSelectedEmployee({
+        employeeId: {
+          _id: empId,
+          fullName: empBasic.name || 'Unknown Employee',
+          department: empBasic.role || '',
+          designation: '',
+          profileImage: empBasic.avatar || ''
+        },
+        parameters: {
+          qualityOfWork: 0,
+          productivity: 0,
+          communication: 0,
+          teamwork: 0,
+          punctuality: 0,
+          problemSolving: 0
+        },
+        overallRating: 0,
+        goalsCompleted: 0,
+        status: 'No rating yet',
+        reviews: []
+      });
+      setShowModal(true);
     }
   };
 
