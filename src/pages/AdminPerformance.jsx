@@ -31,7 +31,7 @@ const AdminPerformance = () => {
   const [stats, setStats] = useState({
     totalEmployees: 0,
     averageRating: 0,
-    topPerformersCount: 0,
+    topPerformers: 0,
     goalsCompleted: 0,
     overview: [],
     distribution: []
@@ -167,7 +167,7 @@ const AdminPerformance = () => {
           />
           <StatCard 
             title="Top Performers" 
-            value={stats.topPerformersCount} 
+            value={stats.topPerformers} 
             subtext="12% from last month" 
             icon={Award} 
             bgClass="bg-orange-50" colorClass="text-orange-600" isIncrease={true} 
@@ -414,58 +414,36 @@ const AdminPerformance = () => {
               </div>
 
               <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
-                {/* Parameters */}
+                {/* Goals Progress */}
                 <div className="bg-white p-6 rounded-2xl border border-slate-100 shadow-sm">
-                  <h4 className="text-lg font-bold text-slate-800 mb-6">Performance Parameters</h4>
-                  <div className="space-y-4">
-                    {Object.entries(selectedEmployee.parameters || {}).filter(([k]) => k !== '_id').map(([key, value]) => {
-                      const label = key.replace(/([A-Z])/g, ' $1').replace(/^./, str => str.toUpperCase());
-                      return (
-                        <div key={key}>
-                          <div className="flex justify-between text-sm font-bold text-slate-700 mb-1">
-                            <span>{label}</span>
-                            <span>{value.toFixed(1)} / 5</span>
-                          </div>
-                          <div className="w-full h-2 bg-slate-100 rounded-full overflow-hidden">
-                            <div className="h-full bg-blue-500 rounded-full" style={{ width: `${(value / 5) * 100}%` }}></div>
-                          </div>
-                        </div>
-                      );
-                    })}
+                  <h4 className="text-lg font-bold text-slate-800 mb-4">Goals Progress</h4>
+                  <div className="flex items-center gap-4 mb-2">
+                    <div className="flex-1 h-3 bg-slate-100 rounded-full overflow-hidden">
+                      <div 
+                        className={`h-full rounded-full ${getProgressColor(selectedEmployee.goalsCompleted)}`} 
+                        style={{ width: `${selectedEmployee.goalsCompleted}%` }}
+                      ></div>
+                    </div>
+                    <span className="text-xl font-black text-slate-700">{selectedEmployee.goalsCompleted}%</span>
                   </div>
+                  <p className="text-sm font-medium text-slate-500">Overall goals completed this cycle.</p>
                 </div>
 
-                {/* Goals & Reviews Placeholder */}
-                <div className="space-y-8">
-                  <div className="bg-white p-6 rounded-2xl border border-slate-100 shadow-sm">
-                    <h4 className="text-lg font-bold text-slate-800 mb-4">Goals Progress</h4>
-                    <div className="flex items-center gap-4 mb-2">
-                      <div className="flex-1 h-3 bg-slate-100 rounded-full overflow-hidden">
-                        <div 
-                          className={`h-full rounded-full ${getProgressColor(selectedEmployee.goalsCompleted)}`} 
-                          style={{ width: `${selectedEmployee.goalsCompleted}%` }}
-                        ></div>
-                      </div>
-                      <span className="text-xl font-black text-slate-700">{selectedEmployee.goalsCompleted}%</span>
+                {/* Recent Reviews */}
+                <div className="bg-white p-6 rounded-2xl border border-slate-100 shadow-sm">
+                  <h4 className="text-lg font-bold text-slate-800 mb-4">Recent Reviews</h4>
+                  {selectedEmployee.reviews && selectedEmployee.reviews.length > 0 ? (
+                    <div className="space-y-4">
+                      {selectedEmployee.reviews.slice(0, 2).map((review, idx) => (
+                        <div key={idx} className="border-l-2 border-blue-500 pl-4 py-1">
+                          <p className="text-sm text-slate-600 mb-1">{review.comments || 'No comments provided.'}</p>
+                          <p className="text-xs font-bold text-slate-400">By {review.reviewer} • {new Date(review.date).toLocaleDateString()}</p>
+                        </div>
+                      ))}
                     </div>
-                    <p className="text-sm font-medium text-slate-500">Overall goals completed this cycle.</p>
-                  </div>
-
-                  <div className="bg-white p-6 rounded-2xl border border-slate-100 shadow-sm">
-                    <h4 className="text-lg font-bold text-slate-800 mb-4">Recent Reviews</h4>
-                    {selectedEmployee.reviews && selectedEmployee.reviews.length > 0 ? (
-                      <div className="space-y-4">
-                        {selectedEmployee.reviews.slice(0, 2).map((review, idx) => (
-                          <div key={idx} className="border-l-2 border-blue-500 pl-4 py-1">
-                            <p className="text-sm text-slate-600 mb-1">{review.comments || 'No comments provided.'}</p>
-                            <p className="text-xs font-bold text-slate-400">By {review.reviewer} • {new Date(review.date).toLocaleDateString()}</p>
-                          </div>
-                        ))}
-                      </div>
-                    ) : (
-                      <p className="text-sm text-slate-500">No recent reviews found.</p>
-                    )}
-                  </div>
+                  ) : (
+                    <p className="text-sm text-slate-500">No recent reviews found.</p>
+                  )}
                 </div>
               </div>
 
