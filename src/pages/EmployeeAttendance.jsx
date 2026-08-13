@@ -44,7 +44,10 @@ const EmployeeAttendance = () => {
             >
               Check In Now
             </button>
-            <button className="flex-1 py-6 bg-white text-[#1e293b] border-2 border-slate-100 rounded-[32px] font-black text-lg uppercase tracking-widest hover:bg-slate-50 transition-all active:scale-95">
+            <button 
+               onClick={() => navigate(`/employee/${employeeSlug}/check-out`)}
+               className="flex-1 py-6 bg-white text-[#1e293b] border-2 border-slate-100 rounded-[32px] font-black text-lg uppercase tracking-widest hover:bg-slate-50 transition-all active:scale-95"
+            >
               Check Out Now
             </button>
           </div>
