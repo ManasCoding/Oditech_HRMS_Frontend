@@ -146,6 +146,18 @@ const AdminPerformance = () => {
     return <div className="flex items-center gap-1">{stars} <span className="ml-2 font-bold text-slate-700">{emp.averageRating} / 5</span></div>;
   };
 
+  const renderModalStars = (rating) => {
+    const num = parseFloat(rating) || 0;
+    if (num === 0) return <span className="text-sm text-slate-500 font-medium">No rating yet</span>;
+    const stars = [];
+    for (let i = 1; i <= 5; i++) {
+      stars.push(
+        <span key={i} className={`text-xl ${i <= Math.round(num) ? 'text-yellow-400' : 'text-slate-200'}`}>★</span>
+      );
+    }
+    return <div className="flex items-center gap-1">{stars} <span className="ml-2 font-bold text-slate-700">{num} / 5</span></div>;
+  };
+
   // Pagination logic
   const totalPages = Math.ceil(employees.length / itemsPerPage);
   const currentEmployees = employees.slice((currentPage - 1) * itemsPerPage, currentPage * itemsPerPage);
@@ -428,7 +440,7 @@ const AdminPerformance = () => {
                   <div className="flex items-center gap-8">
                     <div>
                       <p className="text-xs font-bold text-slate-400 uppercase tracking-wider mb-1">Overall Rating</p>
-                      {renderStars(selectedEmployee.overallRating)}
+                      {renderModalStars(selectedEmployee.overallRating)}
                     </div>
                     <div>
                       <p className="text-xs font-bold text-slate-400 uppercase tracking-wider mb-1">Status</p>
