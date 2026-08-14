@@ -486,26 +486,6 @@ const AdminAttendance = () => {
                            }`}>
                              {displayStatus}
                            </span>
-                           
-                           {/* Actions */}
-                           <div className="relative" onClick={(e) => e.stopPropagation()}>
-                             <button 
-                               onClick={() => setSelectedActionRow(selectedActionRow === report._id ? null : report._id)}
-                               className="w-8 h-8 bg-slate-100 text-slate-500 hover:bg-[#1e293b] hover:text-white rounded-xl flex items-center justify-center transition-all shadow-sm"
-                             >
-                               <MoreHorizontal size={14} />
-                             </button>
-                             {selectedActionRow === report._id && (
-                               <div className="absolute right-0 bottom-full mb-2 z-50 w-48 bg-[#1e293b] rounded-2xl shadow-2xl p-2 text-white">
-                                 <button className="w-full flex items-center gap-3 px-4 py-2.5 hover:bg-white/10 rounded-xl text-xs font-bold transition-all">
-                                    <Eye size={14} className="text-blue-400" /> View Details
-                                 </button>
-                                 <button className="w-full flex items-center gap-3 px-4 py-2.5 hover:bg-white/10 rounded-xl text-xs font-bold transition-all">
-                                    <Download size={14} className="text-emerald-400" /> Download PDF
-                                 </button>
-                               </div>
-                             )}
-                           </div>
                          </div>
                        </div>
                      </div>

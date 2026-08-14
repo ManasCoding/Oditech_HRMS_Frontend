@@ -1,5 +1,5 @@
-import React from 'react';
-import { Search, Filter, ArrowLeft } from 'lucide-react';
+import React, { useState, useRef, useEffect } from 'react';
+import { Search, Filter, ArrowLeft, ChevronDown } from 'lucide-react';
 
 const SearchHeader = ({ 
   title, 
@@ -14,6 +14,25 @@ const SearchHeader = ({
   filterValue = 'All',
   onFilterChange
 }) => {
+  const [showDropdown, setShowDropdown] = useState(false);
+  const dropdownRef = useRef(null);
+
+  // Close dropdown when clicking outside
+  useEffect(() => {
+    const handleClickOutside = (e) => {
+      if (dropdownRef.current && !dropdownRef.current.contains(e.target)) {
+        setShowDropdown(false);
+      }
+    };
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => document.removeEventListener('mousedown', handleClickOutside);
+  }, []);
+
+  const handleSelect = (opt) => {
+    onFilterChange && onFilterChange(opt);
+    setShowDropdown(false);
+  };
+
   return (
     <div className="bg-white rounded-[32px] p-8 mb-8 shadow-[0_8px_30px_rgb(0,0,0,0.02)] border border-slate-50 flex flex-col md:flex-row md:items-center justify-between gap-8 transition-all">
       <div className="flex items-center gap-4">
@@ -52,26 +71,33 @@ const SearchHeader = ({
           />
         </div>
         
-        {filterOptions.length > 0 ? (
-          <div className="relative group w-full sm:w-auto">
-            <div className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400 pointer-events-none">
-              <Filter size={18} />
-            </div>
-            <select
-              value={filterValue}
-              onChange={(e) => onFilterChange(e.target.value)}
-              className="pl-12 pr-10 py-4 bg-white border border-slate-100 rounded-[20px] text-sm font-bold text-slate-600 focus:outline-none focus:ring-4 focus:ring-slate-50 transition-all appearance-none cursor-pointer w-full shadow-sm hover:border-slate-200"
-            >
-              {filterOptions.map(opt => (
-                <option key={opt} value={opt}>{opt}</option>
-              ))}
-            </select>
-          </div>
-        ) : (
-          <button className="w-[56px] h-[56px] flex items-center justify-center bg-white border border-slate-100 rounded-[20px] text-slate-400 hover:text-slate-600 hover:bg-slate-50 transition-all shadow-sm shrink-0">
-            <Filter size={20} />
+        {/* Filter dropdown */}
+        <div className="relative shrink-0" ref={dropdownRef}>
+          <button 
+            onClick={() => setShowDropdown(prev => !prev)}
+            className={`flex items-center gap-2 px-4 py-4 bg-white border rounded-[20px] text-sm font-bold transition-all shadow-sm hover:bg-slate-50 ${showDropdown ? 'border-blue-300 text-blue-600 ring-4 ring-blue-50' : 'border-slate-100 text-slate-400 hover:text-slate-600 hover:border-slate-200'}`}
+          >
+            <Filter size={18} />
+            {filterOptions.length > 0 && filterValue !== 'All' && (
+              <span className="text-blue-600 font-bold truncate max-w-[120px]">{filterValue}</span>
+            )}
+            {filterOptions.length > 0 && <ChevronDown size={14} className={`transition-transform ${showDropdown ? 'rotate-180' : ''}`} />}
           </button>
-        )}
+
+          {showDropdown && filterOptions.length > 0 && (
+            <div className="absolute top-full right-0 mt-2 bg-white border border-slate-100 rounded-2xl shadow-xl z-50 overflow-hidden min-w-[180px]">
+              {filterOptions.map(opt => (
+                <button
+                  key={opt}
+                  onClick={() => handleSelect(opt)}
+                  className={`w-full text-left px-5 py-3 text-sm font-semibold transition-colors hover:bg-slate-50 ${filterValue === opt ? 'text-blue-600 bg-blue-50/50' : 'text-slate-700'}`}
+                >
+                  {opt}
+                </button>
+              ))}
+            </div>
+          )}
+        </div>
       </div>
     </div>
   );

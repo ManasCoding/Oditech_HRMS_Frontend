@@ -7,6 +7,7 @@ import SearchHeader from '../components/SearchHeader';
 const AdminLeaves = () => {
   const [leaves, setLeaves] = useState([]);
   const [searchTerm, setSearchTerm] = useState('');
+  const [filterStatus, setFilterStatus] = useState('All');
   const [loading, setLoading] = useState(true);
   const [actionLoading, setActionLoading] = useState(null);
   const admin = JSON.parse(localStorage.getItem('user')) || {};
@@ -57,11 +58,13 @@ const AdminLeaves = () => {
     rejected: leaves.filter(l => l.status === 'REJECTED').length,
   };
 
-  const filteredLeaves = leaves.filter(leave => 
-    leave.employeeId?.fullName?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    leave.employeeId?.empCode?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    leave.leaveType?.toLowerCase().includes(searchTerm.toLowerCase())
-  );
+  const filteredLeaves = leaves.filter(leave => {
+    const matchesSearch = leave.employeeId?.fullName?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      leave.employeeId?.empCode?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      leave.leaveType?.toLowerCase().includes(searchTerm.toLowerCase());
+    const matchesStatus = filterStatus === 'All' || leave.status === filterStatus;
+    return matchesSearch && matchesStatus;
+  });
 
   return (
     <AdminLayout title="Leave Management" subtitle="Review and process employee leave applications.">
@@ -72,6 +75,9 @@ const AdminLeaves = () => {
         searchTerm={searchTerm}
         setSearchTerm={setSearchTerm}
         placeholder="Search by employee or leave type..."
+        filterOptions={['All', 'PENDING', 'APPROVED', 'REJECTED']}
+        filterValue={filterStatus}
+        onFilterChange={setFilterStatus}
       />
 
       <div className="bg-surface rounded-[32px] border-t-4 border-emerald-500 shadow-sm overflow-hidden">

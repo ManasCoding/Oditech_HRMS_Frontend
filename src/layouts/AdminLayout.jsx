@@ -47,7 +47,7 @@ const AdminLayout = ({ children, title, subtitle, hideHeader = false }) => {
   return (
     <div className="min-h-screen bg-background flex flex-col md:flex-row overflow-hidden">
       {/* Mobile Header */}
-      <div className="md:hidden bg-[#0f172a] text-white p-4 flex items-center justify-between shadow-lg z-50">
+      <div className="md:hidden fixed top-0 left-0 right-0 z-50 bg-[#0f172a] text-white p-4 flex items-center justify-between shadow-lg">
         <div className="flex items-center gap-3">
           <div className="w-8 h-8 bg-white rounded-lg flex items-center justify-center overflow-hidden">
             <img src="/logo.jpeg" alt="Logo" className="w-full h-full object-cover" />
@@ -124,7 +124,7 @@ const AdminLayout = ({ children, title, subtitle, hideHeader = false }) => {
       )}
 
       {/* Main Content */}
-      <main className={`flex-1 h-screen overflow-y-auto bg-[#f8fafc] ${hideHeader ? 'p-4 md:p-6 lg:p-6 pt-2 md:pt-4' : 'p-4 md:p-8 lg:p-10'}`}>
+      <main className={`flex-1 h-screen overflow-y-auto bg-[#f8fafc] ${hideHeader ? 'p-4 md:p-6 lg:p-6 pt-20 md:pt-4' : 'p-4 md:p-8 lg:p-10 pt-20 md:pt-8 lg:pt-10'}`}>
         {!hideHeader && (
           <header className="flex flex-col sm:flex-row sm:items-center justify-between mb-8 md:mb-10 gap-6">
             <div>
