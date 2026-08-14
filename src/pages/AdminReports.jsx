@@ -85,7 +85,13 @@ const AdminReports = () => {
       if (search) params.append('search', search);
       const res = await api.get(`/admin/reports/hourly?${params.toString()}`);
       if (res.data.success) {
-        setData(res.data);
+        // Filter out reports where employeeId is null or missing fullName (deleted employees)
+        const validReports = res.data.reports.filter(r => r.employeeId && r.employeeId.fullName);
+        setData({
+          ...res.data,
+          reports: validReports,
+          totalEntries: validReports.length // Optional: adjust total entries if needed, or rely on backend
+        });
       }
     } catch (err) {
       console.error('Error fetching reports:', err);
@@ -131,6 +137,12 @@ const AdminReports = () => {
       });
       alert('Rating submitted successfully!');
       setIsModalOpen(false);
+      
+      // Remove the rated item from the table
+      setData(prev => ({
+        ...prev,
+        reports: prev.reports.filter(r => !(r.employeeId?._id === currentEmployeeId && r.date === currentWorkDate))
+      }));
     } catch (err) {
       console.error('Error submitting rating:', err);
       alert('Failed to submit rating');

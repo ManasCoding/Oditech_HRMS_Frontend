@@ -42,6 +42,9 @@ const AdminPerformance = () => {
 
   const [selectedEmployee, setSelectedEmployee] = useState(null);
   const [showModal, setShowModal] = useState(false);
+  const [filterDate, setFilterDate] = useState(new Date().toISOString().split('T')[0]);
+  const [filterDepartment, setFilterDepartment] = useState('All Departments');
+  const [departments, setDepartments] = useState(['All Departments', 'Digital Marketing', 'Web Development', 'SEO', 'HR', 'Others']);
 
   // Pagination state
   const [currentPage, setCurrentPage] = useState(1);
@@ -50,7 +53,12 @@ const AdminPerformance = () => {
   const fetchData = async () => {
     try {
       setLoading(true);
-      const res = await api.get('/performance');
+      const params = new URLSearchParams();
+      if (filterDate) {
+        params.append('startDate', filterDate);
+        params.append('endDate', filterDate);
+      }
+      const res = await api.get(`/performance?${params.toString()}`);
       if (res.data.success) {
         const distObj = res.data.data.distribution;
         const formattedDist = [
@@ -63,6 +71,11 @@ const AdminPerformance = () => {
         
         setStats({ ...res.data.data.summary, distribution: formattedDist, totalRatingsCount: distObj.total });
         setTopPerformers(res.data.data.employees.filter(emp => emp.averageRating >= 4.5).slice(0, 5));
+        
+        // Find unique departments from employees for the dropdown
+        const uniqueDepts = [...new Set(res.data.data.employees.map(e => e.role).filter(Boolean))];
+        setDepartments(['All Departments', ...uniqueDepts]);
+
         setEmployees(res.data.data.employees);
       }
     } catch (error) {
@@ -75,7 +88,7 @@ const AdminPerformance = () => {
 
   useEffect(() => {
     fetchData();
-  }, []);
+  }, [filterDate]);
 
   const deleteRating = async (emp) => {
     if (!window.confirm(`Delete all performance ratings for ${emp.name}? This cannot be undone.`)) return;
@@ -169,9 +182,10 @@ const AdminPerformance = () => {
     return <div className="flex items-center gap-1">{stars} <span className="ml-2 font-bold text-slate-700">{num} / 5</span></div>;
   };
 
-  // Pagination logic
-  const totalPages = Math.ceil(employees.length / itemsPerPage);
-  const currentEmployees = employees.slice((currentPage - 1) * itemsPerPage, currentPage * itemsPerPage);
+  // Pagination & Filtering logic
+  const filteredEmployees = employees.filter(emp => filterDepartment === 'All Departments' || emp.role === filterDepartment);
+  const totalPages = Math.ceil(filteredEmployees.length / itemsPerPage);
+  const currentEmployees = filteredEmployees.slice((currentPage - 1) * itemsPerPage, currentPage * itemsPerPage);
 
   if (loading) {
     return (
@@ -186,17 +200,7 @@ const AdminPerformance = () => {
   return (
     <AdminLayout title="Employee Performance" subtitle="Track and evaluate employee performance and key metrics.">
       
-      {/* Date Range and Filter (Visual only as requested) */}
-      <div className="flex justify-end gap-3 mb-6 relative z-10 -mt-16 md:-mt-20">
-        <div className="flex items-center gap-2 bg-white border border-slate-200 px-4 py-2 rounded-xl text-sm font-semibold text-slate-700 shadow-sm cursor-pointer hover:bg-slate-50">
-          <CalendarIcon size={16} className="text-slate-400" />
-          May 18, 2025 - May 24, 2025
-        </div>
-        <button className="flex items-center gap-2 bg-white border border-slate-200 px-4 py-2 rounded-xl text-sm font-semibold text-slate-700 shadow-sm hover:bg-slate-50">
-          <Filter size={16} className="text-slate-400" />
-          Filters
-        </button>
-      </div>
+      {/* Date Range and Filter removed from top */}
 
       <div className="space-y-6">
         {/* Summary Cards */}
@@ -323,8 +327,30 @@ const AdminPerformance = () => {
 
         {/* Employee Table */}
         <div className="bg-white rounded-2xl shadow-[0_2px_10px_rgb(0,0,0,0.02)] border border-slate-100 overflow-hidden">
-          <div className="p-6 border-b border-slate-100">
+          <div className="p-6 border-b border-slate-100 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
             <h3 className="text-lg font-bold text-slate-800">Employee Performance List</h3>
+            <div className="flex items-center gap-3">
+              <div className="relative">
+                <select
+                  value={filterDepartment}
+                  onChange={(e) => { setFilterDepartment(e.target.value); setCurrentPage(1); }}
+                  className="px-4 py-2 bg-slate-50 border border-slate-200 rounded-xl text-sm font-semibold text-slate-700 focus:outline-none focus:ring-2 focus:ring-blue-500/20 appearance-none pr-8 cursor-pointer hover:bg-slate-100 transition-colors"
+                >
+                  {departments.map(d => <option key={d} value={d}>{d}</option>)}
+                </select>
+                <div className="absolute right-3 top-1/2 -translate-y-1/2 pointer-events-none text-slate-400">
+                  <Filter size={14} />
+                </div>
+              </div>
+              <div className="relative">
+                <input
+                  type="date"
+                  value={filterDate}
+                  onChange={(e) => setFilterDate(e.target.value)}
+                  className="px-4 py-2 bg-slate-50 border border-slate-200 rounded-xl text-sm font-semibold text-slate-700 focus:outline-none focus:ring-2 focus:ring-blue-500/20 cursor-pointer hover:bg-slate-100 transition-colors"
+                />
+              </div>
+            </div>
           </div>
           
           <div className="overflow-x-auto">
