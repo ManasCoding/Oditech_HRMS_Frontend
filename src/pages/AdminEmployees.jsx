@@ -1,7 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import AdminLayout from '../layouts/AdminLayout';
-import { UserPlus, X, Edit2, Trash2, CheckCircle2 } from 'lucide-react';
+import { UserPlus, X, Edit2, Trash2, CheckCircle2, Users } from 'lucide-react';
 import api from '../services/api';
 import SearchHeader from '../components/SearchHeader';
 
