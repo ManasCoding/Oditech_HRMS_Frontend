@@ -35,16 +35,12 @@ const AdminLayout = ({ children, title, subtitle, hideHeader = false }) => {
   const navLinks = [
     { name: 'Dashboard', icon: <LayoutDashboard size={18} />, path: '/admin/dashboard' },
     { name: 'Employee Management', icon: <Users size={18} />, path: '/admin/employees' },
-    { name: 'Ex-Employees', icon: <Users size={18} />, path: '/admin/employees/ex' },
     { name: 'Attendance Management', icon: <Calendar size={18} />, path: '/admin/attendance' },
     { name: 'Leave Management', icon: <Clock size={18} />, path: '/admin/leaves' },
     { name: 'Reports', icon: <FileText size={18} />, path: '/admin/reports' },
     { name: 'Performance', icon: <TrendingUp size={18} />, path: '/admin/performance' },
     { name: 'System Settings', icon: <Settings size={18} />, path: '/admin/settings' },
     { name: 'Company Policy', icon: <BookOpen size={18} />, path: '/admin/policy' },
-    { name: 'Resignations', icon: <FileMinus size={18} />, path: '/admin/resignations' },
-    { name: 'Activity Logs', icon: <ShieldAlert size={18} />, path: '/admin/logs' },
-    { name: 'Backup and Restore', icon: <Database size={18} />, path: '/admin/backup' },
   ];
 
 

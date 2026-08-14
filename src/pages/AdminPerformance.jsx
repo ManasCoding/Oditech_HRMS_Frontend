@@ -182,8 +182,10 @@ const AdminPerformance = () => {
     return <div className="flex items-center gap-1">{stars} <span className="ml-2 font-bold text-slate-700">{num} / 5</span></div>;
   };
 
-  // Pagination & Filtering logic
-  const filteredEmployees = employees.filter(emp => filterDepartment === 'All Departments' || emp.role === filterDepartment);
+  const filteredEmployees = employees.filter(emp => 
+    (filterDepartment === 'All Departments' || emp.role === filterDepartment) &&
+    emp.status !== 'No rating yet'
+  );
   const totalPages = Math.ceil(filteredEmployees.length / itemsPerPage);
   const currentEmployees = filteredEmployees.slice((currentPage - 1) * itemsPerPage, currentPage * itemsPerPage);
 

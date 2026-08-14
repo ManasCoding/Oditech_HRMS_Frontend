@@ -143,7 +143,14 @@ const AdminEmployees = () => {
 
   return (
     <AdminLayout title="Employee Management" subtitle="Add, edit, or deactivate employee profiles.">
-      <div className="mb-6 flex justify-end">
+      <div className="mb-6 flex justify-end gap-3">
+        <button 
+          onClick={() => navigate('/admin/employees/ex')}
+          className="flex items-center gap-2 px-6 py-3 bg-slate-100 text-slate-700 rounded-2xl text-sm font-bold hover:bg-slate-200 transition-all shadow-sm"
+        >
+          <Users size={18} />
+          Ex-Employees
+        </button>
         <button 
           onClick={() => {
             const nextCode = generateNextEmpCode(employees);
