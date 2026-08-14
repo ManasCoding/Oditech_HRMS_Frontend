@@ -235,6 +235,9 @@ const AdminEmployeeDetails = () => {
     socket.on('holidayDeleted', () => fetchRealStats());
     socket.on('attendanceMarked', () => fetchRealStats());
     socket.on('attendanceUpdated', () => fetchRealStats());
+    socket.on('leaveStatusUpdated', () => fetchRealStats());
+    socket.on('leaveUpdated', () => fetchRealStats());
+    socket.on('leaveApproved', () => fetchRealStats());
     
     return () => socket.disconnect();
   }, [id, currentMonth, currentYear, refreshKey]);
@@ -1273,9 +1276,6 @@ const AdminEmployeeDetails = () => {
             <div className="xl:col-span-8 bg-white rounded-[40px] border border-border shadow-sm overflow-hidden flex flex-col">
               <div className="p-8 border-b border-slate-50 flex items-center justify-between">
                 <h3 className="text-xl font-black text-slate-800 tracking-tight">Leave Records</h3>
-                <button className="flex items-center gap-2 px-6 py-2.5 bg-[#0061ff] text-white rounded-xl text-[10px] font-black uppercase tracking-widest hover:bg-blue-600 transition-all shadow-lg shadow-blue-200">
-                  <Plus size={16} /> Apply Leave
-                </button>
               </div>
               <div className="flex-1 overflow-x-auto">
                 <table className="w-full text-left border-collapse">
@@ -1292,16 +1292,16 @@ const AdminEmployeeDetails = () => {
                         <tr key={idx} className="hover:bg-slate-50/40 transition-colors group">
                           <td className="px-6 py-1.5">
                             <div className="flex items-center gap-3">
-                              <div className={`w-7.5 h-7.5 ${row.type === 'Sick' ? 'bg-orange-400' : 'bg-violet-500'} rounded-lg flex items-center justify-center shadow-sm`}>
-                                {row.type === 'Sick' ? <Briefcase size={13} className="text-white" /> : <Calendar size={13} className="text-white" />}
+                              <div className={`w-7.5 h-7.5 ${row.type === 'Sick' || row.leaveType === 'Sick' ? 'bg-orange-400' : 'bg-violet-500'} rounded-lg flex items-center justify-center shadow-sm`}>
+                                {row.type === 'Sick' || row.leaveType === 'Sick' ? <Briefcase size={13} className="text-white" /> : <Calendar size={13} className="text-white" />}
                               </div>
-                              <span className="text-[11px] font-black text-slate-700">{row.type}</span>
+                              <span className="text-[11px] font-black text-slate-700">{row.leaveType || row.type}</span>
                             </div>
                           </td>
                           <td className="px-6 py-1.5 text-[10px] font-black text-slate-600">{new Date(row.fromDate).toLocaleDateString()}</td>
                           <td className="px-6 py-1.5 text-[10px] font-black text-slate-600">{new Date(row.toDate).toLocaleDateString()}</td>
                           <td className="px-6 py-1.5 text-[11px] font-black text-slate-800">
-                            {Math.ceil((new Date(row.toDate) - new Date(row.fromDate)) / (1000 * 60 * 60 * 24)) + 1} Days
+                            {row.days || (Math.ceil((new Date(row.toDate) - new Date(row.fromDate)) / (1000 * 60 * 60 * 24)) + 1)} Days
                           </td>
                           <td className="px-6 py-1.5 text-[10px] font-bold text-slate-400 max-w-[130px] truncate">{row.reason}</td>
                           <td className="px-6 py-1.5">
@@ -1349,57 +1349,92 @@ const AdminEmployeeDetails = () => {
               </div>
               <div className="grid grid-cols-7 gap-y-6 text-center mb-12">
                 {['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'].map(day => (
-                  <span key={day} className="text-[10px] font-black text-slate-300 uppercase tracking-widest">{day}</span>
+                  <span key={day} className="text-[10px] font-black text-slate-400 uppercase tracking-widest">{day}</span>
                 ))}
-                {[...Array(30)].map((_, i) => {
-                   const day = i + 1;
-                   const dateStr = `${currentYear}-${String(currentMonth + 1).padStart(2, '0')}-${String(day).padStart(2, '0')}`;
-                   
-                   const isHoliday = holidays.some(h => h.holidayDate === dateStr);
-                   const leave = leaveRecords.find(l => {
-                     if (l.status !== 'Approved') return false;
-                     const start = new Date(l.startDate);
-                     const end = new Date(l.endDate);
-                     start.setHours(0,0,0,0);
-                     end.setHours(23,59,59,999);
-                     const dateObj = new Date(dateStr);
-                     return dateObj >= start && dateObj <= end;
-                   });
-                   
-                   const isCasual = leave?.type === 'Casual';
-                   const isSick = leave?.type === 'Sick';
-                   const isAnnual = leave?.type === 'Annual' || leave?.type === 'Other';
-                   
-                   return (
-                     <div key={i} className="flex flex-col items-center">
-                       <div className={`w-10 h-10 rounded-full flex items-center justify-center text-xs font-black transition-all ${
-                         isHoliday ? 'bg-pink-50 text-pink-600 border border-pink-100 shadow-sm' :
-                         isCasual ? 'bg-violet-50 text-violet-600' : 
-                         isSick ? 'bg-orange-50 text-orange-600' : 
-                         isAnnual ? 'bg-rose-50 text-rose-600' : 
-                         'text-slate-700'
-                       }`}>
-                         {day}
-                       </div>
-                     </div>
-                   );
-                })}
+                {(() => {
+                  const daysInMonth = new Date(currentYear, currentMonth + 1, 0).getDate();
+                  const firstDayOfMonth = new Date(currentYear, currentMonth, 1).getDay();
+                  const paddingDays = Array(firstDayOfMonth).fill(null);
+                  const monthDays = Array.from({ length: daysInMonth }, (_, i) => i + 1);
+
+                  return (
+                    <>
+                      {paddingDays.map((_, i) => <div key={`pad-${i}`}></div>)}
+                      {monthDays.map((day) => {
+                        const dateStr = `${currentYear}-${String(currentMonth + 1).padStart(2, '0')}-${String(day).padStart(2, '0')}`;
+                        const currentDayDate = new Date(currentYear, currentMonth, day, 12, 0, 0);
+                        
+                        const holidayItem = holidays && holidays.find(h => h.holidayDate === dateStr);
+                        const isWeekend = currentDayDate.getDay() === 0;
+
+                        // Find approved leave matching this date
+                        const approvedLeave = leaveRecords.find(l => {
+                          const status = (l.status || '').toUpperCase();
+                          if (status !== 'APPROVED') return false;
+                          const from = new Date(l.fromDate || l.startDate);
+                          const to = new Date(l.toDate || l.endDate || l.fromDate || l.startDate);
+                          from.setHours(0, 0, 0, 0);
+                          to.setHours(23, 59, 59, 999);
+                          return currentDayDate >= from && currentDayDate <= to;
+                        });
+
+                        const leaveType = approvedLeave?.leaveType || approvedLeave?.type || '';
+                        const isCasual = leaveType.toLowerCase().includes('casual');
+                        const isSick = leaveType.toLowerCase().includes('sick');
+                        const isAnnual = leaveType.toLowerCase().includes('annual') || leaveType.toLowerCase().includes('earned') || leaveType.toLowerCase().includes('paid');
+
+                        let colorClass = 'text-slate-700 font-medium hover:bg-slate-50';
+                        let titleText = `${day} ${monthNames[currentMonth]} ${currentYear}`;
+
+                        if (holidayItem) {
+                          colorClass = 'bg-indigo-50 text-indigo-600 font-black border border-indigo-200/80 shadow-sm hover:scale-105';
+                          titleText += ` • Holiday (${holidayItem.holidayName || 'Holiday'})`;
+                        } else if (approvedLeave) {
+                          if (isSick) {
+                            colorClass = 'bg-amber-50 text-amber-600 font-black border border-amber-200 shadow-sm hover:scale-105';
+                            titleText += ` • Approved Sick Leave (${approvedLeave.reason || 'Sick'})`;
+                          } else if (isCasual) {
+                            colorClass = 'bg-violet-50 text-violet-600 font-black border border-violet-200 shadow-sm hover:scale-105';
+                            titleText += ` • Approved Casual Leave (${approvedLeave.reason || 'Casual'})`;
+                          } else if (isAnnual) {
+                            colorClass = 'bg-emerald-50 text-emerald-600 font-black border border-emerald-200 shadow-sm hover:scale-105';
+                            titleText += ` • Approved Annual Leave (${approvedLeave.reason || 'Annual'})`;
+                          } else {
+                            colorClass = 'bg-violet-50 text-violet-600 font-black border border-violet-200 shadow-sm hover:scale-105';
+                            titleText += ` • Approved Leave (${leaveType || 'Leave'})`;
+                          }
+                        } else if (isWeekend) {
+                          colorClass = 'bg-slate-50 text-slate-400 font-bold';
+                          titleText += ' • Sunday / Weekend';
+                        }
+
+                        return (
+                          <div key={day} className="flex flex-col items-center group relative cursor-pointer" title={titleText}>
+                            <div className={`w-10 h-10 rounded-full flex items-center justify-center text-xs transition-all ${colorClass}`}>
+                              {day}
+                            </div>
+                          </div>
+                        );
+                      })}
+                    </>
+                  );
+                })()}
               </div>
-              <div className="flex flex-wrap items-center justify-center gap-6 pt-10 border-t border-slate-50">
+              <div className="flex flex-wrap items-center justify-center gap-4 pt-10 border-t border-slate-50">
                  <div className="flex items-center gap-2">
                     <div className="w-2.5 h-2.5 rounded-full bg-violet-500"></div>
                     <span className="text-[9px] font-black text-slate-500 uppercase tracking-widest">Casual Leave</span>
                  </div>
                  <div className="flex items-center gap-2">
-                    <div className="w-2.5 h-2.5 rounded-full bg-orange-400"></div>
+                    <div className="w-2.5 h-2.5 rounded-full bg-amber-500"></div>
                     <span className="text-[9px] font-black text-slate-500 uppercase tracking-widest">Sick Leave</span>
                  </div>
                  <div className="flex items-center gap-2">
-                    <div className="w-2.5 h-2.5 rounded-full bg-rose-500"></div>
-                    <span className="text-[9px] font-black text-slate-500 uppercase tracking-widest">Annual Leave</span>
+                    <div className="w-2.5 h-2.5 rounded-full bg-emerald-500"></div>
+                    <span className="text-[9px] font-black text-slate-500 uppercase tracking-widest">Annual / Paid</span>
                  </div>
                  <div className="flex items-center gap-2">
-                    <div className="w-2.5 h-2.5 rounded-full bg-pink-500"></div>
+                    <div className="w-2.5 h-2.5 rounded-full bg-indigo-500"></div>
                     <span className="text-[9px] font-black text-slate-500 uppercase tracking-widest">Holiday</span>
                  </div>
               </div>
@@ -1473,9 +1508,6 @@ const AdminEmployeeDetails = () => {
                     className="flex items-center gap-2 px-4 py-2 bg-white border border-emerald-200 text-emerald-600 rounded-xl text-[10px] font-black uppercase tracking-widest hover:bg-emerald-50 transition-all shadow-sm"
                  >
                    <Save size={14} /> Add Bank Details
-                 </button>
-                 <button className="flex items-center gap-2 px-4 py-2 bg-white border border-slate-200 text-slate-600 rounded-xl text-[10px] font-black uppercase tracking-widest hover:bg-slate-50 transition-all shadow-sm">
-                   <TrendingUp size={14} className="rotate-90" /> Upload All
                  </button>
                </div>
             </div>

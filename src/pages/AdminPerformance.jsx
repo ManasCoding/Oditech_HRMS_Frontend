@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import AdminLayout from '../layouts/AdminLayout';
 import { 
   Users, TrendingUp, Award, Target, 
-  Eye, ChevronLeft, ChevronRight, X, Calendar as CalendarIcon, Filter
+  Eye, ChevronLeft, ChevronRight, X, Calendar as CalendarIcon, Filter, Trash2
 } from 'lucide-react';
 import { 
   Radar, RadarChart, PolarGrid, PolarAngleAxis, PolarRadiusAxis, ResponsiveContainer,
@@ -76,6 +76,17 @@ const AdminPerformance = () => {
   useEffect(() => {
     fetchData();
   }, []);
+
+  const deleteRating = async (emp) => {
+    if (!window.confirm(`Delete all performance ratings for ${emp.name}? This cannot be undone.`)) return;
+    try {
+      await api.delete(`/performance/${emp.employeeId}/ratings`);
+      await fetchData();
+    } catch (error) {
+      console.error('Error deleting rating:', error);
+      alert('Failed to delete ratings. Please try again.');
+    }
+  };
 
   const openProfile = async (empId) => {
     try {
@@ -366,12 +377,22 @@ const AdminPerformance = () => {
                       </span>
                     </td>
                     <td className="py-4 px-6 text-center">
-                      <button 
-                        onClick={() => openProfile(emp.employeeId)}
-                        className="p-2 text-slate-400 hover:text-blue-600 hover:bg-blue-50 rounded-lg transition-colors inline-block"
-                      >
-                        <Eye size={18} />
-                      </button>
+                      <div className="flex items-center justify-center gap-1">
+                        <button 
+                          onClick={() => openProfile(emp.employeeId)}
+                          className="p-2 text-slate-400 hover:text-blue-600 hover:bg-blue-50 rounded-lg transition-colors inline-block"
+                          title="View Profile"
+                        >
+                          <Eye size={18} />
+                        </button>
+                        <button 
+                          onClick={() => deleteRating(emp)}
+                          className="p-2 text-slate-400 hover:text-rose-600 hover:bg-rose-50 rounded-lg transition-colors inline-block"
+                          title="Delete Rating"
+                        >
+                          <Trash2 size={18} />
+                        </button>
+                      </div>
                     </td>
                   </tr>
                 ))}

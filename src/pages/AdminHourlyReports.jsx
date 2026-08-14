@@ -191,9 +191,6 @@ const AdminHourlyReports = () => {
            <button className="flex items-center gap-2 px-6 py-3 bg-white text-slate-600 rounded-xl text-xs font-bold border border-slate-200 shadow-sm hover:bg-slate-50 transition-all">
              <Filter size={16} /> Filters
            </button>
-           <button className="flex items-center gap-2 px-6 py-3 bg-[#3b82f6] text-white rounded-xl text-xs font-bold shadow-lg shadow-blue-200 hover:bg-blue-600 transition-all active:scale-95">
-             <Download size={16} /> Download Excel
-           </button>
         </div>
 
         {/* Stats Grid */}
@@ -388,9 +385,6 @@ const AdminHourlyReports = () => {
                                         className="p-2 text-slate-400 hover:text-blue-500 hover:bg-blue-50 rounded-lg transition-all group-hover:scale-110"
                                       >
                                          <Eye size={16} />
-                                      </button>
-                                      <button className="p-2 text-slate-400 hover:text-emerald-500 hover:bg-emerald-50 rounded-lg transition-all">
-                                         <Download size={16} />
                                       </button>
                                    </div>
                                 </td>
