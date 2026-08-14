@@ -623,11 +623,19 @@ const AdminReports = () => {
                    />
                  </div>
                   <div className="relative">
+                    <input 
+                      type="date" 
+                      value={filters.date || ''}
+                      onChange={(e) => setFilters({ ...filters, date: e.target.value, page: 1 })}
+                      className="px-4 py-3 bg-slate-50 border border-slate-100 rounded-xl text-xs font-bold text-slate-500 focus:outline-none focus:ring-4 focus:ring-blue-500/5 transition-all cursor-pointer hover:bg-slate-100" 
+                    />
+                  </div>
+                  <div className="relative">
                     <button className="p-3 bg-slate-50 text-slate-400 rounded-xl hover:bg-slate-100 border border-slate-100 transition-all" onClick={() => setShowFilterPanel(prev => !prev)}>
                       <Filter size={18} />
                     </button>
                     {showFilterPanel && (
-                      <div className="absolute top-full left-0 mt-2 w-48 bg-white border border-slate-200 rounded-md shadow-lg z-10">
+                      <div className="absolute top-full right-0 mt-2 w-48 bg-white border border-slate-200 rounded-md shadow-lg z-10">
                         {departments.map(dept => (
                           <button key={dept} className="block w-full text-left px-4 py-2 text-sm text-slate-700 hover:bg-slate-100" onClick={() => { setFilters({ ...filters, department: dept, page: 1 }); setShowFilterPanel(false); }}>{dept}</button>
                         ))}

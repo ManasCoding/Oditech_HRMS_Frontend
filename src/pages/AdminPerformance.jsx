@@ -300,7 +300,6 @@ const AdminPerformance = () => {
           <div className="bg-white p-6 rounded-2xl shadow-[0_2px_10px_rgb(0,0,0,0.02)] border border-slate-100 flex flex-col">
             <div className="flex justify-between items-center mb-6">
               <h3 className="text-lg font-bold text-slate-800">Top Performers</h3>
-              <button className="text-sm font-bold text-blue-600 hover:text-blue-700">View All</button>
             </div>
             <div className="flex-1 flex flex-col justify-between">
               {topPerformers.map((emp, idx) => (
