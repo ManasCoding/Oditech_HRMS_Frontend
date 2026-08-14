@@ -143,12 +143,12 @@ const AdminDashboard = () => {
             {/* List Header */}
             <div className="p-8 flex flex-col md:flex-row items-center justify-between gap-6">
               <div className="flex items-center gap-6">
-                <button 
+                {/* <button 
                   onClick={() => setActiveFilter('Total')}
                   className="w-12 h-12 rounded-full border border-slate-100 flex items-center justify-center text-slate-400 hover:bg-slate-50 transition-all shadow-sm"
                 >
                   <ArrowLeft size={20} />
-                </button>
+                </button> */}
                 <div>
                   <div className="flex items-center gap-3">
                     <h3 className="text-2xl font-black text-[#1e293b]">{activeFilter} Employees</h3>
@@ -171,9 +171,9 @@ const AdminDashboard = () => {
                     className="w-full pl-12 pr-6 py-4 bg-slate-50/50 border border-slate-100 rounded-[20px] text-sm font-bold focus:outline-none focus:ring-4 focus:ring-slate-50 transition-all placeholder:text-slate-300"
                   />
                 </div>
-                <button className="p-4 border border-slate-100 rounded-[20px] text-slate-300 hover:bg-slate-50 transition-all shadow-sm">
+                {/* <button className="p-4 border border-slate-100 rounded-[20px] text-slate-300 hover:bg-slate-50 transition-all shadow-sm">
                   <Filter size={20} />
-                </button>
+                </button> */}
               </div>
             </div>
 
