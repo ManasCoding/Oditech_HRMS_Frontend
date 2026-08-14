@@ -463,8 +463,8 @@ const AdminPerformance = () => {
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 sm:p-6 bg-slate-900/60 backdrop-blur-sm">
           <div className="bg-white rounded-[32px] shadow-2xl w-full max-w-4xl max-h-[95vh] flex flex-col overflow-hidden animate-fade-in-up">
             
-            <div className="px-8 py-6 border-b border-slate-100 flex items-center justify-between bg-slate-50 shrink-0">
-              <h2 className="text-2xl font-black text-slate-800">Employee Performance Profile</h2>
+            <div className="px-4 sm:px-8 py-4 sm:py-6 border-b border-slate-100 flex items-center justify-between bg-slate-50 shrink-0">
+              <h2 className="text-lg sm:text-2xl font-black text-slate-800">Employee Performance Profile</h2>
               <button 
                 onClick={() => setShowModal(false)}
                 className="w-10 h-10 rounded-full bg-white border border-slate-200 flex items-center justify-center text-slate-400 hover:bg-slate-100 hover:text-slate-700 transition-colors"
@@ -473,19 +473,19 @@ const AdminPerformance = () => {
               </button>
             </div>
 
-            <div className="flex-1 overflow-y-auto p-8 bg-slate-50/30">
+            <div className="flex-1 overflow-y-auto p-4 sm:p-8 bg-slate-50/30">
               {/* Profile Header */}
-              <div className="flex items-start gap-6 bg-white p-6 rounded-2xl border border-slate-100 shadow-sm mb-8">
+              <div className="flex flex-col sm:flex-row items-center sm:items-start gap-4 sm:gap-6 bg-white p-4 sm:p-6 rounded-2xl border border-slate-100 shadow-sm mb-8 text-center sm:text-left">
                 <img 
                   src={selectedEmployee.employeeId?.profileImage || `https://ui-avatars.com/api/?name=${encodeURIComponent(selectedEmployee.employeeId?.fullName)}&background=random`} 
                   alt="Profile" 
-                  className="w-24 h-24 rounded-2xl object-cover bg-slate-100"
+                  className="w-20 h-20 sm:w-24 sm:h-24 rounded-2xl object-cover bg-slate-100 shrink-0"
                 />
-                <div className="flex-1">
-                  <h3 className="text-2xl font-black text-slate-800 mb-1">{selectedEmployee.employeeId?.fullName}</h3>
-                  <p className="text-slate-500 font-medium mb-4">{selectedEmployee.employeeId?.designation} • {selectedEmployee.employeeId?.department}</p>
+                <div className="flex-1 min-w-0">
+                  <h3 className="text-xl sm:text-2xl font-black text-slate-800 mb-1 break-words">{selectedEmployee.employeeId?.fullName}</h3>
+                  <p className="text-slate-500 font-medium mb-4 text-sm">{selectedEmployee.employeeId?.designation} • {selectedEmployee.employeeId?.department}</p>
                   
-                  <div className="flex items-center gap-8">
+                  <div className="flex flex-col sm:flex-row items-center gap-4 sm:gap-8">
                     <div>
                       <p className="text-xs font-bold text-slate-400 uppercase tracking-wider mb-1">Overall Rating</p>
                       {renderModalStars(selectedEmployee.overallRating)}
@@ -519,18 +519,24 @@ const AdminPerformance = () => {
                 {/* Recent Reviews */}
                 <div className="bg-white p-6 rounded-2xl border border-slate-100 shadow-sm">
                   <h4 className="text-lg font-bold text-slate-800 mb-4">Recent Reviews</h4>
-                  {selectedEmployee.reviews && selectedEmployee.reviews.length > 0 ? (
-                    <div className="space-y-4">
-                      {selectedEmployee.reviews.slice(0, 2).map((review, idx) => (
-                        <div key={idx} className="border-l-2 border-blue-500 pl-4 py-1">
-                          <p className="text-sm text-slate-600 mb-1">{review.comments || 'No comments provided.'}</p>
-                          <p className="text-xs font-bold text-slate-400">By {review.reviewer} • {new Date(review.date).toLocaleDateString()}</p>
-                        </div>
-                      ))}
-                    </div>
-                  ) : (
-                    <p className="text-sm text-slate-500">No recent reviews found.</p>
-                  )}
+                  {(() => {
+                    const reviews = selectedEmployee.recentReviews || selectedEmployee.reviews || [];
+                    return reviews.length > 0 ? (
+                      <div className="space-y-4">
+                        {reviews.slice(0, 3).map((review, idx) => (
+                          <div key={idx} className="border-l-2 border-blue-500 pl-4 py-1">
+                            <div className="flex items-center gap-2 mb-1">
+                              {renderModalStars(review.rating)}
+                            </div>
+                            <p className="text-sm text-slate-600 mb-1">{review.comment || review.comments || 'No comments provided.'}</p>
+                            <p className="text-xs font-bold text-slate-400">By {review.ratedBy || review.reviewer || 'Admin'} • {new Date(review.date).toLocaleDateString()}</p>
+                          </div>
+                        ))}
+                      </div>
+                    ) : (
+                      <p className="text-sm text-slate-500">No recent reviews found.</p>
+                    );
+                  })()}
                 </div>
               </div>
 

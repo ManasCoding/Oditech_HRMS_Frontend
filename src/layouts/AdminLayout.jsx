@@ -76,7 +76,7 @@ const AdminLayout = ({ children, title, subtitle, hideHeader = false }) => {
           </div>
         </div>
 
-        <nav className="flex-1 space-y-1 overflow-y-auto custom-scrollbar">
+        <nav className="flex-1 space-y-1 overflow-y-auto custom-scrollbar pt-16 md:pt-0">
           {navLinks.map((link) => {
             const isActive = location.pathname === link.path;
             return (

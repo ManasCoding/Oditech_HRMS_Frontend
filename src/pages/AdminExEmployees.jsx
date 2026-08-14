@@ -8,6 +8,7 @@ import SearchHeader from '../components/SearchHeader';
 const AdminExEmployees = () => {
   const [employees, setEmployees] = useState([]);
   const [searchTerm, setSearchTerm] = useState('');
+  const [filterDept, setFilterDept] = useState('All');
   const [loading, setLoading] = useState(true);
   const navigate = useNavigate();
 
@@ -47,9 +48,6 @@ const AdminExEmployees = () => {
     e.stopPropagation();
     if (window.confirm('WARNING: This will permanently delete the employee record. This action cannot be undone. Proceed?')) {
       try {
-        // We'll need a real delete route for permanent deletion if desired, 
-        // but for now let's just implement the UI.
-        // Assuming we might have a different endpoint for permanent delete or just reuse delete with a flag.
         const response = await api.delete(`/admin/employees/${id}?permanent=true`);
         if (response.data.success) {
           fetchExEmployees();
@@ -60,10 +58,14 @@ const AdminExEmployees = () => {
     }
   };
 
-  const filteredEmployees = employees.filter(emp => 
-    emp.fullName.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    emp.empCode.toLowerCase().includes(searchTerm.toLowerCase())
-  );
+  const departments = ['All', ...new Set(employees.map(e => e.department).filter(Boolean))];
+
+  const filteredEmployees = employees.filter(emp => {
+    const matchesSearch = emp.fullName.toLowerCase().includes(searchTerm.toLowerCase()) ||
+                         emp.empCode.toLowerCase().includes(searchTerm.toLowerCase());
+    const matchesDept = filterDept === 'All' || emp.department === filterDept;
+    return matchesSearch && matchesDept;
+  });
 
   return (
     <AdminLayout title="Former Staff Archive" subtitle="Manage records of employees who have left the organization.">
@@ -74,6 +76,9 @@ const AdminExEmployees = () => {
         searchTerm={searchTerm}
         setSearchTerm={setSearchTerm}
         placeholder="Search archives by name or code..."
+        filterOptions={departments}
+        filterValue={filterDept}
+        onFilterChange={setFilterDept}
       />
 
       <div className="bg-surface rounded-[24px] border border-border shadow-sm overflow-hidden">
