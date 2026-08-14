@@ -261,7 +261,7 @@ const AdminPerformance = () => {
           {/* Donut Chart */}
           <div className="bg-white p-6 rounded-2xl shadow-[0_2px_10px_rgb(0,0,0,0.02)] border border-slate-100 flex flex-col">
             <h3 className="text-lg font-bold text-slate-800 mb-2">Performance Distribution</h3>
-            <div className="flex-1 w-full h-[300px] relative">
+            <div className="flex-1 w-full min-h-[300px] relative">
               <ResponsiveContainer width="100%" height="100%">
                 <PieChart>
                   <Pie
