@@ -72,32 +72,34 @@ const SearchHeader = ({
         </div>
         
         {/* Filter dropdown */}
-        <div className="relative shrink-0" ref={dropdownRef}>
-          <button 
-            onClick={() => setShowDropdown(prev => !prev)}
-            className={`flex items-center gap-2 px-4 py-4 bg-white border rounded-[20px] text-sm font-bold transition-all shadow-sm hover:bg-slate-50 ${showDropdown ? 'border-blue-300 text-blue-600 ring-4 ring-blue-50' : 'border-slate-100 text-slate-400 hover:text-slate-600 hover:border-slate-200'}`}
-          >
-            <Filter size={18} />
-            {filterOptions.length > 0 && filterValue !== 'All' && (
-              <span className="text-blue-600 font-bold truncate max-w-[120px]">{filterValue}</span>
-            )}
-            {filterOptions.length > 0 && <ChevronDown size={14} className={`transition-transform ${showDropdown ? 'rotate-180' : ''}`} />}
-          </button>
+        {filterOptions && filterOptions.length > 0 && (
+          <div className="relative shrink-0" ref={dropdownRef}>
+            <button 
+              onClick={() => setShowDropdown(prev => !prev)}
+              className={`flex items-center gap-2 px-4 py-4 bg-white border rounded-[20px] text-sm font-bold transition-all shadow-sm hover:bg-slate-50 ${showDropdown ? 'border-blue-300 text-blue-600 ring-4 ring-blue-50' : 'border-slate-100 text-slate-400 hover:text-slate-600 hover:border-slate-200'}`}
+            >
+              <Filter size={18} />
+              {filterValue !== 'All' && (
+                <span className="text-blue-600 font-bold truncate max-w-[120px]">{filterValue}</span>
+              )}
+              <ChevronDown size={14} className={`transition-transform ${showDropdown ? 'rotate-180' : ''}`} />
+            </button>
 
-          {showDropdown && filterOptions.length > 0 && (
-            <div className="absolute top-full right-0 mt-2 bg-white border border-slate-100 rounded-2xl shadow-xl z-50 overflow-hidden min-w-[180px]">
-              {filterOptions.map(opt => (
-                <button
-                  key={opt}
-                  onClick={() => handleSelect(opt)}
-                  className={`w-full text-left px-5 py-3 text-sm font-semibold transition-colors hover:bg-slate-50 ${filterValue === opt ? 'text-blue-600 bg-blue-50/50' : 'text-slate-700'}`}
-                >
-                  {opt}
-                </button>
-              ))}
-            </div>
-          )}
-        </div>
+            {showDropdown && (
+              <div className="absolute top-full right-0 mt-2 bg-white border border-slate-100 rounded-2xl shadow-xl z-50 overflow-hidden min-w-[180px]">
+                {filterOptions.map(opt => (
+                  <button
+                    key={opt}
+                    onClick={() => handleSelect(opt)}
+                    className={`w-full text-left px-5 py-3 text-sm font-semibold transition-colors hover:bg-slate-50 ${filterValue === opt ? 'text-blue-600 bg-blue-50/50' : 'text-slate-700'}`}
+                  >
+                    {opt}
+                  </button>
+                ))}
+              </div>
+            )}
+          </div>
+        )}
       </div>
     </div>
   );
