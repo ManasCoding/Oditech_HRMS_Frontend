@@ -39,6 +39,8 @@ import { io } from 'socket.io-client';
 import { useAttendance } from '../context/AttendanceContext';
 import PayrollTab from '../components/employee/PayrollTab';
 import PayslipsTab from '../components/employee/PayslipsTab';
+import * as XLSX from 'xlsx';
+import toast from 'react-hot-toast';
 
 const SOCKET_URL = (import.meta.env.VITE_API_BASE_URL || 'https://oditech-hrms-backend-2.onrender.com/api').replace('/api', '');
 
@@ -168,10 +170,11 @@ const AdminEmployeeDetails = () => {
         const filledRecords = [];
         const now = new Date();
         const isCurrentMonth = now.getFullYear() === currentYear && now.getMonth() === currentMonth;
-        const maxDay = isCurrentMonth ? now.getDate() : new Date(currentYear, currentMonth + 1, 0).getDate();
+        const totalDays = new Date(currentYear, currentMonth + 1, 0).getDate();
 
-        for (let i = maxDay; i >= 1; i--) {
+        for (let i = totalDays; i >= 1; i--) {
           const currentDate = new Date(currentYear, currentMonth, i, 12, 0, 0);
+          const isFuture = isCurrentMonth && i > now.getDate();
           const existing = records.find(r => {
              const rDate = new Date(r.date);
              return rDate.getDate() === i && rDate.getMonth() === currentMonth && rDate.getFullYear() === currentYear;
@@ -179,23 +182,21 @@ const AdminEmployeeDetails = () => {
 
           if (existing) {
              let derivedStatus = existing.status || 'Present';
-
              filledRecords.push({ ...existing, status: derivedStatus });
           } else {
-             const dateStr = currentDate.toISOString().split('T')[0];
+             const dateStr = `${currentYear}-${String(currentMonth + 1).padStart(2, '0')}-${String(i).padStart(2, '0')}`;
              const isHoliday = holidaysRes.data?.holidays?.find(h => h.holidayDate === dateStr);
              const isWeekend = currentDate.getDay() === 0;
              
-             let finalStatus = 'Absent';
-             if (isHoliday) finalStatus = 'Holiday';
-             else if (isWeekend) finalStatus = 'Weekend';
+             let finalStatus = isHoliday ? 'Holiday' : isWeekend ? 'Weekend' : isFuture ? 'Upcoming' : 'Absent';
 
              filledRecords.push({
                date: currentDate.toISOString(),
                status: finalStatus,
                checkIn: null,
                checkOut: null,
-               workHours: '0h 0m'
+               workHours: isHoliday ? 'Holiday' : isWeekend ? 'Weekend' : isFuture ? '--' : '0h 0m',
+               remarks: isHoliday ? (isHoliday.holidayName || 'Holiday') : isWeekend ? 'Sunday' : '—'
              });
           }
         }
@@ -229,6 +230,11 @@ const AdminEmployeeDetails = () => {
     socket.on('timesheetUpdated', (data) => {
       if (data.employeeId === id) fetchRealStats();
     });
+    socket.on('holidayUpdated', () => fetchRealStats());
+    socket.on('holidayAdded', () => fetchRealStats());
+    socket.on('holidayDeleted', () => fetchRealStats());
+    socket.on('attendanceMarked', () => fetchRealStats());
+    socket.on('attendanceUpdated', () => fetchRealStats());
     
     return () => socket.disconnect();
   }, [id, currentMonth, currentYear, refreshKey]);
@@ -457,6 +463,117 @@ const AdminEmployeeDetails = () => {
   };
 
   const dynamicStats = getDisplayStats();
+  
+  const handleExportAttendance = () => {
+    const monthName = monthNames[currentMonth];
+    const totalDaysInMonth = new Date(currentYear, currentMonth + 1, 0).getDate();
+    const wb = XLSX.utils.book_new();
+
+    // Prepare rows
+    const dataRows = [];
+
+    // Header info rows
+    dataRows.push(['ODITECH HRMS - WHOLE MONTH ATTENDANCE REPORT']);
+    dataRows.push([`Employee Name: ${employee?.fullName || 'N/A'}`, `Employee ID: ${employee?.empCode || employee?._id || 'N/A'}`]);
+    dataRows.push([`Department: ${employee?.department || 'N/A'}`, `Designation: ${employee?.role || 'N/A'}`]);
+    dataRows.push([`Month & Year: ${monthName} ${currentYear}`, `Total Days in Month: ${totalDaysInMonth}`]);
+    dataRows.push([
+      `Working Days: ${dynamicStats.workingDays}`,
+      `Present: ${dynamicStats.present}`,
+      `Absent: ${dynamicStats.absent}`,
+      `Half Day: ${dynamicStats.halfDay}`,
+      `Late: ${dynamicStats.late}`,
+      `Leave: ${dynamicStats.leave}`,
+      `Attendance Rate: ${dynamicStats.rate}%`
+    ]);
+    dataRows.push([]); // Empty spacing row
+
+    // Table Column Headers
+    dataRows.push(['Date', 'Day', 'Status', 'Check In', 'Check Out', 'Work Hours', 'Note']);
+
+    const now = new Date();
+    const isCurrentMonth = now.getFullYear() === currentYear && now.getMonth() === currentMonth;
+
+    for (let day = 1; day <= totalDaysInMonth; day++) {
+      const currentDate = new Date(currentYear, currentMonth, day, 12, 0, 0);
+      const dateFormatted = currentDate.toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' });
+      const dayFormatted = currentDate.toLocaleDateString('en-US', { weekday: 'short' });
+      const dateStrIso = `${currentYear}-${String(currentMonth + 1).padStart(2, '0')}-${String(day).padStart(2, '0')}`;
+
+      // Look for existing record in attendanceRecords
+      const existing = attendanceRecords && attendanceRecords.find(r => {
+        const rDate = new Date(r.date);
+        return rDate.getDate() === day && rDate.getMonth() === currentMonth && rDate.getFullYear() === currentYear;
+      });
+
+      const isHoliday = holidays && holidays.find(h => h.holidayDate === dateStrIso);
+      const isWeekend = currentDate.getDay() === 0;
+      const isFuture = isCurrentMonth && day > now.getDate();
+
+      let status = 'Absent';
+      let checkIn = '--:--';
+      let checkOut = '--:--';
+      let workHours = '0h 0m';
+      let note = '—';
+
+      if (existing && existing.checkIn) {
+        status = existing.status || 'Present';
+        checkIn = existing.checkIn ? new Date(existing.checkIn).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) : '--:--';
+        checkOut = existing.checkOut ? new Date(existing.checkOut).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) : '--:--';
+        workHours = existing.workHours || '--';
+        note = existing.remarks || existing.note || existing.notes || '—';
+      } else if (existing && existing.status) {
+        status = existing.status;
+        checkIn = existing.checkIn ? new Date(existing.checkIn).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) : '--:--';
+        checkOut = existing.checkOut ? new Date(existing.checkOut).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) : '--:--';
+        workHours = existing.workHours || (isHoliday ? 'Holiday' : isWeekend ? 'Weekend' : isFuture ? '--' : '0h 0m');
+        note = existing.remarks || existing.note || existing.notes || (isHoliday ? (isHoliday.holidayName || 'Holiday') : isWeekend ? 'Sunday' : '—');
+      } else if (isHoliday) {
+        status = 'Holiday';
+        workHours = 'Holiday';
+        note = isHoliday.holidayName || 'Holiday';
+      } else if (isWeekend) {
+        status = 'Weekend';
+        workHours = 'Weekend';
+        note = 'Sunday';
+      } else if (isFuture) {
+        status = 'Upcoming';
+        workHours = '--';
+        note = '—';
+      }
+
+      dataRows.push([
+        dateFormatted,
+        dayFormatted,
+        status,
+        checkIn,
+        checkOut,
+        workHours,
+        note
+      ]);
+    }
+
+    const ws = XLSX.utils.aoa_to_sheet(dataRows);
+
+    // Set column widths
+    ws['!cols'] = [
+      { wch: 16 }, // Date
+      { wch: 10 }, // Day
+      { wch: 14 }, // Status
+      { wch: 12 }, // Check In
+      { wch: 12 }, // Check Out
+      { wch: 14 }, // Work Hours
+      { wch: 25 }  // Note
+    ];
+
+    XLSX.utils.book_append_sheet(wb, ws, `${monthName.slice(0, 3)} Attendance`);
+
+    const safeName = (employee?.fullName || 'Employee').trim().replace(/[^a-zA-Z0-9_-]/g, '_');
+    const fileName = `${safeName}_Whole_Month_Attendance_${monthName}_${currentYear}.xlsx`;
+
+    XLSX.writeFile(wb, fileName);
+    toast.success(`Whole month attendance report for ${monthName} ${currentYear} downloaded!`);
+  };
 
   if (loading) return (
     <AdminLayout title="Loading Profile...">
@@ -912,23 +1029,53 @@ const AdminEmployeeDetails = () => {
                     <>
                       {paddingDays.map((_, i) => <div key={`pad-${i}`}></div>)}
                       {monthDays.map((day) => {
-                        const record = attendanceRecords.find(r => {
+                        const currentDate = new Date(currentYear, currentMonth, day, 12, 0, 0);
+                        const dateStr = `${currentYear}-${String(currentMonth + 1).padStart(2, '0')}-${String(day).padStart(2, '0')}`;
+                        const holidayItem = holidays && holidays.find(h => h.holidayDate === dateStr);
+                        const isWeekend = currentDate.getDay() === 0;
+
+                        const record = attendanceRecords && attendanceRecords.find(r => {
                           const rDate = new Date(r.date);
                           return rDate.getDate() === day && rDate.getMonth() === currentMonth && rDate.getFullYear() === currentYear;
                         });
-                        const status = record?.status;
                         
-                        let colorClass = 'text-slate-200';
-                        if (status === 'Present') colorClass = 'bg-emerald-50 text-emerald-600';
-                        else if (status === 'Late') colorClass = 'bg-orange-50 text-orange-600';
-                        else if (status === 'Leave' || status === 'On Leave') colorClass = 'bg-violet-50 text-violet-600';
-                        else if (status === 'Absent') colorClass = 'bg-rose-50 text-rose-600';
-                        else if (status === 'Half Day') colorClass = 'bg-sky-50 text-sky-600';
-                        else if (status === 'Weekend') colorClass = 'bg-slate-50 text-slate-400';
+                        let status = record?.status;
+                        if (!status || status === 'Upcoming') {
+                          if (holidayItem) status = 'Holiday';
+                          else if (isWeekend) status = 'Weekend';
+                        } else if (status === 'Absent' && holidayItem) {
+                          status = 'Holiday';
+                        }
+                        
+                        let colorClass = 'text-slate-300 font-medium';
+                        let titleText = `${day} ${monthNames[currentMonth]} ${currentYear}`;
+
+                        if (status === 'Present') {
+                          colorClass = 'bg-emerald-50 text-emerald-600 font-black hover:scale-105';
+                          titleText += ' • Present';
+                        } else if (status === 'Late') {
+                          colorClass = 'bg-orange-50 text-orange-600 font-black hover:scale-105';
+                          titleText += ' • Late';
+                        } else if (status === 'Leave' || status === 'On Leave' || status === 'Paid Leave' || status === 'Unpaid Leave') {
+                          colorClass = 'bg-violet-50 text-violet-600 font-black hover:scale-105';
+                          titleText += ' • On Leave';
+                        } else if (status === 'Absent') {
+                          colorClass = 'bg-rose-50 text-rose-600 font-black hover:scale-105';
+                          titleText += ' • Absent';
+                        } else if (status === 'Half Day') {
+                          colorClass = 'bg-sky-50 text-sky-600 font-black hover:scale-105';
+                          titleText += ' • Half Day';
+                        } else if (status === 'Holiday') {
+                          colorClass = 'bg-indigo-50 text-indigo-600 font-black border border-indigo-200/80 shadow-sm hover:scale-105';
+                          titleText += ` • Holiday (${holidayItem?.holidayName || 'Holiday'})`;
+                        } else if (status === 'Weekend') {
+                          colorClass = 'bg-slate-50 text-slate-400 font-bold';
+                          titleText += ' • Sunday / Weekend';
+                        }
 
                         return (
-                          <div key={day} className="flex flex-col items-center">
-                            <div className={`w-10 h-10 rounded-full flex items-center justify-center text-sm font-black transition-all ${colorClass}`}>
+                          <div key={day} className="flex flex-col items-center group relative cursor-pointer" title={titleText}>
+                            <div className={`w-10 h-10 rounded-full flex items-center justify-center text-sm transition-all ${colorClass}`}>
                               {day}
                             </div>
                           </div>
@@ -938,10 +1085,17 @@ const AdminEmployeeDetails = () => {
                   );
                 })()}
               </div>
-              <div className="flex flex-wrap items-center justify-center gap-x-6 gap-y-4 pt-8 border-t border-slate-50">
-                {['Present', 'Absent', 'Late', 'Leave'].map((st, i) => (
-                  <div key={st} className="flex items-center gap-2 text-[10px] font-black text-slate-500 uppercase tracking-widest">
-                    <div className={`w-2 h-2 rounded-full ${['bg-emerald-500', 'bg-rose-500', 'bg-orange-500', 'bg-violet-500'][i]}`}></div> {st}
+              <div className="flex flex-wrap items-center justify-center gap-x-5 gap-y-3 pt-8 border-t border-slate-50">
+                {[
+                  { label: 'Present', color: 'bg-emerald-500' },
+                  { label: 'Absent', color: 'bg-rose-500' },
+                  { label: 'Late', color: 'bg-orange-500' },
+                  { label: 'Leave', color: 'bg-violet-500' },
+                  { label: 'Half Day', color: 'bg-sky-500' },
+                  { label: 'Holiday', color: 'bg-indigo-500' }
+                ].map((item) => (
+                  <div key={item.label} className="flex items-center gap-2 text-[10px] font-black text-slate-500 uppercase tracking-widest">
+                    <div className={`w-2.5 h-2.5 rounded-full ${item.color}`}></div> {item.label}
                   </div>
                 ))}
               </div>
@@ -950,7 +1104,12 @@ const AdminEmployeeDetails = () => {
             <div className="xl:col-span-8 bg-white rounded-[40px] border border-border shadow-sm overflow-hidden flex flex-col">
               <div className="p-10 border-b border-slate-50 flex items-center justify-between">
                 <h3 className="text-xl font-black text-slate-800">Attendance Records <span className="text-slate-400 font-bold">({monthNames[currentMonth]})</span></h3>
-                <button className="flex items-center gap-2 px-5 py-2.5 bg-slate-50 text-slate-600 rounded-2xl text-[10px] font-black uppercase tracking-widest hover:bg-slate-100 border border-slate-100 transition-all"><Download size={16} /> Export</button>
+                <button 
+                  onClick={handleExportAttendance}
+                  className="flex items-center gap-2 px-5 py-2.5 bg-slate-50 text-slate-600 rounded-2xl text-[10px] font-black uppercase tracking-widest hover:bg-slate-100 hover:text-slate-800 border border-slate-100 transition-all cursor-pointer shadow-sm active:scale-95"
+                >
+                  <Download size={16} /> Export
+                </button>
               </div>
               <div className="flex-1 overflow-x-auto">
                 <table className="w-full text-left">
@@ -1037,7 +1196,7 @@ const AdminEmployeeDetails = () => {
                             )}
                           </td>
                           <td className="px-10 py-1.5 text-[11px] font-black text-primary">{row.workHours || '--'}</td>
-                          <td className="px-10 py-1.5 text-[9px] font-bold text-slate-400 tracking-tight">—</td>
+                          <td className="px-10 py-1.5 text-[9px] font-bold text-slate-400 tracking-tight">{row.remarks || row.note || row.notes || '—'}</td>
                         </tr>
                       ))
                     ) : (

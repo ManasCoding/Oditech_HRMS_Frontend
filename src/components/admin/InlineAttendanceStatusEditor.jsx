@@ -21,7 +21,9 @@ const STATUS_COLORS = {
   'Paid Leave': 'bg-[#F3E8FF] text-[#8E44AD] border-[#8E44AD]/20',
   'Unpaid Leave': 'bg-[#FFF3E0] text-[#FB8C00] border-[#FB8C00]/20',
   'Holiday': 'bg-[#E8EAF6] text-[#3F51B5] border-[#3F51B5]/20',
-  'Weekend': 'bg-[#F5F5F5] text-[#757575] border-[#757575]/20'
+  'Weekend': 'bg-[#F5F5F5] text-[#757575] border-[#757575]/20',
+  'Upcoming': 'bg-slate-50 text-slate-400 border-slate-200',
+  'Late': 'bg-[#FFF3E0] text-[#FB8C00] border-[#FB8C00]/20'
 };
 
 const InlineAttendanceStatusEditor = ({ record, employeeId, onUpdateSuccess }) => {
