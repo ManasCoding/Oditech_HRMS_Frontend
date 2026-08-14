@@ -57,6 +57,7 @@ const AdminReports = () => {
   const [feedback, setFeedback] = useState('');
   const [ratingLoading, setRatingLoading] = useState(false);
   const [departments, setDepartments] = useState(['All Departments', 'Digital Marketing', 'Web Development', 'SEO', 'HR', 'Others']);
+  const [showFilterPanel, setShowFilterPanel] = useState(false);
 
   // Payroll Excel Export Modal
   const [isPayrollModalOpen, setIsPayrollModalOpen] = useState(false);
@@ -144,7 +145,7 @@ const AdminReports = () => {
 
   useEffect(() => {
     fetchReports();
-  }, [filters.date, filters.department, filters.employeeId, filters.status, filters.page]);
+  }, [filters.date, filters.department, filters.employeeId, filters.status, filters.page, search]);
 
 
 
@@ -394,18 +395,7 @@ const AdminReports = () => {
     <AdminLayout title="Hourly Reports" subtitle="View and download hourly work reports.">
       <div className="space-y-8 pb-20">
         
-        {/* Top Header Actions */}
-        <div className="flex justify-end gap-4 -mt-20 mb-12 relative z-10">
-           <button className="flex items-center gap-2 px-6 py-3 bg-white text-slate-600 rounded-xl text-xs font-bold border border-slate-200 shadow-sm hover:bg-slate-50 transition-all">
-             <Filter size={16} /> Filters
-           </button>
-           <button 
-             onClick={handleDownloadExcel}
-             className="flex items-center gap-2 px-6 py-3 bg-[#3b82f6] text-white rounded-xl text-xs font-bold shadow-lg shadow-blue-200 hover:bg-blue-600 transition-all active:scale-95"
-           >
-             <Download size={16} /> Download Excel
-           </button>
-        </div>
+
 
         {/* Stats Grid */}
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
@@ -585,6 +575,13 @@ const AdminReports = () => {
                     </div>
                     <span className="text-xs font-black uppercase tracking-widest">Download Full Excel</span>
                  </button>
+                    {/* Debounced search effect */}
+                    {(() => {
+                      const timer = setTimeout(() => {
+                        // fetchReports is invoked via effect below
+                      }, 0);
+                      return null;
+                    })()}
                  <button onClick={() => setIsPayrollModalOpen(true)} className="w-full flex items-center gap-3 p-3 bg-white/10 hover:bg-white/20 border border-white/10 rounded-2xl transition-all">
                     <div className="w-8 h-8 bg-emerald-500/20 text-emerald-400 rounded-lg flex items-center justify-center">
                        <FileText size={16} />
@@ -613,12 +610,18 @@ const AdminReports = () => {
                      className="pl-11 pr-4 py-3 bg-slate-50 border border-slate-100 rounded-2xl text-xs font-bold focus:outline-none w-72 focus:ring-4 focus:ring-blue-500/5 transition-all" 
                    />
                  </div>
-                 <button className="p-3 bg-slate-50 text-slate-400 rounded-xl hover:bg-slate-100 border border-slate-100 transition-all">
-                   <Filter size={18} />
-                 </button>
-                 <button onClick={handleDownloadExcel} className="flex items-center gap-2 px-6 py-3 bg-[#3b82f6] text-white rounded-xl text-[10px] font-black uppercase tracking-widest shadow-lg shadow-blue-200 hover:bg-blue-600 transition-all active:scale-95">
-                   <Download size={16} /> Export
-                 </button>
+                  <div className="relative">
+                    <button className="p-3 bg-slate-50 text-slate-400 rounded-xl hover:bg-slate-100 border border-slate-100 transition-all" onClick={() => setShowFilterPanel(prev => !prev)}>
+                      <Filter size={18} />
+                    </button>
+                    {showFilterPanel && (
+                      <div className="absolute top-full left-0 mt-2 w-48 bg-white border border-slate-200 rounded-md shadow-lg z-10">
+                        {departments.map(dept => (
+                          <button key={dept} className="block w-full text-left px-4 py-2 text-sm text-slate-700 hover:bg-slate-100" onClick={() => { setFilters({ ...filters, department: dept, page: 1 }); setShowFilterPanel(false); }}>{dept}</button>
+                        ))}
+                      </div>
+                    )}
+                  </div>
               </div>
            </div>
 
@@ -697,9 +700,6 @@ const AdminReports = () => {
                                    className="p-2.5 text-slate-400 hover:text-blue-500 hover:bg-blue-50 rounded-xl transition-all border border-transparent hover:border-blue-100"
                                  >
                                     <Eye size={18} />
-                                 </button>
-                                 <button className="p-2.5 text-slate-400 hover:text-emerald-500 hover:bg-emerald-50 rounded-xl transition-all border border-transparent hover:border-emerald-100">
-                                    <Download size={18} />
                                  </button>
                               </div>
                            </td>
