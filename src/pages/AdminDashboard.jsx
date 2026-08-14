@@ -11,13 +11,13 @@ import {
 const StatCard = ({ label, value, percentage, color, isActive, onClick }) => (
   <button 
     onClick={onClick}
-    className={`bg-white rounded-[24px] border border-slate-100 shadow-sm p-2 relative overflow-hidden hover:shadow-md transition-all text-center flex-1 min-w-[180px] group ${
+    className={`bg-white rounded-[24px]  gap-3 border border-slate-100 shadow-sm p-4 relative overflow-hidden hover:shadow-md transition-all text-center flex-1 group ${
       isActive ? 'ring-2 ring-[#1e293b] shadow-lg translate-y-[-2px]' : ''
     }`}
   >
     <div className={`absolute top-0 left-0 w-full h-[6px] ${color}`}></div>
     <p className="text-[10px] font-black text-slate-400 uppercase tracking-[0.2em] mb-4">{label}</p>
-    <h3 className={`text-5xl font-black mb-3 transition-colors ${isActive ? 'text-[#1e293b]' : 'text-slate-700'}`}>
+    <h3 className={`text-3xl font-black mb-3 transition-colors ${isActive ? 'text-[#1e293b]' : 'text-slate-700'}`}>
       {value}
     </h3>
     {percentage !== undefined && (
@@ -116,14 +116,14 @@ const AdminDashboard = () => {
       <div className="space-y-10 animate-in fade-in slide-in-from-bottom-4 duration-500 pb-20">
         
         {/* Today's Overview Section */}
-        <div className="bg-white rounded-[32px] border border-slate-100 shadow-sm p-4 relative overflow-hidden">
+        <div className="bg-white border border-slate-100 shadow-sm p-4 relative overflow-hidden">
           <div className="absolute top-0 left-0 w-full h-1.5 bg-sky-400"></div>
           <div className="mb-10">
-            <h2 className="text-3xl font-black text-[#1e293b] mb-1">Today's Overview</h2>
-            <p className="text-slate-400 text-sm font-medium tracking-tight">Key HR metrics and attendance statistics for {today}.</p>
+            <h2 className="text-2xl font-black text-[#1e293b] mb-1">Today's Overview</h2>
+            <p className="text-slate-400 text-xs font-medium tracking-tight">Key HR metrics and attendance statistics for {today}.</p>
           </div>
           
-          <div className="grid grid-cols-2 md:grid-cols-3 xl:grid-cols-6 gap-2">
+          <div className="grid grid-cols-2 md:grid-cols-3 xl:grid-cols-6 gap-1">
             {stats.map((stat, idx) => (
               <StatCard 
                 key={idx} 
@@ -178,7 +178,7 @@ const AdminDashboard = () => {
             </div>
 
             {/* Employee Grid - 5 COLUMNS ON XL SCREENS */}
-            <div className="px-8 pb-10">
+            <div className="px-4 pb-10">
               {loading ? (
                 <div className="py-20 flex flex-col items-center gap-4">
                   <div className="w-10 h-10 border-4 border-slate-200 border-t-[#1e293b] rounded-full animate-spin"></div>

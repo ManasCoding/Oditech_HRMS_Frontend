@@ -114,8 +114,8 @@ const AdminLeaves = () => {
                 </tr>
               ) : (
                 filteredLeaves.map((request) => (
-                  <tr key={request._id} className="hover:bg-slate-50 transition-colors group">
-                    <td className="px-8 py-6">
+                  <tr key={request._id} className="hover:bg-slate-50 transition-colors group ">
+                    <td className="px-2 py-6 ">
                       <div className="flex flex-col">
                         <span className="text-sm font-black text-text-main">{request.employeeId?.fullName}</span>
                         <span className="text-[10px] font-bold text-text-muted uppercase">{request.employeeId?.empCode}</span>

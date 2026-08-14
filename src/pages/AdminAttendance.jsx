@@ -285,7 +285,7 @@ const AdminAttendance = () => {
       <div className="space-y-8 pb-20">
         
         {/* Filters Bar */}
-        <div className="flex flex-wrap items-center gap-4 bg-transparent mt-2">
+        <div className="flex flex-wrap items-center gap-2 bg-transparent mt-2">
           <div className="flex items-center bg-white border border-slate-200 rounded-xl px-4 py-3 shadow-sm min-w-[200px]">
             <Calendar size={18} className="text-slate-400 mr-3" />
             <input 
@@ -305,21 +305,21 @@ const AdminAttendance = () => {
             onChange={handleFilterChange}
           />
 
-          <CustomDropdown 
+          {/* <CustomDropdown 
             name="employeeId"
             value={filters.employeeId}
             options={['All']}
             onChange={handleFilterChange}
-          />
+          /> */}
 
-          <CustomDropdown 
+          {/* <CustomDropdown 
             name="status"
             value={filters.status}
             options={statuses}
             onChange={handleFilterChange}
-          />
+          /> */}
 
-          <div className="flex items-center gap-3 ml-auto">
+          <div className="flex items-center gap-3 ml-auto w-full">
             <div className="relative">
               <Search size={16} className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400" />
               <input 

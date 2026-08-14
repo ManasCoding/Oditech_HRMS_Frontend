@@ -210,7 +210,7 @@ const AdminPolicy = () => {
         )}
 
         {/* Header Action */}
-        <div className="bg-gradient-to-r from-[#0f172a] to-slate-800 rounded-[32px] p-8 md:p-10 shadow-xl relative overflow-hidden flex flex-col md:flex-row items-center justify-between gap-6">
+        {/* <div className="bg-gradient-to-r from-[#0f172a] to-slate-800 rounded-[32px] p-8 md:p-10 shadow-xl relative overflow-hidden flex flex-col md:flex-row items-center justify-between gap-6">
           <div className="absolute top-0 right-0 w-64 h-64 bg-blue-500 opacity-20 blur-[80px] rounded-full pointer-events-none"></div>
           
           <div className="relative z-10">
@@ -224,11 +224,11 @@ const AdminPolicy = () => {
             <Upload size={18} strokeWidth={2.5} />
             Upload New Policy
           </button>
-        </div>
+        </div> */}
 
         {/* Policy Grid */}
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-          <PolicyCard 
+          {/* <PolicyCard 
             title="Code of Conduct" 
             icon={Shield} 
             updatedDate="Jan 15, 2026"
@@ -236,7 +236,7 @@ const AdminPolicy = () => {
             textClass="text-blue-600"
             onClick={() => {}}
             onEdit={() => {}}
-          />
+          /> */}
           <PolicyCard 
             title="Attendance & Leave" 
             icon={Clock} 
@@ -246,7 +246,7 @@ const AdminPolicy = () => {
             onClick={() => handleOpenView("Attendance & Leave")}
             onEdit={() => handleOpenEdit("Attendance & Leave")}
           />
-          <PolicyCard 
+          {/* <PolicyCard 
             title="IT & Security Policy" 
             icon={Laptop} 
             updatedDate="Feb 20, 2026"
@@ -263,8 +263,8 @@ const AdminPolicy = () => {
             textClass="text-rose-600"
             onClick={() => {}}
             onEdit={() => {}}
-          />
-          <PolicyCard 
+          /> */}
+          {/* <PolicyCard 
             title="Remote Work Guidelines" 
             icon={BookOpen} 
             updatedDate="Apr 05, 2026"
@@ -272,7 +272,7 @@ const AdminPolicy = () => {
             textClass="text-orange-600"
             onClick={() => {}}
             onEdit={() => {}}
-          />
+          /> */}
         </div>
 
         {/* Audit Log / Recent Changes */}

@@ -204,7 +204,7 @@ const AdminPerformance = () => {
       
       {/* Date Range and Filter removed from top */}
 
-      <div className="space-y-6">
+      <div className="space-y-2">
         {/* Summary Cards */}
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
           <StatCard 
@@ -327,8 +327,8 @@ const AdminPerformance = () => {
         </div>
 
         {/* Employee Table */}
-        <div className="bg-white rounded-2xl shadow-[0_2px_10px_rgb(0,0,0,0.02)] border border-slate-100 overflow-hidden">
-          <div className="p-6 border-b border-slate-100 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+        <div className=" rounded-2xl shadow-[0_2px_10px_rgb(0,0,0,0.02)] border border-slate-100 overflow-hidden">
+          <div className=" border-b border-slate-100 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
             <h3 className="text-lg font-bold text-slate-800">Employee Performance List</h3>
             <div className="flex items-center gap-3">
               <div className="relative">

@@ -490,14 +490,14 @@ const AdminReports = () => {
                   />
                 </div>
               </div>
-              <div className="flex items-end gap-3">
+              {/* <div className="flex items-end gap-3">
                  <button onClick={fetchReports} className="flex-1 py-3 bg-[#3b82f6] text-white rounded-xl text-xs font-bold hover:bg-blue-600 transition-all flex items-center justify-center gap-2">
                    <Search size={14} /> Apply Filters
                  </button>
                  <button onClick={resetFilters} className="p-3 bg-slate-100 text-slate-500 rounded-xl hover:bg-slate-200 transition-all">
                    <TrendingUp size={16} />
                  </button>
-              </div>
+              </div> */}
            </div>
         </div>
 
@@ -612,7 +612,7 @@ const AdminReports = () => {
                 <p className="text-xs font-bold text-slate-400 mt-1 uppercase tracking-widest">Detailed breakdown of employee work logs</p>
               </div>
               <div className="flex items-center gap-4">
-                 <div className="relative">
+                 {/* <div className="relative">
                    <Search size={14} className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400" />
                    <input 
                      type="text" 
@@ -621,7 +621,7 @@ const AdminReports = () => {
                      onChange={(e) => setSearch(e.target.value)}
                      className="pl-11 pr-4 py-3 bg-slate-50 border border-slate-100 rounded-2xl text-xs font-bold focus:outline-none w-72 focus:ring-4 focus:ring-blue-500/5 transition-all" 
                    />
-                 </div>
+                 </div> */}
                   <div className="relative">
                     <input 
                       type="date" 
@@ -762,7 +762,7 @@ const AdminReports = () => {
           const hasTasks = !modalLoading && selectedTasks && selectedTasks.length > 0;
           const showRating = true; // Always show rating section, just disable it when there are no tasks
           return (
-            <div className="fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-[100] flex items-center justify-center p-4">
+            <div className="fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-[100] flex items-center justify-center p-4 my-10">
               <div className="relative flex flex-col items-center gap-4 w-full max-w-2xl">
                 <div className="bg-white rounded-[40px] w-full shadow-2xl overflow-hidden animate-in zoom-in-95 duration-200 flex flex-col max-h-[90vh]">
                   
@@ -815,23 +815,23 @@ const AdminReports = () => {
                   {/* Rating Section — always visible for Completed reports */}
                   {!modalLoading && showRating && (
                     <div className="px-8 pb-6 shrink-0">
-                      <div className={`border rounded-[24px] p-6 relative transition-all ${hasTasks ? 'bg-white border-slate-100 shadow-sm' : 'bg-slate-50 border-slate-100'}`}>
+                      <div className={`border rounded-[24px] p-4 relative transition-all ${hasTasks ? 'bg-white border-slate-100 shadow-sm' : 'bg-slate-50 border-slate-100'}`}>
                         <div className="flex items-start justify-between mb-1">
-                          <h4 className="text-sm font-black text-[#1e293b]">Rate Employee Performance</h4>
+                          <h4 className="text-xs font-black text-[#1e293b]">Rate Employee Performance</h4>
                           {!hasTasks && (
-                            <span className="px-2.5 py-1 bg-orange-50 text-orange-500 border border-orange-100 rounded-lg text-[9px] font-black uppercase tracking-widest">
+                            <span className="px-2.5 py-1 bg-orange-50 text-orange-500 border border-orange-100 rounded-lg text-[5px] font-black uppercase tracking-widest">
                               No Tasks Submitted
                             </span>
                           )}
                         </div>
-                        <p className="text-xs text-slate-500 font-medium mb-5">
+                        <p className="text-[10px] text-slate-500 font-medium mb-2">
                           {hasTasks
                             ? 'Please provide your rating for this work session'
                             : 'Rating is only available when the employee has submitted task logs for the day'}
                         </p>
 
                         {/* Stars */}
-                        <div className={`flex items-center gap-5 mb-5 ${!hasTasks ? 'opacity-40 pointer-events-none select-none' : ''}`}>
+                        <div className={`flex items-center gap-5 mb-2 ${!hasTasks ? 'opacity-40 pointer-events-none select-none' : ''}`}>
                           <div className="flex items-center gap-1">
                             {[1, 2, 3, 4, 5].map((star) => (
                               <button
@@ -843,7 +843,7 @@ const AdminReports = () => {
                                 className="focus:outline-none transition-transform hover:scale-110 active:scale-95 disabled:cursor-not-allowed"
                               >
                                 <Star
-                                  size={34}
+                                  size={28}
                                   className={`${(hoverRating || rating) >= star ? 'text-yellow-400 fill-yellow-400' : 'text-slate-200 fill-slate-200'} transition-colors`}
                                 />
                               </button>
@@ -851,7 +851,7 @@ const AdminReports = () => {
                           </div>
                           {rating > 0 && (
                             <div className="flex flex-col">
-                              <span className="px-3 py-1 bg-emerald-50 text-emerald-600 font-black text-xs rounded-lg border border-emerald-100">
+                              <span className="px-2 py-1 bg-emerald-50 text-emerald-600 font-black text-[10px] rounded-lg border border-emerald-100">
                                 {rating.toFixed(1)} / 5
                               </span>
                               <span className="text-[10px] text-slate-400 font-bold mt-1">
@@ -862,14 +862,14 @@ const AdminReports = () => {
                         </div>
 
                         {/* Feedback */}
-                        <div className={`mb-5 relative ${!hasTasks ? 'opacity-40 pointer-events-none select-none' : ''}`}>
-                          <label className="block text-xs font-bold text-slate-500 mb-2">Your Feedback (Optional)</label>
+                        <div className={`mb-2 relative ${!hasTasks ? 'opacity-40 pointer-events-none select-none' : ''}`}>
+                          <label className="block text-[10px] font-bold text-slate-500 mb-2">Your Feedback (Optional)</label>
                           <textarea
                             value={feedback}
                             onChange={(e) => setFeedback(e.target.value.substring(0, 300))}
                             placeholder="Share your feedback about this work..."
                             disabled={!hasTasks}
-                            className="w-full h-20 p-4 bg-white border border-slate-200 rounded-2xl text-sm text-[#1e293b] focus:outline-none focus:ring-4 focus:ring-blue-500/10 resize-none transition-all disabled:bg-slate-50 disabled:cursor-not-allowed"
+                            className="w-full h-16 p-3 bg-white border border-slate-200 rounded-2xl text-sm text-[#1e293b] focus:outline-none focus:ring-4 focus:ring-blue-500/10 resize-none transition-all disabled:bg-slate-50 disabled:cursor-not-allowed"
                           ></textarea>
                           <div className="absolute bottom-3 right-4 text-[10px] font-bold text-slate-400">
                             {feedback.length} / 300
@@ -889,7 +889,7 @@ const AdminReports = () => {
                             disabled={!hasTasks || ratingLoading || rating === 0}
                             className="flex-1 py-3 bg-[#1e293b] text-white rounded-xl text-xs font-black uppercase tracking-widest shadow-lg shadow-slate-200 hover:bg-slate-800 disabled:opacity-40 disabled:cursor-not-allowed transition-all"
                           >
-                            {ratingLoading ? 'Submitting...' : 'Submit Rating'}
+                            {ratingLoading ? 'Submitting...' : 'Submit '}
                           </button>
                         </div>
                       </div>
