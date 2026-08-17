@@ -59,6 +59,9 @@ const AdminSettings = () => {
   const [admins, setAdmins] = useState([]);
   const [newAdmin, setNewAdmin] = useState({ fullName: '', email: '', password: '' });
   const [adminLoading, setAdminLoading] = useState(false);
+  const [existingAdmin, setExistingAdmin] = useState(null);
+  const [isResettingPassword, setIsResettingPassword] = useState(false);
+  const [emailCheckLoading, setEmailCheckLoading] = useState(false);
   const currentUser = JSON.parse(localStorage.getItem('user')) || {};
 
   const fetchSettings = async () => {
@@ -85,6 +88,32 @@ const AdminSettings = () => {
     fetchSettings();
     fetchAdmins();
   }, []);
+
+  useEffect(() => {
+    const checkEmail = async () => {
+      if (!newAdmin.email || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(newAdmin.email)) {
+        setExistingAdmin(null);
+        return;
+      }
+      setEmailCheckLoading(true);
+      try {
+        const res = await api.get(`/admin/admins/check-email?email=${encodeURIComponent(newAdmin.email)}`);
+        if (res.data.exists && res.data.admin) {
+          setExistingAdmin(res.data.admin);
+          setNewAdmin(prev => ({ ...prev, fullName: res.data.admin.fullName }));
+        } else {
+          setExistingAdmin(null);
+        }
+      } catch (err) {
+        console.error('Error checking email:', err);
+      } finally {
+        setEmailCheckLoading(false);
+      }
+    };
+    
+    const timeoutId = setTimeout(checkEmail, 500);
+    return () => clearTimeout(timeoutId);
+  }, [newAdmin.email]);
 
 
   const handleChange = (e) => {
@@ -128,20 +157,47 @@ const AdminSettings = () => {
   };
 
 
-  const handleCreateAdmin = async (e) => {
+  const handleSubmitAdmin = async (e) => {
     e.preventDefault();
-    if (!newAdmin.fullName || !newAdmin.email || !newAdmin.password) return;
+    if (!newAdmin.email) return;
     setAdminLoading(true);
     try {
-      const res = await api.post('/admin/admins', newAdmin);
-      if (res.data.success) {
-        setSuccess('New administrator added!');
-        setNewAdmin({ fullName: '', email: '', password: '' });
-        fetchAdmins();
-        setTimeout(() => setSuccess(''), 3000);
+      if (existingAdmin) {
+        const updateRes = await api.put(`/admin/admins/${existingAdmin._id}`, {
+          fullName: newAdmin.fullName,
+          email: newAdmin.email
+        });
+        
+        if (isResettingPassword && newAdmin.password) {
+          await api.post(`/admin/admins/${existingAdmin._id}/reset-password`, {
+            password: newAdmin.password
+          });
+        }
+        
+        if (updateRes.data.success) {
+          setSuccess('Administrator updated!');
+          setNewAdmin({ fullName: '', email: '', password: '' });
+          setExistingAdmin(null);
+          setIsResettingPassword(false);
+          fetchAdmins();
+          setTimeout(() => setSuccess(''), 3000);
+        }
+      } else {
+        if (!newAdmin.fullName || !newAdmin.password) {
+           alert("Please fill all required fields");
+           setAdminLoading(false);
+           return;
+        }
+        const res = await api.post('/admin/admins', newAdmin);
+        if (res.data.success) {
+          setSuccess('New administrator added!');
+          setNewAdmin({ fullName: '', email: '', password: '' });
+          fetchAdmins();
+          setTimeout(() => setSuccess(''), 3000);
+        }
       }
     } catch (err) {
-      alert(err.response?.data?.message || 'Error creating admin');
+      alert(err.response?.data?.message || 'Error saving admin');
     } finally {
       setAdminLoading(false);
     }
@@ -323,13 +379,32 @@ const AdminSettings = () => {
             <div className="lg:col-span-1 bg-white rounded-[40px] border border-slate-100 shadow-sm p-10 relative overflow-hidden">
                <div className="absolute top-0 left-0 w-full h-1.5 bg-slate-900"></div>
                <div className="flex items-center gap-4 mb-8">
-                  <div className="w-12 h-12 bg-slate-50 text-slate-900 rounded-xl flex items-center justify-center border border-slate-100">
-                    <UserPlus size={24} />
+                  <div className={`w-12 h-12 rounded-xl flex items-center justify-center border ${existingAdmin ? 'bg-emerald-50 text-emerald-600 border-emerald-100' : 'bg-slate-50 text-slate-900 border-slate-100'}`}>
+                    {existingAdmin ? <CheckCircle2 size={24} /> : <UserPlus size={24} />}
                   </div>
-                  <h3 className="text-lg font-black text-[#1e293b]">Add New Admin</h3>
+                  <div>
+                    <h3 className="text-lg font-black text-[#1e293b]">{existingAdmin ? 'Existing Administrator Found' : 'Add New Admin'}</h3>
+                    {existingAdmin && <p className="text-emerald-600 text-[10px] font-black uppercase tracking-widest mt-1">Account Ready to Update</p>}
+                  </div>
                </div>
 
-               <form onSubmit={handleCreateAdmin} className="space-y-5">
+               <form onSubmit={handleSubmitAdmin} className="space-y-5">
+                  <div className="space-y-1.5">
+                    <label className="text-[9px] font-black text-slate-400 uppercase tracking-widest ml-1">Email Address</label>
+                    <div className="relative">
+                       <Mail size={14} className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-300" />
+                       <input 
+                         type="email" 
+                         required
+                         value={newAdmin.email}
+                         onChange={(e) => setNewAdmin({...newAdmin, email: e.target.value})}
+                         placeholder="admin@company.com" 
+                         className="w-full pl-11 pr-4 py-3.5 bg-slate-50 border border-slate-100 rounded-2xl focus:outline-none focus:ring-4 focus:ring-slate-900/5 transition-all font-bold text-sm text-[#1e293b]" 
+                       />
+                       {emailCheckLoading && <div className="absolute right-4 top-1/2 -translate-y-1/2 w-4 h-4 border-2 border-slate-300 border-t-slate-600 rounded-full animate-spin"></div>}
+                    </div>
+                  </div>
+
                   <div className="space-y-1.5">
                     <label className="text-[9px] font-black text-slate-400 uppercase tracking-widest ml-1">Full Name</label>
                     <div className="relative">
@@ -344,40 +419,58 @@ const AdminSettings = () => {
                        />
                     </div>
                   </div>
-                  <div className="space-y-1.5">
-                    <label className="text-[9px] font-black text-slate-400 uppercase tracking-widest ml-1">Email Address</label>
-                    <div className="relative">
-                       <Mail size={14} className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-300" />
-                       <input 
-                         type="email" 
-                         required
-                         value={newAdmin.email}
-                         onChange={(e) => setNewAdmin({...newAdmin, email: e.target.value})}
-                         placeholder="admin@company.com" 
-                         className="w-full pl-11 pr-4 py-3.5 bg-slate-50 border border-slate-100 rounded-2xl focus:outline-none focus:ring-4 focus:ring-slate-900/5 transition-all font-bold text-sm text-[#1e293b]" 
-                       />
+
+                  {existingAdmin && (
+                    <div className="bg-slate-50 border border-slate-100 p-4 rounded-2xl space-y-2 mb-4 animate-in slide-in-from-top-2">
+                       <div className="flex justify-between items-center">
+                          <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Current Status</span>
+                          <span className="text-xs font-bold text-emerald-600 bg-emerald-50 px-2 py-0.5 rounded-md">Active Administrator</span>
+                       </div>
+                       <div className="flex justify-between items-center">
+                          <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Last Activity</span>
+                          <span className="text-xs font-bold text-slate-600">{existingAdmin.lastLogin ? new Date(existingAdmin.lastLogin).toLocaleDateString() : 'Never'}</span>
+                       </div>
                     </div>
-                  </div>
-                  <div className="space-y-1.5">
-                    <label className="text-[9px] font-black text-slate-400 uppercase tracking-widest ml-1">Temporary Password</label>
-                    <div className="relative">
-                       <Lock size={14} className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-300" />
-                       <input 
-                         type="password" 
-                         required
-                         value={newAdmin.password}
-                         onChange={(e) => setNewAdmin({...newAdmin, password: e.target.value})}
-                         placeholder="••••••••" 
-                         className="w-full pl-11 pr-4 py-3.5 bg-slate-50 border border-slate-100 rounded-2xl focus:outline-none focus:ring-4 focus:ring-slate-900/5 transition-all font-bold text-sm text-[#1e293b]" 
-                       />
+                  )}
+
+                  {(!existingAdmin || isResettingPassword) && (
+                    <div className="space-y-1.5 animate-in slide-in-from-top-2">
+                      <label className="text-[9px] font-black text-slate-400 uppercase tracking-widest ml-1">Temporary Password {existingAdmin && "(New)"}</label>
+                      <div className="relative">
+                         <Lock size={14} className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-300" />
+                         <input 
+                           type="password" 
+                           required={!existingAdmin || isResettingPassword}
+                           value={newAdmin.password}
+                           onChange={(e) => setNewAdmin({...newAdmin, password: e.target.value})}
+                           placeholder="••••••••" 
+                           className="w-full pl-11 pr-4 py-3.5 bg-slate-50 border border-slate-100 rounded-2xl focus:outline-none focus:ring-4 focus:ring-slate-900/5 transition-all font-bold text-sm text-[#1e293b]" 
+                         />
+                      </div>
                     </div>
-                  </div>
+                  )}
+                  
+                  {existingAdmin && (
+                    <div className="flex items-center gap-2 mt-2">
+                      <input 
+                        type="checkbox" 
+                        id="resetPassword" 
+                        checked={isResettingPassword} 
+                        onChange={(e) => setIsResettingPassword(e.target.checked)}
+                        className="w-3.5 h-3.5 text-slate-900 rounded border-slate-300 focus:ring-slate-900"
+                      />
+                      <label htmlFor="resetPassword" className="text-[10px] font-black text-slate-500 uppercase tracking-widest cursor-pointer hover:text-slate-700">
+                        Reset Password
+                      </label>
+                    </div>
+                  )}
+
                   <button 
                     type="submit"
                     disabled={adminLoading}
                     className="w-full py-4 bg-slate-900 text-white rounded-2xl font-black text-[10px] uppercase tracking-[0.2em] shadow-xl shadow-slate-200 hover:scale-[1.02] active:scale-95 transition-all disabled:opacity-50 mt-4"
                   >
-                    {adminLoading ? 'Creating Account...' : 'Grant Admin Access'}
+                    {adminLoading ? 'Processing...' : (existingAdmin ? (isResettingPassword ? 'Reset Password & Update' : 'Update Admin Access') : 'Grant Admin Access')}
                   </button>
                </form>
             </div>
