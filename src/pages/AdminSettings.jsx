@@ -200,8 +200,9 @@ const AdminSettings = () => {
         }
       }
     } catch (err) {
-      setError(err.response?.data?.message || 'Unable to update administrator account. Please try again.');
-      setTimeout(() => setError(''), 3000);
+      const msg = err.response?.data?.message || `Unable to update administrator account. (${err.response?.status || 'Network error'})`;
+      setError(msg);
+      setTimeout(() => setError(''), 8000);
     } finally {
       setAdminLoading(false);
     }
@@ -389,6 +390,18 @@ const AdminSettings = () => {
             {/* Add New Admin Form */}
             <div className="lg:col-span-1 bg-white rounded-[40px] border border-slate-100 shadow-sm p-10 relative overflow-hidden">
                <div className="absolute top-0 left-0 w-full h-1.5 bg-slate-900"></div>
+               
+               {success && (
+                <div className="flex items-center gap-2 mb-4 p-3 bg-emerald-50 text-emerald-600 font-black text-xs uppercase tracking-widest rounded-xl border border-emerald-100">
+                   <CheckCircle2 size={16} /> <span className="leading-tight">{success}</span>
+                </div>
+               )}
+               {error && (
+                <div className="flex items-center gap-2 mb-4 p-3 bg-rose-50 text-rose-500 font-black text-xs uppercase tracking-widest rounded-xl border border-rose-100">
+                   <ShieldCheck size={16} /> <span className="leading-tight">{error}</span>
+                </div>
+               )}
+
                <div className="flex items-center gap-4 mb-8">
                   <div className={`w-12 h-12 rounded-xl flex items-center justify-center border ${existingAdmin ? 'bg-emerald-50 text-emerald-600 border-emerald-100' : 'bg-slate-50 text-slate-900 border-slate-100'}`}>
                     {existingAdmin ? <CheckCircle2 size={24} /> : <UserPlus size={24} />}
