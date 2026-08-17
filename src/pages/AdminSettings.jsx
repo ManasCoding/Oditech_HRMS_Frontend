@@ -56,11 +56,11 @@ const AdminSettings = () => {
   
   const [loading, setLoading] = useState(false);
   const [success, setSuccess] = useState('');
+  const [error, setError] = useState('');
   const [admins, setAdmins] = useState([]);
   const [newAdmin, setNewAdmin] = useState({ fullName: '', email: '', password: '' });
   const [adminLoading, setAdminLoading] = useState(false);
   const [existingAdmin, setExistingAdmin] = useState(null);
-  const [isResettingPassword, setIsResettingPassword] = useState(false);
   const [emailCheckLoading, setEmailCheckLoading] = useState(false);
   const currentUser = JSON.parse(localStorage.getItem('user')) || {};
 
@@ -132,7 +132,7 @@ const AdminSettings = () => {
           setSuccess('Live location captured!');
           setTimeout(() => setSuccess(''), 2000);
         },
-        (error) => alert('Error: ' + error.message)
+        (error) => { setError('Error: ' + error.message); setTimeout(() => setError(''), 3000); }
       );
     }
   };
@@ -150,7 +150,8 @@ const AdminSettings = () => {
         setTimeout(() => setSuccess(''), 3000);
       }
     } catch (err) {
-      alert('Error saving settings');
+      setError('Error saving settings');
+      setTimeout(() => setError(''), 3000);
     } finally {
       setLoading(false);
     }
@@ -160,31 +161,33 @@ const AdminSettings = () => {
   const handleSubmitAdmin = async (e) => {
     e.preventDefault();
     if (!newAdmin.email) return;
+    
+    if (newAdmin.password && newAdmin.password.length < 8) {
+      setError('Password must contain at least 8 characters.');
+      setTimeout(() => setError(''), 3000);
+      return;
+    }
+
     setAdminLoading(true);
     try {
       if (existingAdmin) {
         const updateRes = await api.put(`/admin/admins/${existingAdmin._id}`, {
           fullName: newAdmin.fullName,
-          email: newAdmin.email
+          email: newAdmin.email,
+          password: newAdmin.password
         });
         
-        if (isResettingPassword && newAdmin.password) {
-          await api.post(`/admin/admins/${existingAdmin._id}/reset-password`, {
-            password: newAdmin.password
-          });
-        }
-        
         if (updateRes.data.success) {
-          setSuccess('Administrator updated!');
+          setSuccess(`Administrator Updated ✓ ${newAdmin.fullName}'s administrator account has been updated successfully.`);
           setNewAdmin({ fullName: '', email: '', password: '' });
           setExistingAdmin(null);
-          setIsResettingPassword(false);
           fetchAdmins();
-          setTimeout(() => setSuccess(''), 3000);
+          setTimeout(() => setSuccess(''), 5000);
         }
       } else {
         if (!newAdmin.fullName || !newAdmin.password) {
-           alert("Please fill all required fields");
+           setError("Please fill all required fields");
+           setTimeout(() => setError(''), 3000);
            setAdminLoading(false);
            return;
         }
@@ -197,7 +200,8 @@ const AdminSettings = () => {
         }
       }
     } catch (err) {
-      alert(err.response?.data?.message || 'Error saving admin');
+      setError(err.response?.data?.message || 'Unable to update administrator account. Please try again.');
+      setTimeout(() => setError(''), 3000);
     } finally {
       setAdminLoading(false);
     }
@@ -205,7 +209,8 @@ const AdminSettings = () => {
 
   const handleDeleteAdmin = async (adminId) => {
     if (adminId === currentUser.id) {
-      alert("You cannot delete your own account while logged in.");
+      setError("You cannot delete your own account while logged in.");
+      setTimeout(() => setError(''), 3000);
       return;
     }
     if (!window.confirm('Are you sure you want to remove this administrator? They will lose all access.')) return;
@@ -217,7 +222,8 @@ const AdminSettings = () => {
         setTimeout(() => setSuccess(''), 3000);
       }
     } catch (err) {
-      alert('Error deleting admin');
+      setError('Error deleting admin');
+      setTimeout(() => setError(''), 3000);
     }
   };
 
@@ -236,6 +242,11 @@ const AdminSettings = () => {
               {success && (
                 <div className="hidden lg:flex items-center gap-2 text-emerald-400 font-black text-xs uppercase tracking-widest animate-in slide-in-from-right-4">
                    <CheckCircle2 size={16} /> {success}
+                </div>
+              )}
+              {error && (
+                <div className="hidden lg:flex items-center gap-2 text-rose-500 font-black text-xs uppercase tracking-widest animate-in slide-in-from-right-4">
+                   <ShieldCheck size={16} /> {error}
                 </div>
               )}
               <button 
@@ -433,44 +444,27 @@ const AdminSettings = () => {
                     </div>
                   )}
 
-                  {(!existingAdmin || isResettingPassword) && (
-                    <div className="space-y-1.5 animate-in slide-in-from-top-2">
-                      <label className="text-[9px] font-black text-slate-400 uppercase tracking-widest ml-1">Temporary Password {existingAdmin && "(New)"}</label>
-                      <div className="relative">
-                         <Lock size={14} className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-300" />
-                         <input 
-                           type="password" 
-                           required={!existingAdmin || isResettingPassword}
-                           value={newAdmin.password}
-                           onChange={(e) => setNewAdmin({...newAdmin, password: e.target.value})}
-                           placeholder="••••••••" 
-                           className="w-full pl-11 pr-4 py-3.5 bg-slate-50 border border-slate-100 rounded-2xl focus:outline-none focus:ring-4 focus:ring-slate-900/5 transition-all font-bold text-sm text-[#1e293b]" 
-                         />
-                      </div>
+                  <div className="space-y-1.5 animate-in slide-in-from-top-2">
+                    <label className="text-[9px] font-black text-slate-400 uppercase tracking-widest ml-1">{existingAdmin ? 'New Temporary Password' : 'Temporary Password'}</label>
+                    <div className="relative">
+                       <Lock size={14} className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-300" />
+                       <input 
+                         type="password" 
+                         required
+                         value={newAdmin.password}
+                         onChange={(e) => setNewAdmin({...newAdmin, password: e.target.value})}
+                         placeholder="••••••••" 
+                         className="w-full pl-11 pr-4 py-3.5 bg-slate-50 border border-slate-100 rounded-2xl focus:outline-none focus:ring-4 focus:ring-slate-900/5 transition-all font-bold text-sm text-[#1e293b]" 
+                       />
                     </div>
-                  )}
+                  </div>
                   
-                  {existingAdmin && (
-                    <div className="flex items-center gap-2 mt-2">
-                      <input 
-                        type="checkbox" 
-                        id="resetPassword" 
-                        checked={isResettingPassword} 
-                        onChange={(e) => setIsResettingPassword(e.target.checked)}
-                        className="w-3.5 h-3.5 text-slate-900 rounded border-slate-300 focus:ring-slate-900"
-                      />
-                      <label htmlFor="resetPassword" className="text-[10px] font-black text-slate-500 uppercase tracking-widest cursor-pointer hover:text-slate-700">
-                        Reset Password
-                      </label>
-                    </div>
-                  )}
-
                   <button 
                     type="submit"
                     disabled={adminLoading}
                     className="w-full py-4 bg-slate-900 text-white rounded-2xl font-black text-[10px] uppercase tracking-[0.2em] shadow-xl shadow-slate-200 hover:scale-[1.02] active:scale-95 transition-all disabled:opacity-50 mt-4"
                   >
-                    {adminLoading ? 'Processing...' : (existingAdmin ? (isResettingPassword ? 'Reset Password & Update' : 'Update Admin Access') : 'Grant Admin Access')}
+                    {adminLoading ? 'Processing...' : (existingAdmin ? 'UPDATE ADMIN ACCOUNT' : 'GRANT ADMIN ACCESS')}
                   </button>
                </form>
             </div>
