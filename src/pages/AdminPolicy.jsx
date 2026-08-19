@@ -103,7 +103,11 @@ const parseAndRenderContent = (text) => {
       "Half-Day",
       "48 hours",
       "Blue Pen",
-      "9:30 AM"
+      "9:30 AM",
+      "Director",
+      "P Debendra Rao",
+      "HR & Operation Manager",
+      "Priyanka Nayak"
     ];
     const escapeRegExp = (string) => string.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
     const combinedRegex = new RegExp(`(${highlights.map(escapeRegExp).join('|')})`, 'g');

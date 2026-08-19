@@ -104,7 +104,11 @@ const parseAndRenderContent = (text) => {
       "Half-Day",
       "48 hours",
       "Blue Pen",
-      "9:30 AM"
+      "9:30 AM",
+      "Director",
+      "P Debendra Rao",
+      "HR & Operation Manager",
+      "Priyanka Nayak"
     ];
     const escapeRegExp = (string) => string.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
     const combinedRegex = new RegExp(`(${highlights.map(escapeRegExp).join('|')})`, 'g');
@@ -142,7 +146,20 @@ const generatePdfHtml = (content, updatedAt) => {
       html += `<div style="display:flex;gap:8px;margin-bottom:6px;color:#475569;font-size:13px;line-height:1.6;"><span style="color:#94a3b8;flex-shrink:0;">•</span><span>${text}</span></div>`;
     } else if (line.trim() === '') {
       html += `<br/>`;
+    } else {
       let formattedLine = line.replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>');
+      
+      // Auto-bold specific names for PDF as well
+      const highlights = [
+        "Director",
+        "P Debendra Rao",
+        "HR & Operation Manager",
+        "Priyanka Nayak"
+      ];
+      const escapeRegExp = (string) => string.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+      const combinedRegex = new RegExp(`(${highlights.map(escapeRegExp).join('|')})`, 'g');
+      formattedLine = formattedLine.replace(combinedRegex, '<strong>$1</strong>');
+      
       html += `<p style="color:#475569;font-size:13px;line-height:1.6;margin-bottom:6px;">${formattedLine}</p>`;
     }
   });
