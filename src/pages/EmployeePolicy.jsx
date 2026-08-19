@@ -253,7 +253,7 @@ const EmployeePolicy = () => {
         </div>
       )}
 
-      <style jsx global>{\`
+      <style jsx global>{`
         @keyframes fadeInDown {
           from { opacity: 0; transform: translateY(-20px); }
           to { opacity: 1; transform: translateY(0); }
@@ -268,7 +268,7 @@ const EmployeePolicy = () => {
         .animate-fade-in-up {
           animation: fadeInUp 0.4s cubic-bezier(0.16, 1, 0.3, 1) forwards;
         }
-      \`}</style>
+      `}</style>
     </EmployeeLayout>
   );
 };
