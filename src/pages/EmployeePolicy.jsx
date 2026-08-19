@@ -171,14 +171,14 @@ const EmployeePolicy = () => {
 
         {/* Policy Grid */}
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-          <PolicyCard 
+          {/* <PolicyCard 
             title="Code of Conduct" 
             description="Guidelines on professional behavior, ethics, and workplace compliance."
             icon={Shield} 
             updatedDate="Jan 15, 2026"
             bgClass="bg-blue-50"
             textClass="text-blue-600"
-          />
+          /> */}
           <PolicyCard 
             title="Attendance & Leave" 
             description="Rules regarding working hours, shifts, and leave application procedures."
@@ -188,7 +188,7 @@ const EmployeePolicy = () => {
             textClass="text-emerald-600"
             onClick={() => handleOpenView("Attendance & Leave")}
           />
-          <PolicyCard 
+          {/* <PolicyCard 
             title="IT & Security Policy" 
             description="Protocols for using company devices, internet, and data protection."
             icon={Laptop} 
@@ -219,7 +219,7 @@ const EmployeePolicy = () => {
             updatedDate="Jan 20, 2026"
             bgClass="bg-indigo-50"
             textClass="text-indigo-600"
-          />
+          /> */}
         </div>
 
       </div>
