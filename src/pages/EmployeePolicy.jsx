@@ -56,6 +56,9 @@ All employees are expected to maintain professionalism, discipline, and punctual
 
 Your cooperation in following these policies is highly appreciated and will contribute to a positive and productive work environment.
 
+- Mail ID - priyankanayakoditech@gmail.com
+- cc - oditechofficial@gmail.com
+
 Director
 P Debendra Rao
 
@@ -86,8 +89,8 @@ const parseAndRenderContent = (text) => {
     const highlights = [
       "neatly and accurately. Overwriting, cutting, or any alterations are strictly prohibited.",
       "9:30 AM to 6:30 PM.",
-      "- Mail to : official@oditechglobal.com",
-      "- cc : priyankanayakoditech@gmail.com",
+      "priyankanayakoditech@gmail.com",
+      "oditechofficial@gmail.com",
       "one day's salary will be deducted.",
       "communicate in English",
       "In Time and Out Time",
