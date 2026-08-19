@@ -71,7 +71,8 @@ const parseAndRenderContent = (text) => {
   return lines.map((line, idx) => {
     // Bold Section Headings
     if (/^\d+\.\s/.test(line)) {
-      return <h4 key={idx} className="text-xl font-bold text-slate-800 mt-6 mb-3">{line}</h4>;
+      const headingText = line.trim().endsWith(':-') ? line : `${line} :-`;
+      return <h4 key={idx} className="text-xl font-bold text-slate-800 mt-6 mb-3">{headingText}</h4>;
     }
     // Sub-headings like "Emergency Leave:"
     if (line.trim().endsWith(':') && !line.startsWith('-')) {
@@ -131,16 +132,18 @@ const generatePdfHtml = (content, updatedAt) => {
   let html = '';
   lines.forEach((line) => {
     if (/^\d+\.\s/.test(line)) {
-      html += `<h4 style="font-size:16px;font-weight:700;color:#1e293b;margin:20px 0 8px 0;">${line}</h4>`;
+      const headingText = line.trim().endsWith(':-') ? line : `${line} :-`;
+      html += `<h4 style="font-size:16px;font-weight:700;color:#1e293b;margin:20px 0 8px 0;">${headingText}</h4>`;
     } else if (line.trim().endsWith(':') && !line.startsWith('-')) {
       html += `<h5 style="font-size:14px;font-weight:600;color:#334155;margin:14px 0 6px 0;">${line}</h5>`;
     } else if (line.startsWith('- ')) {
-      const text = line.substring(2);
+      let text = line.substring(2);
+      text = text.replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>');
       html += `<div style="display:flex;gap:8px;margin-bottom:6px;color:#475569;font-size:13px;line-height:1.6;"><span style="color:#94a3b8;flex-shrink:0;">•</span><span>${text}</span></div>`;
     } else if (line.trim() === '') {
       html += `<br/>`;
-    } else {
-      html += `<p style="color:#475569;font-size:13px;line-height:1.6;margin-bottom:6px;">${line}</p>`;
+      let formattedLine = line.replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>');
+      html += `<p style="color:#475569;font-size:13px;line-height:1.6;margin-bottom:6px;">${formattedLine}</p>`;
     }
   });
   return html;
@@ -323,7 +326,7 @@ const EmployeePolicy = () => {
             {/* Modal Header */}
             <div className="px-8 py-6 border-b border-slate-100 flex items-center justify-between bg-slate-50 shrink-0">
               <div>
-                <h2 className="text-2xl font-black text-slate-800">{activePolicy} Policy</h2>
+                <h2 className="text-2xl font-black text-slate-800">{activePolicy === 'Office Order' ? activePolicy : `${activePolicy} Policy`}</h2>
                 <p className="text-sm font-medium text-slate-500 mt-1">Last Updated: {policyData.updatedAt}</p>
               </div>
               <button 

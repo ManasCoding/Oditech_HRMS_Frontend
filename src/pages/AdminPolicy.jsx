@@ -70,7 +70,8 @@ const parseAndRenderContent = (text) => {
   return lines.map((line, idx) => {
     // Bold Section Headings
     if (/^\d+\.\s/.test(line)) {
-      return <h4 key={idx} className="text-xl font-bold text-slate-800 mt-6 mb-3">{line}</h4>;
+      const headingText = line.trim().endsWith(':-') ? line : `${line} :-`;
+      return <h4 key={idx} className="text-xl font-bold text-slate-800 mt-6 mb-3">{headingText}</h4>;
     }
     // Sub-headings like "Emergency Leave:"
     if (line.trim().endsWith(':') && !line.startsWith('-')) {
@@ -351,7 +352,7 @@ const AdminPolicy = () => {
             {/* Modal Header */}
             <div className="px-8 py-6 border-b border-slate-100 flex items-center justify-between bg-slate-50 shrink-0">
               <div>
-                <h2 className="text-2xl font-black text-slate-800">{activePolicy} Policy</h2>
+                <h2 className="text-2xl font-black text-slate-800">{activePolicy === 'Office Order' ? activePolicy : `${activePolicy} Policy`}</h2>
                 {!isEditing && (
                   <p className="text-sm font-medium text-slate-500 mt-1">Last Updated: {policyData.updatedAt}</p>
                 )}
