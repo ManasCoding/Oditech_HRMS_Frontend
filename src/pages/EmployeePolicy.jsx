@@ -4,7 +4,11 @@ import { useParams } from 'react-router-dom';
 import { BookOpen, Shield, Clock, Laptop, Heart, Download, ChevronRight, FileText, X } from 'lucide-react';
 import api from '../services/api';
 
-const defaultPolicyContent = `1. Office Timings
+const defaultPolicyContent = `OFFICE ORDER
+
+To ensure smooth operations and maintain workplace discipline, all employees are required to adhere to the following office rules and regulations with immediate effect.
+
+1. Office Timings
 
 - Official office hours are 9:30 AM to 6:30 PM.
 - Depending on work requirements, employees may occasionally be required to extend their working hours beyond the scheduled closing time.
@@ -50,7 +54,13 @@ Unauthorized Leave:
 
 All employees are expected to maintain professionalism, discipline, and punctuality at all times.
 
-Your cooperation in following these policies is highly appreciated and will contribute to a positive and productive work environment.`;
+Your cooperation in following these policies is highly appreciated and will contribute to a positive and productive work environment.
+
+Director
+P Debendra Rao
+
+HR & Operation Manger
+Priyanka Nayak`;
 
 const parseAndRenderContent = (text) => {
   if (!text) return null;
@@ -109,7 +119,28 @@ const parseAndRenderContent = (text) => {
   });
 };
 
-const PolicyCard = ({ title, icon: Icon, updatedDate, bgClass, textClass, description, onClick }) => (
+const generatePdfHtml = (content, updatedAt) => {
+  if (!content) return '';
+  const lines = content.split('\n');
+  let html = '';
+  lines.forEach((line) => {
+    if (/^\d+\.\s/.test(line)) {
+      html += `<h4 style="font-size:16px;font-weight:700;color:#1e293b;margin:20px 0 8px 0;">${line}</h4>`;
+    } else if (line.trim().endsWith(':') && !line.startsWith('-')) {
+      html += `<h5 style="font-size:14px;font-weight:600;color:#334155;margin:14px 0 6px 0;">${line}</h5>`;
+    } else if (line.startsWith('- ')) {
+      const text = line.substring(2);
+      html += `<div style="display:flex;gap:8px;margin-bottom:6px;color:#475569;font-size:13px;line-height:1.6;"><span style="color:#94a3b8;flex-shrink:0;">•</span><span>${text}</span></div>`;
+    } else if (line.trim() === '') {
+      html += `<br/>`;
+    } else {
+      html += `<p style="color:#475569;font-size:13px;line-height:1.6;margin-bottom:6px;">${line}</p>`;
+    }
+  });
+  return html;
+};
+
+const PolicyCard = ({ title, icon: Icon, updatedDate, bgClass, textClass, description, onClick, onDownload }) => (
   <div 
     onClick={onClick}
     className="bg-white rounded-[24px] p-6 border border-slate-100 shadow-[0_8px_30px_rgb(0,0,0,0.04)] hover:-translate-y-1 transition-transform duration-300 group flex flex-col h-full cursor-pointer"
@@ -119,7 +150,7 @@ const PolicyCard = ({ title, icon: Icon, updatedDate, bgClass, textClass, descri
         <Icon size={26} strokeWidth={2.5} />
       </div>
       <button 
-        onClick={(e) => { e.stopPropagation(); /* download action */ }}
+        onClick={(e) => { e.stopPropagation(); onDownload && onDownload(); }}
         className="w-10 h-10 rounded-full bg-slate-50 flex items-center justify-center text-slate-400 hover:bg-slate-100 hover:text-blue-600 transition-colors" 
         title="Download Policy"
       >
@@ -147,7 +178,7 @@ const EmployeePolicy = () => {
 
   const fetchPolicy = async () => {
     try {
-      const response = await api.get('/policies/Attendance%20&%20Leave');
+      const response = await api.get('/policies/Office%20Order');
       if (response.data) {
         const dateObj = new Date(response.data.updatedAt);
         const formattedDate = dateObj.toLocaleDateString('en-US', { month: 'short', day: '2-digit', year: 'numeric' });
@@ -168,9 +199,35 @@ const EmployeePolicy = () => {
   }, []);
 
   const handleOpenView = (title) => {
-    if (title === 'Attendance & Leave') {
+    if (title === 'Office Order') {
       setActivePolicy(title);
     }
+  };
+
+  const handleDownload = async () => {
+    const html2pdf = (await import('html2pdf.js')).default;
+    const bodyHtml = generatePdfHtml(policyData.content, policyData.updatedAt);
+    const container = document.createElement('div');
+    container.innerHTML = `
+      <div style="font-family: 'Helvetica Neue', Arial, sans-serif; padding: 40px; max-width: 800px; margin: 0 auto;">
+        <div style="text-align:center; border-bottom: 2px solid #e2e8f0; padding-bottom: 20px; margin-bottom: 28px;">
+          <h1 style="font-size:22px; font-weight:900; color:#0f172a; letter-spacing:2px; text-transform:uppercase; margin:0 0 6px 0;">OFFICE ORDER</h1>
+          <p style="font-size:11px; color:#94a3b8; font-weight:600; text-transform:uppercase; letter-spacing:1px; margin:0;">Oditech Global</p>
+        </div>
+        ${bodyHtml}
+        <div style="margin-top: 40px; border-top: 1px solid #e2e8f0; padding-top: 16px; font-size: 11px; color: #94a3b8; text-align: right;">
+          Last Updated: ${policyData.updatedAt}
+        </div>
+      </div>
+    `;
+    const opt = {
+      margin: 0,
+      filename: 'Office_Order_Policy.pdf',
+      image: { type: 'jpeg', quality: 0.98 },
+      html2canvas: { scale: 2, useCORS: true },
+      jsPDF: { unit: 'mm', format: 'a4', orientation: 'portrait' }
+    };
+    html2pdf().set(opt).from(container).save();
   };
 
   const handleCloseModal = () => {
@@ -207,13 +264,14 @@ const EmployeePolicy = () => {
             textClass="text-blue-600"
           /> */}
           <PolicyCard 
-            title="Attendance & Leave" 
+            title="Office Order" 
             description="Rules regarding working hours, shifts, and leave application procedures."
             icon={Clock} 
             updatedDate={policyData.updatedAt}
             bgClass="bg-emerald-50"
             textClass="text-emerald-600"
-            onClick={() => handleOpenView("Attendance & Leave")}
+            onClick={() => handleOpenView("Office Order")}
+            onDownload={handleDownload}
           />
           {/* <PolicyCard 
             title="IT & Security Policy" 

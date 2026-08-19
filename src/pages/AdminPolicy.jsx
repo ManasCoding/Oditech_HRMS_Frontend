@@ -3,12 +3,16 @@ import AdminLayout from '../layouts/AdminLayout';
 import { BookOpen, Shield, Clock, Laptop, Heart, Upload, ChevronRight, Edit3, X, Check, AlertCircle } from 'lucide-react';
 import api from '../services/api';
 
-const defaultPolicyContent = `1. Office Timings:-
+const defaultPolicyContent = `OFFICE ORDER
+
+To ensure smooth operations and maintain workplace discipline, all employees are required to adhere to the following office rules and regulations with immediate effect.
+
+1. Office Timings
 
 - Official office hours are 9:30 AM to 6:30 PM.
 - Depending on work requirements, employees may occasionally be required to extend their working hours beyond the scheduled closing time.
 
-2. Attendance & Punctuality:-
+2. Attendance & Punctuality
 
 - All employees must report to the office on time and mark their attendance between 9:30 AM and 9:35 AM.
 - Employees are advised to arrive 5–10 minutes before the official reporting time to avoid delays.
@@ -17,7 +21,7 @@ const defaultPolicyContent = `1. Office Timings:-
 - Employees must ensure that both In Time and Out Time are entered before leaving the office each day.
 - Any employee found making overwriting or unauthorized corrections in the attendance register will be subject to a penalty of ₹100/-.
 
-3. Workplace Communication:-
+3. Workplace Communication
 
 - To maintain a professional work environment, all employees are required to communicate in English during office hours.
 - Employees who fail to comply with this policy may be subject to a penalty of ₹100 for each violation.
@@ -26,30 +30,36 @@ const defaultPolicyContent = `1. Office Timings:-
 - Only on Wednesdays, casual wear is allowed.
 - If anyone comes without the required uniform, a penalty of ₹500/- will be applicable.
 
-4. Late Attendance Policy:-
+4. Late Attendance Policy
 
 - If an employee is late once due to a genuine reason, it will be considered only if the employee informs HR with a valid explanation.
 - If an employee reports late twice, it will be treated as Half-Day Leave.
 - If an employee is late three or more times in a month, one day's salary will be deducted.
 
-5. Leave Policy:-
+5. Leave Policy
 
-Emergency Leave:-
+Emergency Leave:
 - Employees must inform HR before office hours with a valid reason.
 - Supporting documents or proof may be required if necessary.
 
-Planned Leave:-
+Planned Leave:
 - Employees must apply for leave at least 48 hours in advance and obtain prior approval.
 
-Unauthorized Leave:-
+Unauthorized Leave:
 - If an employee takes leave without prior information or approval, it will be considered Leave Without Approval.
 - One additional day's salary will be deducted along with the leave deduction.
 
-6. General Instructions:-
+6. General Instructions
 
 All employees are expected to maintain professionalism, discipline, and punctuality at all times.
 
-Your cooperation in following these policies is highly appreciated and will contribute to a positive and productive work environment.`;
+Your cooperation in following these policies is highly appreciated and will contribute to a positive and productive work environment.
+
+Director
+P Debendra Rao
+
+HR & Operation Manger
+Priyanka Nayak`;
 
 const parseAndRenderContent = (text) => {
   if (!text) return null;
@@ -145,7 +155,7 @@ const AdminPolicy = () => {
 
   const fetchPolicy = async () => {
     try {
-      const response = await api.get('/policies/Attendance%20&%20Leave');
+      const response = await api.get('/policies/Office%20Order');
       if (response.data) {
         const dateObj = new Date(response.data.updatedAt);
         const formattedDate = dateObj.toLocaleDateString('en-US', { month: 'short', day: '2-digit', year: 'numeric' });
@@ -166,14 +176,14 @@ const AdminPolicy = () => {
   }, []);
 
   const handleOpenView = (title) => {
-    if (title === 'Attendance & Leave') {
+    if (title === 'Office Order') {
       setActivePolicy(title);
       setIsEditing(false);
     }
   };
 
   const handleOpenEdit = (title) => {
-    if (title === 'Attendance & Leave') {
+    if (title === 'Office Order') {
       setActivePolicy(title);
       setEditContent(policyData.content);
       setIsEditing(true);
@@ -198,7 +208,7 @@ const AdminPolicy = () => {
   const handleSave = async () => {
     setIsSaving(true);
     try {
-      const response = await api.put('/policies/Attendance%20&%20Leave', {
+      const response = await api.put('/policies/Office%20Order', {
         content: editContent,
         category: 'Attendance'
       });
@@ -265,13 +275,13 @@ const AdminPolicy = () => {
             onEdit={() => {}}
           /> */}
           <PolicyCard 
-            title="Attendance & Leave" 
+            title="Office Order" 
             icon={Clock} 
             updatedDate={policyData.updatedAt}
             bgClass="bg-emerald-50"
             textClass="text-emerald-600"
-            onClick={() => handleOpenView("Attendance & Leave")}
-            onEdit={() => handleOpenEdit("Attendance & Leave")}
+            onClick={() => handleOpenView("Office Order")}
+            onEdit={() => handleOpenEdit("Office Order")}
           />
           {/* <PolicyCard 
             title="IT & Security Policy" 
