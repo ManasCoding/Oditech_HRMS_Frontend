@@ -3,12 +3,12 @@ import AdminLayout from '../layouts/AdminLayout';
 import { BookOpen, Shield, Clock, Laptop, Heart, Upload, ChevronRight, Edit3, X, Check, AlertCircle } from 'lucide-react';
 import api from '../services/api';
 
-const defaultPolicyContent = `1. Office Timings
+const defaultPolicyContent = `1. Office Timings:-
 
 - Official office hours are 9:30 AM to 6:30 PM.
 - Depending on work requirements, employees may occasionally be required to extend their working hours beyond the scheduled closing time.
 
-2. Attendance & Punctuality
+2. Attendance & Punctuality:-
 
 - All employees must report to the office on time and mark their attendance between 9:30 AM and 9:35 AM.
 - Employees are advised to arrive 5–10 minutes before the official reporting time to avoid delays.
@@ -17,7 +17,7 @@ const defaultPolicyContent = `1. Office Timings
 - Employees must ensure that both In Time and Out Time are entered before leaving the office each day.
 - Any employee found making overwriting or unauthorized corrections in the attendance register will be subject to a penalty of ₹100/-.
 
-3. Workplace Communication
+3. Workplace Communication:-
 
 - To maintain a professional work environment, all employees are required to communicate in English during office hours.
 - Employees who fail to comply with this policy may be subject to a penalty of ₹100 for each violation.
@@ -26,26 +26,26 @@ const defaultPolicyContent = `1. Office Timings
 - Only on Wednesdays, casual wear is allowed.
 - If anyone comes without the required uniform, a penalty of ₹500/- will be applicable.
 
-4. Late Attendance Policy
+4. Late Attendance Policy:-
 
 - If an employee is late once due to a genuine reason, it will be considered only if the employee informs HR with a valid explanation.
 - If an employee reports late twice, it will be treated as Half-Day Leave.
 - If an employee is late three or more times in a month, one day's salary will be deducted.
 
-5. Leave Policy
+5. Leave Policy:-
 
-Emergency Leave:
+Emergency Leave:-
 - Employees must inform HR before office hours with a valid reason.
 - Supporting documents or proof may be required if necessary.
 
-Planned Leave:
+Planned Leave:-
 - Employees must apply for leave at least 48 hours in advance and obtain prior approval.
 
-Unauthorized Leave:
+Unauthorized Leave:-
 - If an employee takes leave without prior information or approval, it will be considered Leave Without Approval.
 - One additional day's salary will be deducted along with the leave deduction.
 
-6. General Instructions
+6. General Instructions:-
 
 All employees are expected to maintain professionalism, discipline, and punctuality at all times.
 
@@ -63,11 +63,39 @@ const parseAndRenderContent = (text) => {
     if (line.trim().endsWith(':') && !line.startsWith('-')) {
       return <h5 key={idx} className="text-lg font-semibold text-slate-700 mt-4 mb-2">{line}</h5>;
     }
-    // Bullet points
+
+    if (line.trim() === '') return <br key={idx} />;
+
+    let content = line.startsWith('- ') ? line.substring(2) : line;
+    
+    // Highlight penalties
+    content = content.replace(/(₹100\/-|₹500\/-|₹100)/g, '<span class="font-bold text-rose-600 bg-rose-50 px-1 py-0.5 rounded">$1</span>');
+    
+    // Highlight specific phrases
+    const highlights = [
+      "neatly and accurately. Overwriting, cutting, or any alterations are strictly prohibited.",
+      "9:30 AM to 6:30 PM.",
+      "- Mail to : official@oditechglobal.com",
+      "- cc : priyankanayakoditech@gmail.com",
+      "one day's salary will be deducted.",
+      "communicate in English",
+      "In Time and Out Time",
+      "three or more times",
+      "1.30PM - 2.15PM",
+      "3 or more times",
+      "come in uniform.",
+      "5–10 minutes",
+      "Wednesdays,",
+      "Half-Day",
+      "48 hours",
+      "Blue Pen",
+      "9:30 AM"
+    ];
+    const escapeRegExp = (string) => string.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+    const combinedRegex = new RegExp(`(${highlights.map(escapeRegExp).join('|')})`, 'g');
+    content = content.replace(combinedRegex, '<span class="font-bold text-slate-800">$1</span>');
+
     if (line.startsWith('- ')) {
-      let content = line.substring(2);
-      // Highlight penalties
-      content = content.replace(/(₹100\/-|₹500\/-|₹100)/g, '<span class="font-bold text-rose-600 bg-rose-50 px-1 py-0.5 rounded">$1</span>');
       return (
         <div key={idx} className="flex items-start mb-2 text-slate-600 leading-relaxed">
           <span className="text-slate-400 mr-2 mt-1">•</span>
@@ -75,9 +103,8 @@ const parseAndRenderContent = (text) => {
         </div>
       );
     }
-    // Normal text
-    if (line.trim() === '') return <br key={idx} />;
-    return <p key={idx} className="text-slate-600 leading-relaxed mb-2">{line}</p>;
+    
+    return <p key={idx} className="text-slate-600 leading-relaxed mb-2" dangerouslySetInnerHTML={{ __html: content }}></p>;
   });
 };
 

@@ -64,11 +64,39 @@ const parseAndRenderContent = (text) => {
     if (line.trim().endsWith(':') && !line.startsWith('-')) {
       return <h5 key={idx} className="text-lg font-semibold text-slate-700 mt-4 mb-2">{line}</h5>;
     }
-    // Bullet points
+
+    if (line.trim() === '') return <br key={idx} />;
+
+    let content = line.startsWith('- ') ? line.substring(2) : line;
+    
+    // Highlight penalties
+    content = content.replace(/(₹100\/-|₹500\/-|₹100)/g, '<span class="font-bold text-rose-600 bg-rose-50 px-1 py-0.5 rounded">$1</span>');
+    
+    // Highlight specific phrases
+    const highlights = [
+      "neatly and accurately. Overwriting, cutting, or any alterations are strictly prohibited.",
+      "9:30 AM to 6:30 PM.",
+      "- Mail to : official@oditechglobal.com",
+      "- cc : priyankanayakoditech@gmail.com",
+      "one day's salary will be deducted.",
+      "communicate in English",
+      "In Time and Out Time",
+      "three or more times",
+      "1.30PM - 2.15PM",
+      "3 or more times",
+      "come in uniform.",
+      "5–10 minutes",
+      "Wednesdays,",
+      "Half-Day",
+      "48 hours",
+      "Blue Pen",
+      "9:30 AM"
+    ];
+    const escapeRegExp = (string) => string.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+    const combinedRegex = new RegExp(`(${highlights.map(escapeRegExp).join('|')})`, 'g');
+    content = content.replace(combinedRegex, '<span class="font-bold text-slate-800">$1</span>');
+
     if (line.startsWith('- ')) {
-      let content = line.substring(2);
-      // Highlight penalties
-      content = content.replace(/(₹100\/-|₹500\/-|₹100)/g, '<span class="font-bold text-rose-600 bg-rose-50 px-1 py-0.5 rounded">$1</span>');
       return (
         <div key={idx} className="flex items-start mb-2 text-slate-600 leading-relaxed">
           <span className="text-slate-400 mr-2 mt-1">•</span>
@@ -76,9 +104,8 @@ const parseAndRenderContent = (text) => {
         </div>
       );
     }
-    // Normal text
-    if (line.trim() === '') return <br key={idx} />;
-    return <p key={idx} className="text-slate-600 leading-relaxed mb-2">{line}</p>;
+    
+    return <p key={idx} className="text-slate-600 leading-relaxed mb-2" dangerouslySetInnerHTML={{ __html: content }}></p>;
   });
 };
 
