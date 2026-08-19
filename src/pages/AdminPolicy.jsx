@@ -62,7 +62,7 @@ Your cooperation in following these policies is highly appreciated and will cont
 **P Debendra Rao**
 
 **HR & Operation Manager**
-**Priyanka Nayak**\`;
+**Priyanka Nayak**`;
 
 const parseAndRenderContent = (text) => {
   if (!text) return null;
