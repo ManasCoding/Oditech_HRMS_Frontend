@@ -10,8 +10,7 @@ To ensure smooth operations and maintain workplace discipline, all employees are
 
 1. Office Timings
 
-- Official office hours are 9:30 AM to 6:30 PM.
-- Lunch Break: 1.30PM - 2.15PM.
+- Official office hours are 9:30 AM to 6:30 PM (Lunch Time: 1:30 PM - 2:15 PM).
 - Depending on work requirements, employees may occasionally be required to extend their working hours beyond the scheduled closing time.
 
 2. Attendance & Punctuality
@@ -60,11 +59,11 @@ Your cooperation in following these policies is highly appreciated and will cont
 - Mail ID - priyankanayakoditech@gmail.com
 - cc - oditechofficial@gmail.com
 
-Director
-P Debendra Rao
+**Director**
+**P Debendra Rao**
 
-HR & Operation Manger
-Priyanka Nayak`;
+**HR & Operation Manager**
+**Priyanka Nayak**\`;
 
 const parseAndRenderContent = (text) => {
   if (!text) return null;
@@ -109,6 +108,9 @@ const parseAndRenderContent = (text) => {
     const escapeRegExp = (string) => string.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
     const combinedRegex = new RegExp(`(${highlights.map(escapeRegExp).join('|')})`, 'g');
     content = content.replace(combinedRegex, '<span class="font-bold text-slate-800">$1</span>');
+
+    // Handle Markdown-style bold
+    content = content.replace(/\*\*(.*?)\*\*/g, '<span class="font-bold text-slate-800">$1</span>');
 
     if (line.startsWith('- ')) {
       return (
