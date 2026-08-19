@@ -10,6 +10,7 @@ To ensure smooth operations and maintain workplace discipline, all employees are
 1. Office Timings
 
 - Official office hours are 9:30 AM to 6:30 PM.
+- Lunch Break: 1.30PM - 2.15PM.
 - Depending on work requirements, employees may occasionally be required to extend their working hours beyond the scheduled closing time.
 
 2. Attendance & Punctuality
@@ -94,7 +95,7 @@ const parseAndRenderContent = (text) => {
       "communicate in English",
       "In Time and Out Time",
       "three or more times",
-      "1.30PM - 2.15PM",
+      "1.30PM - 2.15PM.",
       "3 or more times",
       "come in uniform.",
       "5–10 minutes",
