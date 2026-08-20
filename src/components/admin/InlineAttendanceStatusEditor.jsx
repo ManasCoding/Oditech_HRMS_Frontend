@@ -8,6 +8,7 @@ const STATUS_OPTIONS = [
   'Present',
   'Absent',
   'Half Day',
+  'Late',
   'Paid Leave',
   'Unpaid Leave',
   'Holiday',
