@@ -209,10 +209,12 @@ const AdminAttendance = () => {
       
       const hasCheckedIn = r.checkIn && r.checkIn !== "00:00" && r.checkIn !== "1970-01-01T00:00:00.000Z";
 
-      // If an explicit status exists and is not 'Pending' or 'Absent', use it
-      // Otherwise fallback to Holiday, Weekend, or Absent
       if (r.checkInApprovalStatus === 'Approved') {
-        stat = 'Present';
+        // Restore the real status — Late or Half Day (never collapse to Present)
+        stat = r.originalStatus || (r.exceptionType === 'Half Day' ? 'Half Day' : r.exceptionType === 'Late' ? 'Late' : r.status) || 'Present';
+      } else if (r.checkInApprovalStatus === 'Pending') {
+        // Before approval — display as Absent (approval pending)
+        stat = 'Absent';
       } else if (r.checkInApprovalStatus === 'Rejected') {
         stat = 'Absent';
       } else if (r.status && r.status !== 'Pending' && r.status !== 'Absent') {
@@ -245,8 +247,6 @@ const AdminAttendance = () => {
     const halfDayToday = statsRecords.filter(r => r.calculatedStatus === 'Half Day').length;
     const lateToday = statsRecords.filter(r => r.calculatedStatus === 'Late').length;
     const leavesToday = statsRecords.filter(r => r.calculatedStatus === 'On Leave').length;
-    const absentToday = statsRecords.filter(r => r.calculatedStatus === 'Absent' || r.calculatedStatus === 'Holiday' || r.calculatedStatus === 'Weekend').length; 
-    // ^ Maybe we want to just keep absent count for strictly 'Absent'. Let's adjust:
     const strictAbsentToday = statsRecords.filter(r => r.calculatedStatus === 'Absent').length;
 
     setStats({ totalEmployees, presentToday, halfDayToday, lateToday, leavesToday, absentToday: strictAbsentToday });
@@ -474,18 +474,34 @@ const AdminAttendance = () => {
                            {report.employeeId?.empCode || 'N/A'}
                          </span>
                          
-                         <div className="flex items-center gap-2">
+                         <div className="flex flex-col items-end gap-1">
                            <span className={`px-4 py-1.5 rounded-[16px] text-[10px] font-black uppercase tracking-widest shadow-sm transition-all ${
                              displayStatus === 'Absent' ? 'bg-[#FDECEC] text-[#E53935]' : 
                              displayStatus === 'Present' ? 'bg-[#E8F8F0] text-[#00A86B]' : 
                              displayStatus === 'Late' ? 'bg-[#FFF3E0] text-[#FB8C00]' : 
+                             displayStatus === 'Half Day' ? 'bg-[#FFF8E1] text-[#F59E0B]' :
                              displayStatus === 'On Leave' ? 'bg-[#F3E8FF] text-[#8E44AD]' : 
                              displayStatus === 'Holiday' ? 'bg-[#EAF4FF] text-[#1E88E5]' : 
                              displayStatus === 'Weekend' ? 'bg-[#F2F2F2] text-[#616161]' : 
-                             'bg-[#E8F8F0] text-[#00A86B]' // Default to Present
+                             'bg-[#E8F8F0] text-[#00A86B]'
                            }`}>
                              {displayStatus}
                            </span>
+                           {report.checkInApprovalStatus === 'Pending' && (
+                              <span className="px-2 py-0.5 bg-amber-100 text-amber-700 rounded-full text-[9px] font-black uppercase tracking-widest animate-pulse">
+                                ⏳ Approval Pending
+                              </span>
+                            )}
+                            {report.checkInApprovalStatus === 'Rejected' && (
+                              <span className="px-2 py-0.5 bg-rose-100 text-rose-600 rounded-full text-[9px] font-black uppercase tracking-widest">
+                                ✗ Rejected
+                              </span>
+                            )}
+                            {report.checkInApprovalStatus === 'Approved' && report.exceptionType && report.exceptionType !== 'None' && (
+                              <span className="px-2 py-0.5 bg-emerald-100 text-emerald-700 rounded-full text-[9px] font-black uppercase tracking-widest">
+                                ✓ Approved
+                              </span>
+                            )}
                          </div>
                        </div>
                      </div>
@@ -496,7 +512,7 @@ const AdminAttendance = () => {
            })()}
         </div>
 
-        {/* ── Late Check-In Approvals Section ──────────────────────────────── */}
+        {/* ── Attendance Approval Requests Section ──────────────────────────── */}
         <div className="bg-white rounded-[32px] border border-slate-100 shadow-sm overflow-hidden">
           <div className="flex items-center justify-between p-6 border-b border-slate-100">
             <div className="flex items-center gap-3">
@@ -504,7 +520,7 @@ const AdminAttendance = () => {
                 <Hourglass size={20} className="text-amber-600" />
               </div>
               <div>
-                <h3 className="text-lg font-black text-[#1e293b]">Late Check-In Approvals</h3>
+                <h3 className="text-lg font-black text-[#1e293b]">Attendance Approval Requests</h3>
                 <p className="text-xs text-slate-400 font-bold uppercase tracking-widest">
                   {filters.date} · {lateApprovals.length} pending
                 </p>
@@ -522,16 +538,19 @@ const AdminAttendance = () => {
           ) : lateApprovals.length === 0 ? (
             <div className="p-10 text-center">
               <CheckCircle2 size={40} className="text-emerald-400 mx-auto mb-3" />
-              <p className="text-slate-400 font-bold text-sm">No pending late check-in requests for this date.</p>
+              <p className="text-slate-400 font-bold text-sm">No pending attendance approval requests for this date.</p>
             </div>
           ) : (
             <div className="divide-y divide-slate-50">
               {lateApprovals.map((record) => {
                 const emp = record.employeeId;
                 const checkInTime = record.checkIn ? new Date(record.checkIn).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', hour12: true }) : '—';
+                const checkOutTime = record.checkOut ? new Date(record.checkOut).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', hour12: true }) : '—';
                 const requestedAt = record.approvalRequestedAt ? new Date(record.approvalRequestedAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', hour12: true }) : '—';
                 const lateMinutes = record.lateMinutes || 0;
                 const isProcessing = approvalProcessing === record._id;
+                const exType = record.exceptionType || 'Late';
+                const isHalfDay = exType === 'Half Day';
 
                 return (
                   <div key={record._id} className="flex flex-col md:flex-row md:items-center gap-4 p-5 hover:bg-amber-50/30 transition-colors">
@@ -547,6 +566,10 @@ const AdminAttendance = () => {
                       <div className="min-w-0">
                         <h4 className="font-black text-[#1e293b] text-sm truncate">{emp?.fullName}</h4>
                         <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest truncate">{emp?.empCode} · {emp?.department}</p>
+                        {/* Exception type badge */}
+                        <span className={`inline-block mt-1 px-2 py-0.5 rounded-full text-[9px] font-black uppercase tracking-widest ${isHalfDay ? 'bg-yellow-100 text-yellow-700' : 'bg-orange-100 text-orange-700'}`}>
+                          {isHalfDay ? '⏱ Half Day' : '⏰ Late Check-In'}
+                        </span>
                       </div>
                     </div>
 
@@ -556,14 +579,29 @@ const AdminAttendance = () => {
                         <p className="text-[9px] font-black text-slate-400 uppercase tracking-widest mb-1">Check-In</p>
                         <p className="text-sm font-black text-[#1e293b]">{checkInTime}</p>
                       </div>
-                      <div className="text-center">
-                        <p className="text-[9px] font-black text-slate-400 uppercase tracking-widest mb-1">Late By</p>
-                        <p className="text-sm font-black text-amber-600">{lateMinutes > 0 ? `${lateMinutes} min` : '—'}</p>
-                      </div>
-                      <div className="text-center">
-                        <p className="text-[9px] font-black text-slate-400 uppercase tracking-widest mb-1">Requested</p>
-                        <p className="text-sm font-black text-slate-500">{requestedAt}</p>
-                      </div>
+                      {isHalfDay ? (
+                        <>
+                          <div className="text-center">
+                            <p className="text-[9px] font-black text-slate-400 uppercase tracking-widest mb-1">Check-Out</p>
+                            <p className="text-sm font-black text-[#1e293b]">{checkOutTime}</p>
+                          </div>
+                          <div className="text-center">
+                            <p className="text-[9px] font-black text-slate-400 uppercase tracking-widest mb-1">Worked</p>
+                            <p className="text-sm font-black text-yellow-600">{record.workHours || '—'}</p>
+                          </div>
+                        </>
+                      ) : (
+                        <>
+                          <div className="text-center">
+                            <p className="text-[9px] font-black text-slate-400 uppercase tracking-widest mb-1">Late By</p>
+                            <p className="text-sm font-black text-amber-600">{lateMinutes > 0 ? `${lateMinutes} min` : '—'}</p>
+                          </div>
+                          <div className="text-center">
+                            <p className="text-[9px] font-black text-slate-400 uppercase tracking-widest mb-1">Requested</p>
+                            <p className="text-sm font-black text-slate-500">{requestedAt}</p>
+                          </div>
+                        </>
+                      )}
                     </div>
 
                     {/* Status Badge */}
@@ -598,7 +636,7 @@ const AdminAttendance = () => {
             </div>
           )}
         </div>
-        {/* ── End Late Check-In Approvals ───────────────────────────────────── */}
+        {/* ── End Attendance Approval Requests ───────────────────────────────── */}
 
         {/* Bottom Charts */}
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
