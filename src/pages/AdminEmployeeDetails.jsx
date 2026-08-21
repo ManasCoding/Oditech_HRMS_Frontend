@@ -49,6 +49,19 @@ const AdminEmployeeDetails = () => {
   const { id } = useParams();
   const navigate = useNavigate();
   const [employee, setEmployee] = useState(null);
+  const tabs = [
+    'Overview',
+    'Attendance',
+    'Leaves',
+    'Late Marks',
+    'Document',
+    'Timesheet',
+    'Login History',
+    'Messages',
+    'Journey',
+    'Payroll',
+    'Payslips'
+  ];
   const [activeTab, setActiveTab] = useState('Overview');
   const [loading, setLoading] = useState(true);
   const [isEditing, setIsEditing] = useState(false);
