@@ -1,4 +1,4 @@
-﻿import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect } from 'react';
 import EmployeeLayout from '../layouts/EmployeeLayout';
 import { useNavigate } from 'react-router-dom';
 import { MapPin, CheckCircle2, Clock, AlertTriangle, XCircle, Calendar } from 'lucide-react';
@@ -44,12 +44,10 @@ const EmployeeAttendance = () => {
   };
 
   const getDisplayStatus = (att) => {
-    if (!att) return 'Not Checked In';
+    if (!att || !att.checkIn) return 'Absent';
     const approval = att.checkInApprovalStatus;
-    if (approval === 'Approved') {
-      return att.originalStatus || (att.exceptionType === 'Half Day' ? 'Half Day' : att.exceptionType === 'Late' ? 'Late' : att.status) || 'Present';
-    }
     if (approval === 'Pending') return 'Absent';
+    if (approval === 'Approved') return att.status;
     if (approval === 'Rejected') return 'Absent';
     return att.status || 'Absent';
   };

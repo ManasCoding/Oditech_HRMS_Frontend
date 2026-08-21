@@ -226,15 +226,13 @@ const AdminAttendance = () => {
       
       const hasCheckedIn = r.checkIn && r.checkIn !== "00:00" && r.checkIn !== "1970-01-01T00:00:00.000Z";
 
-      if (r.checkInApprovalStatus === 'Approved') {
-        // Restore the real status — Late or Half Day (never collapse to Present)
-        stat = r.originalStatus || (r.exceptionType === 'Half Day' ? 'Half Day' : r.exceptionType === 'Late' ? 'Late' : r.status) || 'Present';
-      } else if (r.checkInApprovalStatus === 'Pending') {
-        // Before approval — display as Absent (approval pending)
-        stat = 'Absent';
+      if (r.checkInApprovalStatus === 'Approved' || r.checkInApprovalStatus === 'Pending') {
+        // Admin always sees the actual attendance status (Late/Half Day/etc.)
+        stat = r.status || 'Present';
       } else if (r.checkInApprovalStatus === 'Rejected') {
-        stat = 'Absent';
-      } else if (r.status && r.status !== 'Pending' && r.status !== 'Absent') {
+        // Rejected — admin sees actual status with rejected badge
+        stat = r.status || 'Absent';
+      } else if (r.status && r.status !== 'Pending') {
         stat = r.status;
       } else if (isHoliday) {
         stat = 'Holiday';
@@ -694,19 +692,28 @@ const AdminAttendance = () => {
                                 </div>
 
                                 {/* STATUS */}
-                                <div>
+                                <div className="flex flex-col gap-1">
+                                  {/* Actual attendance type */}
+                                  {record.exceptionType && record.exceptionType !== 'None' && (
+                                    <span className={`px-2 py-0.5 text-[9px] font-bold uppercase tracking-wider rounded w-fit ${
+                                      record.exceptionType === 'Half Day' ? 'bg-yellow-50 text-yellow-700' : 'bg-orange-50 text-orange-700'
+                                    }`}>
+                                      {record.exceptionType}
+                                    </span>
+                                  )}
+                                  {/* Approval badge */}
                                   {record.checkInApprovalStatus === 'Pending' && (
-                                    <span className="px-3 py-1 bg-[#fef3c7] text-[#d97706] text-[10px] font-bold uppercase tracking-wider rounded-md">
+                                    <span className="px-3 py-1 bg-[#fef3c7] text-[#d97706] text-[10px] font-bold uppercase tracking-wider rounded-md w-fit">
                                       PENDING
                                     </span>
                                   )}
                                   {record.checkInApprovalStatus === 'Approved' && (
-                                    <span className="px-3 py-1 bg-[#dcfce7] text-[#16a34a] text-[10px] font-bold uppercase tracking-wider rounded-md">
+                                    <span className="px-3 py-1 bg-[#dcfce7] text-[#16a34a] text-[10px] font-bold uppercase tracking-wider rounded-md w-fit">
                                       APPROVED
                                     </span>
                                   )}
                                   {record.checkInApprovalStatus === 'Rejected' && (
-                                    <span className="px-3 py-1 bg-[#fee2e2] text-[#dc2626] text-[10px] font-bold uppercase tracking-wider rounded-md">
+                                    <span className="px-3 py-1 bg-[#fee2e2] text-[#dc2626] text-[10px] font-bold uppercase tracking-wider rounded-md w-fit">
                                       REJECTED
                                     </span>
                                   )}
