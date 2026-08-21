@@ -32,6 +32,10 @@ import EmployeeResignationDetails from '../pages/EmployeeResignationDetails';
 import AdminResignation from '../pages/AdminResignation';
 import AdminResignationDetails from '../pages/AdminResignationDetails';
 
+import AdminSiteVisits from '../pages/AdminSiteVisits';
+import EmployeeSiteVisits from '../pages/EmployeeSiteVisits';
+import EmployeeSiteVisitRequest from '../pages/EmployeeSiteVisitRequest';
+
 import MaintenanceMode from '../pages/MaintenanceMode';
 import api from '../services/api';
 
@@ -98,6 +102,8 @@ const AppRouter = () => {
       <Route path="/employee/:employeeSlug/resignation" element={<EmployeeResignation />} />
       <Route path="/employee/:employeeSlug/resignation/:id" element={<EmployeeResignationDetails />} />
       <Route path="/employee/:employeeSlug/policy" element={<EmployeePolicy />} />
+      <Route path="/employee/:employeeSlug/site-visits" element={<EmployeeSiteVisits />} />
+      <Route path="/employee/:employeeSlug/site-visits/request" element={<EmployeeSiteVisitRequest />} />
 
 
       
@@ -113,6 +119,7 @@ const AppRouter = () => {
       <Route path="/admin/reports" element={<AdminReports />} />
       <Route path="/admin/policy" element={<AdminPolicy />} />
       <Route path="/admin/performance" element={<AdminPerformance />} />
+      <Route path="/admin/site-visits" element={<AdminSiteVisits />} />
       <Route path="/admin/resignations" element={<AdminResignation />} />
       <Route path="/admin/resignations/:id" element={<AdminResignationDetails />} />
 

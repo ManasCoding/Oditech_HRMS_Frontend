@@ -41,6 +41,7 @@ const AdminLayout = ({ children, title, subtitle, hideHeader = false }) => {
     { name: 'Performance', icon: <TrendingUp size={18} />, path: '/admin/performance' },
     { name: 'System Settings', icon: <Settings size={18} />, path: '/admin/settings' },
     { name: 'Company Policy', icon: <BookOpen size={18} />, path: '/admin/policy' },
+    { name: 'Site Visits', icon: <FileMinus size={18} />, path: '/admin/site-visits' },
   ];
 
 

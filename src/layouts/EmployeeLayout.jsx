@@ -38,6 +38,7 @@ const EmployeeLayout = ({ children, title, subtitle }) => {
     { name: 'Resignation', icon: <FileSignature size={18} />, path: `/employee/${slug}/resignation` },
     { name: 'Payslip', icon: <FileText size={18} />, path: `/employee/${slug}/payslip` },
     { name: 'Company Policy', icon: <ShieldCheck size={18} />, path: `/employee/${slug}/policy` },
+    { name: 'Site Visits', icon: <ClipboardList size={18} />, path: `/employee/${slug}/site-visits` },
   ];
 
   return (
