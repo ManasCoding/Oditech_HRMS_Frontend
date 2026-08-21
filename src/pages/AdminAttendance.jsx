@@ -3,7 +3,7 @@ import AdminLayout from '../layouts/AdminLayout';
 import { 
   Users, Clock, Search, Calendar, MoreHorizontal,
   ChevronLeft, ChevronRight, X, Download, FileText,
-  UserCheck, Briefcase, Eye, CheckCircle2, XCircle, Hourglass, AlertTriangle
+  UserCheck, Briefcase, Eye, CheckCircle2, XCircle, Hourglass, AlertTriangle, Filter, ChevronDown, Info
 } from 'lucide-react';
 import { 
   LineChart, Line, BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Cell 
@@ -62,6 +62,9 @@ const AdminAttendance = () => {
 
   // ── Late Approvals State ─────────────────────────────────────────────────────
   const [lateApprovals, setLateApprovals] = useState([]);
+  const [allApprovals, setAllApprovals] = useState({ Pending: [], Approved: [], Rejected: [] });
+  const [approvalTab, setApprovalTab] = useState('Pending');
+  const [approvalSearch, setApprovalSearch] = useState('');
   const [lateApprovalsLoading, setLateApprovalsLoading] = useState(false);
   const [rejectModal, setRejectModal] = useState(null); // { id, employeeName }
   const [rejectReason, setRejectReason] = useState('');
@@ -118,16 +121,28 @@ const AdminAttendance = () => {
   const fetchLateApprovals = useCallback(async () => {
     setLateApprovalsLoading(true);
     try {
-      const res = await api.get(`/admin/attendance/late-approvals?date=${filters.date}&status=Pending`);
+      // Fetch all requests across all dates
+      const res = await api.get(`/admin/attendance/late-approvals?date=all&status=All`);
       if (res.data.success) {
-        setLateApprovals(res.data.records || []);
+        const records = res.data.records || [];
+        const grouped = {
+          Pending: records.filter(r => r.checkInApprovalStatus === 'Pending'),
+          Approved: records.filter(r => r.checkInApprovalStatus === 'Approved'),
+          Rejected: records.filter(r => r.checkInApprovalStatus === 'Rejected')
+        };
+        setAllApprovals(grouped);
+        setLateApprovals(grouped[approvalTab]);
       }
     } catch (err) {
       console.error('Error fetching late approvals:', err);
     } finally {
       setLateApprovalsLoading(false);
     }
-  }, [filters.date]);
+  }, [approvalTab]);
+
+  useEffect(() => {
+    setLateApprovals(allApprovals[approvalTab] || []);
+  }, [approvalTab, allApprovals]);
 
   useEffect(() => {
     fetchLateApprovals();
@@ -141,8 +156,7 @@ const AdminAttendance = () => {
         adminId: adminUser._id
       });
       if (res.data.success) {
-        // Remove from pending list and refetch main attendance
-        setLateApprovals(prev => prev.filter(r => r._id !== id));
+        await fetchLateApprovals();
         fetchStats(false);
       }
     } catch (err) {
@@ -153,15 +167,18 @@ const AdminAttendance = () => {
   };
 
   const handleRejectConfirm = async () => {
-    if (!rejectModal) return;
+    if (!rejectReason.trim()) return;
     setApprovalProcessing(rejectModal.id);
     try {
+      const adminUser = JSON.parse(localStorage.getItem('user') || '{}');
       const res = await api.put(`/admin/attendance/late-approvals/${rejectModal.id}/reject`, {
-        rejectionReason: rejectReason
+        rejectionReason: rejectReason,
+        adminId: adminUser._id
       });
       if (res.data.success) {
-        setLateApprovals(prev => prev.filter(r => r._id !== rejectModal.id));
+        await fetchLateApprovals();
         fetchStats(false);
+        setRejectModal(null);
       }
     } catch (err) {
       console.error('Reject failed:', err);
@@ -512,129 +529,224 @@ const AdminAttendance = () => {
            })()}
         </div>
 
-        {/* ── Attendance Approval Requests Section ──────────────────────────── */}
-        <div className="bg-white rounded-[32px] border border-slate-100 shadow-sm overflow-hidden">
-          <div className="flex items-center justify-between p-6 border-b border-slate-100">
-            <div className="flex items-center gap-3">
-              <div className="w-10 h-10 bg-amber-50 rounded-xl flex items-center justify-center">
-                <Hourglass size={20} className="text-amber-600" />
-              </div>
-              <div>
-                <h3 className="text-lg font-black text-[#1e293b]">Attendance Approval Requests</h3>
-                <p className="text-xs text-slate-400 font-bold uppercase tracking-widest">
-                  {filters.date} · {lateApprovals.length} pending
-                </p>
-              </div>
+﻿        {/* ── Attendance Approval Requests Section ──────────────────────────── */}
+        <div className="bg-white rounded-lg border border-slate-100 shadow-sm overflow-hidden mb-8">
+          
+          {/* Top Tab Bar */}
+          <div className="flex flex-col md:flex-row md:items-center justify-between border-b border-slate-100 px-6 pt-4 gap-4">
+            <div className="flex items-center gap-8">
+              {['Pending', 'Approved', 'Rejected'].map(tab => (
+                <button
+                  key={tab}
+                  onClick={() => setApprovalTab(tab)}
+                  className={`pb-4 text-sm font-bold transition-all relative ${
+                    approvalTab === tab 
+                      ? 'text-blue-600' 
+                      : 'text-slate-500 hover:text-slate-700'
+                  }`}
+                >
+                  {tab} ({allApprovals[tab]?.length || 0})
+                  {approvalTab === tab && (
+                    <div className="absolute bottom-0 left-0 w-full h-0.5 bg-blue-600" />
+                  )}
+                </button>
+              ))}
             </div>
-            {lateApprovals.length > 0 && (
-              <span className="px-3 py-1 bg-amber-100 text-amber-700 text-xs font-black rounded-full uppercase tracking-widest animate-pulse">
-                {lateApprovals.length} Awaiting
-              </span>
-            )}
+            <div className="flex items-center gap-3 pb-4">
+              <div className="relative">
+                <Search size={16} className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" />
+                <input 
+                  type="text" 
+                  placeholder="Search employee..." 
+                  value={approvalSearch}
+                  onChange={(e) => setApprovalSearch(e.target.value)}
+                  className="pl-9 pr-4 py-2 border border-slate-200 rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-blue-100 w-full md:w-64"
+                />
+              </div>
+              <button className="flex items-center gap-2 px-4 py-2 border border-slate-200 rounded-md text-sm font-bold text-slate-600 hover:bg-slate-50">
+                <Filter size={16} /> Filter
+              </button>
+              <button className="flex items-center justify-center w-9 h-9 border border-slate-200 rounded-md text-slate-600 hover:bg-slate-50">
+                <Download size={16} />
+              </button>
+            </div>
           </div>
 
-          {lateApprovalsLoading ? (
-            <div className="p-10 text-center text-slate-400 font-bold">Loading...</div>
-          ) : lateApprovals.length === 0 ? (
-            <div className="p-10 text-center">
-              <CheckCircle2 size={40} className="text-emerald-400 mx-auto mb-3" />
-              <p className="text-slate-400 font-bold text-sm">No pending attendance approval requests for this date.</p>
+          {/* Info Banner */}
+          <div className="p-6 pb-2">
+            <div className="bg-[#f8faff] border border-blue-100/50 rounded-lg p-3 flex items-center gap-2">
+              <Info size={16} className="text-blue-600 shrink-0" />
+              <p className="text-sm text-[#475569]">
+                Showing all {approvalTab.toLowerCase()} attendance requests. {approvalTab === 'Pending' && 'These requests will remain until you approve or reject them.'}
+              </p>
             </div>
-          ) : (
-            <div className="divide-y divide-slate-50">
-              {lateApprovals.map((record) => {
-                const emp = record.employeeId;
-                const checkInTime = record.checkIn ? new Date(record.checkIn).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', hour12: true }) : '—';
-                const checkOutTime = record.checkOut ? new Date(record.checkOut).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', hour12: true }) : '—';
-                const requestedAt = record.approvalRequestedAt ? new Date(record.approvalRequestedAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', hour12: true }) : '—';
-                const lateMinutes = record.lateMinutes || 0;
-                const isProcessing = approvalProcessing === record._id;
-                const exType = record.exceptionType || 'Late';
-                const isHalfDay = exType === 'Half Day';
+          </div>
 
-                return (
-                  <div key={record._id} className="flex flex-col md:flex-row md:items-center gap-4 p-5 hover:bg-amber-50/30 transition-colors">
-                    {/* Employee Info */}
-                    <div className="flex items-center gap-4 flex-1 min-w-0">
-                      <div className="w-12 h-12 rounded-full bg-slate-100 flex items-center justify-center overflow-hidden border-2 border-white shadow-sm shrink-0">
-                        {emp?.profileImage ? (
-                          <img src={emp.profileImage} className="w-full h-full object-cover" alt={emp?.fullName} onError={(e) => { e.target.onerror = null; e.target.style.display = 'none'; }} />
-                        ) : (
-                          <span className="text-lg font-black text-slate-500">{emp?.fullName?.charAt(0)}</span>
-                        )}
-                      </div>
-                      <div className="min-w-0">
-                        <h4 className="font-black text-[#1e293b] text-sm truncate">{emp?.fullName}</h4>
-                        <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest truncate">{emp?.empCode} · {emp?.department}</p>
-                        {/* Exception type badge */}
-                        <span className={`inline-block mt-1 px-2 py-0.5 rounded-full text-[9px] font-black uppercase tracking-widest ${isHalfDay ? 'bg-yellow-100 text-yellow-700' : 'bg-orange-100 text-orange-700'}`}>
-                          {isHalfDay ? '⏱ Half Day' : '⏰ Late Check-In'}
-                        </span>
-                      </div>
-                    </div>
+          {/* Table Area */}
+          <div className="p-6 overflow-x-auto">
+            {lateApprovalsLoading ? (
+              <div className="py-10 text-center text-slate-400 font-bold">Loading...</div>
+            ) : lateApprovals.filter(r => 
+              approvalSearch === '' || 
+              (r.employeeId?.fullName || '').toLowerCase().includes(approvalSearch.toLowerCase()) ||
+              (r.employeeId?.empCode || '').toLowerCase().includes(approvalSearch.toLowerCase())
+            ).length === 0 ? (
+              <div className="py-10 text-center">
+                <CheckCircle2 size={40} className="text-slate-300 mx-auto mb-3" />
+                <p className="text-slate-400 font-bold text-sm">No {approvalTab.toLowerCase()} requests found.</p>
+              </div>
+            ) : (
+              <div className="min-w-[1000px]">
+                {/* Header */}
+                <div className="grid grid-cols-[2fr_1.5fr_1fr_1fr_1fr_1fr_1.5fr] gap-4 mb-4 px-4 pb-4 border-b border-slate-100">
+                  <div className="text-[11px] font-bold text-slate-400 uppercase tracking-wider">EMPLOYEE</div>
+                  <div className="text-[11px] font-bold text-slate-400 uppercase tracking-wider flex items-center gap-1">DATE <ChevronDown size={12}/></div>
+                  <div className="text-[11px] font-bold text-slate-400 uppercase tracking-wider">CHECK-IN</div>
+                  <div className="text-[11px] font-bold text-slate-400 uppercase tracking-wider">LATE BY</div>
+                  <div className="text-[11px] font-bold text-slate-400 uppercase tracking-wider">REQUESTED</div>
+                  <div className="text-[11px] font-bold text-slate-400 uppercase tracking-wider">STATUS</div>
+                  <div className="text-[11px] font-bold text-slate-400 uppercase tracking-wider">ACTION</div>
+                </div>
 
-                    {/* Timing Details */}
-                    <div className="flex gap-6 shrink-0">
-                      <div className="text-center">
-                        <p className="text-[9px] font-black text-slate-400 uppercase tracking-widest mb-1">Check-In</p>
-                        <p className="text-sm font-black text-[#1e293b]">{checkInTime}</p>
-                      </div>
-                      {isHalfDay ? (
-                        <>
-                          <div className="text-center">
-                            <p className="text-[9px] font-black text-slate-400 uppercase tracking-widest mb-1">Check-Out</p>
-                            <p className="text-sm font-black text-[#1e293b]">{checkOutTime}</p>
-                          </div>
-                          <div className="text-center">
-                            <p className="text-[9px] font-black text-slate-400 uppercase tracking-widest mb-1">Worked</p>
-                            <p className="text-sm font-black text-yellow-600">{record.workHours || '—'}</p>
-                          </div>
-                        </>
-                      ) : (
-                        <>
-                          <div className="text-center">
-                            <p className="text-[9px] font-black text-slate-400 uppercase tracking-widest mb-1">Late By</p>
-                            <p className="text-sm font-black text-amber-600">{lateMinutes > 0 ? `${lateMinutes} min` : '—'}</p>
-                          </div>
-                          <div className="text-center">
-                            <p className="text-[9px] font-black text-slate-400 uppercase tracking-widest mb-1">Requested</p>
-                            <p className="text-sm font-black text-slate-500">{requestedAt}</p>
-                          </div>
-                        </>
-                      )}
-                    </div>
+                {/* Group By Date */}
+                <div className="flex flex-col">
+                  {(() => {
+                    const filteredRecords = lateApprovals.filter(r => 
+                      approvalSearch === '' || 
+                      (r.employeeId?.fullName || '').toLowerCase().includes(approvalSearch.toLowerCase()) ||
+                      (r.employeeId?.empCode || '').toLowerCase().includes(approvalSearch.toLowerCase())
+                    );
+                    
+                    // Sort older first
+                    const sortedRecords = [...filteredRecords].sort((a, b) => new Date(a.date) - new Date(b.date));
+                    
+                    const grouped = {};
+                    sortedRecords.forEach(r => {
+                      if (!grouped[r.date]) grouped[r.date] = [];
+                      grouped[r.date].push(r);
+                    });
 
-                    {/* Status Badge */}
-                    <div className="shrink-0">
-                      <span className="px-3 py-1 bg-amber-100 text-amber-700 text-[10px] font-black uppercase tracking-widest rounded-full">
-                        Pending
-                      </span>
-                    </div>
+                    const todayStr = new Date().toISOString().split('T')[0];
 
-                    {/* Action Buttons */}
-                    <div className="flex items-center gap-3 shrink-0">
-                      <button
-                        onClick={() => handleApprove(record._id)}
-                        disabled={isProcessing}
-                        className="flex items-center gap-2 px-4 py-2 bg-emerald-500 text-white rounded-xl text-xs font-black hover:bg-emerald-600 transition-all disabled:opacity-50 disabled:cursor-not-allowed shadow-sm"
-                      >
-                        <CheckCircle2 size={14} />
-                        {isProcessing ? 'Processing...' : 'Approve'}
-                      </button>
-                      <button
-                        onClick={() => { setRejectModal({ id: record._id, employeeName: emp?.fullName }); setRejectReason(''); }}
-                        disabled={isProcessing}
-                        className="flex items-center gap-2 px-4 py-2 bg-rose-500 text-white rounded-xl text-xs font-black hover:bg-rose-600 transition-all disabled:opacity-50 disabled:cursor-not-allowed shadow-sm"
-                      >
-                        <XCircle size={14} />
-                        Reject
-                      </button>
-                    </div>
-                  </div>
-                );
-              })}
-            </div>
-          )}
+                    return Object.entries(grouped).map(([dateStr, records], idx) => {
+                      const dateObj = new Date(dateStr);
+                      const isToday = dateStr === todayStr;
+                      
+                      const dateFormatted = dateObj.toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' });
+                      const dayName = dateObj.toLocaleDateString('en-GB', { weekday: 'long' });
+
+                      return (
+                        <React.Fragment key={dateStr}>
+                          {isToday && (
+                            <div className="bg-[#f8faff] py-2 px-4 mb-2 mt-2">
+                              <span className="text-xs font-bold text-blue-600 uppercase tracking-wider">
+                                TODAY — {dateFormatted.toUpperCase()} ( {records.length} REQUEST{records.length !== 1 ? 'S' : ''} )
+                              </span>
+                            </div>
+                          )}
+
+                          {records.map((record, rIdx) => {
+                            const emp = record.employeeId;
+                            const checkInTime = record.checkIn ? new Date(record.checkIn).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', hour12: true }).toLowerCase() : '—';
+                            const requestedAt = record.approvalRequestedAt ? new Date(record.approvalRequestedAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', hour12: true }).toLowerCase() : '—';
+                            const lateMinutes = record.lateMinutes || 0;
+                            const isProcessing = approvalProcessing === record._id;
+                            
+                            return (
+                              <div key={record._id} className={`grid grid-cols-[2fr_1.5fr_1fr_1fr_1fr_1fr_1.5fr] gap-4 items-center py-4 px-4 ${rIdx !== records.length - 1 || !isToday && idx !== Object.keys(grouped).length - 1 ? 'border-b border-slate-100' : ''} hover:bg-slate-50/50 transition-colors`}>
+                                
+                                {/* EMPLOYEE */}
+                                <div className="flex items-center gap-3 min-w-0">
+                                  <div className="w-10 h-10 rounded-full bg-slate-100 flex items-center justify-center overflow-hidden shrink-0">
+                                    {emp?.profileImage ? (
+                                      <img src={emp.profileImage} className="w-full h-full object-cover" alt={emp?.fullName} onError={(e) => { e.target.onerror = null; e.target.style.display = 'none'; }} />
+                                    ) : (
+                                      <span className="text-sm font-bold text-slate-500">{emp?.fullName?.charAt(0)}</span>
+                                    )}
+                                  </div>
+                                  <div className="min-w-0">
+                                    <h4 className="font-bold text-[#1e293b] text-[13px] truncate">{emp?.fullName}</h4>
+                                    <p className="text-[11px] font-medium text-slate-400 uppercase tracking-widest truncate mt-0.5">{emp?.empCode} · {emp?.department}</p>
+                                  </div>
+                                </div>
+
+                                {/* DATE */}
+                                <div>
+                                  <div className="flex items-center gap-1.5 text-[13px] font-medium text-[#1e293b]">
+                                    <Calendar size={14} className="text-slate-400" /> {dateFormatted}
+                                  </div>
+                                  <p className="text-[11px] font-medium text-slate-400 ml-5 mt-0.5">{dayName}</p>
+                                </div>
+
+                                {/* CHECK-IN */}
+                                <div className="text-[13px] font-bold text-[#1e293b]">
+                                  {checkInTime}
+                                </div>
+
+                                {/* LATE BY */}
+                                <div className="text-[13px] font-bold text-[#f97316]">
+                                  {lateMinutes > 0 ? `${lateMinutes} min` : '—'}
+                                </div>
+
+                                {/* REQUESTED */}
+                                <div className="text-[13px] font-bold text-[#1e293b]">
+                                  {requestedAt}
+                                </div>
+
+                                {/* STATUS */}
+                                <div>
+                                  {record.checkInApprovalStatus === 'Pending' && (
+                                    <span className="px-3 py-1 bg-[#fef3c7] text-[#d97706] text-[10px] font-bold uppercase tracking-wider rounded-md">
+                                      PENDING
+                                    </span>
+                                  )}
+                                  {record.checkInApprovalStatus === 'Approved' && (
+                                    <span className="px-3 py-1 bg-[#dcfce7] text-[#16a34a] text-[10px] font-bold uppercase tracking-wider rounded-md">
+                                      APPROVED
+                                    </span>
+                                  )}
+                                  {record.checkInApprovalStatus === 'Rejected' && (
+                                    <span className="px-3 py-1 bg-[#fee2e2] text-[#dc2626] text-[10px] font-bold uppercase tracking-wider rounded-md">
+                                      REJECTED
+                                    </span>
+                                  )}
+                                </div>
+
+                                {/* ACTION */}
+                                <div className="flex items-center gap-2">
+                                  {record.checkInApprovalStatus === 'Pending' ? (
+                                    <>
+                                      <button
+                                        onClick={() => handleApprove(record._id)}
+                                        disabled={isProcessing}
+                                        className="flex items-center justify-center gap-1.5 px-3 py-1.5 bg-[#10b981] text-white rounded-md text-[11px] font-medium hover:bg-[#059669] transition-all disabled:opacity-50 min-w-[85px]"
+                                      >
+                                        <CheckCircle2 size={13} /> Approve
+                                      </button>
+                                      <button
+                                        onClick={() => { setRejectModal({ id: record._id, employeeName: emp?.fullName }); setRejectReason(''); }}
+                                        disabled={isProcessing}
+                                        className="flex items-center justify-center gap-1.5 px-3 py-1.5 bg-[#f43f5e] text-white rounded-md text-[11px] font-medium hover:bg-[#e11d48] transition-all disabled:opacity-50 min-w-[85px]"
+                                      >
+                                        <XCircle size={13} /> Reject
+                                      </button>
+                                    </>
+                                  ) : (
+                                    <span className="text-xs font-medium text-slate-400">—</span>
+                                  )}
+                                </div>
+
+                              </div>
+                            );
+                          })}
+                        </React.Fragment>
+                      );
+                    });
+                  })()}
+                </div>
+              </div>
+            )}
+          </div>
         </div>
         {/* ── End Attendance Approval Requests ───────────────────────────────── */}
 
