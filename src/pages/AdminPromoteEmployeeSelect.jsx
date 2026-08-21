@@ -86,7 +86,7 @@ const AdminPromoteEmployeeSelect = () => {
               <div className="w-full bg-slate-50 rounded-xl p-4 mb-5 text-left space-y-2">
                 <p className="text-sm"><span className="text-slate-400 text-xs uppercase tracking-wider block mb-0.5">Role</span> <span className="font-semibold text-slate-700">{emp.role || 'N/A'}</span></p>
                 <p className="text-sm"><span className="text-slate-400 text-xs uppercase tracking-wider block mb-0.5">Department</span> <span className="font-semibold text-slate-700">{emp.department || 'N/A'}</span></p>
-                <p className="text-sm"><span className="text-slate-400 text-xs uppercase tracking-wider block mb-0.5">Employment</span> <span className="font-semibold text-blue-600">{emp.employmentType || 'Regular'}</span></p>
+                <p className="text-sm"><span className="text-slate-400 text-xs uppercase tracking-wider block mb-0.5">Employment</span> <span className="font-semibold text-blue-600">{emp.employmentType || (emp.empCode?.includes('OD-IN') ? 'Intern' : 'Regular')}</span></p>
               </div>
               
               <button 

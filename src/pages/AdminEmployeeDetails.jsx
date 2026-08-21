@@ -2007,7 +2007,7 @@ const AdminEmployeeDetails = () => {
                   <div className="flex justify-between items-start mb-3">
                     <div>
                       <h4 className="font-bold text-blue-900 flex items-center gap-2">
-                        ⭐ {employee.employmentType || (employee.role?.toLowerCase().includes('intern') ? 'Intern' : 'Regular')} (Current)
+                        ⭐ {employee.employmentType || (employee.empCode?.includes('OD-IN') ? 'Intern' : 'Regular')} (Current)
                       </h4>
                       <p className="text-sm font-semibold text-blue-600">{employee.empCode}</p>
                     </div>
