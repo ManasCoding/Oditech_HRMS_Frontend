@@ -5,14 +5,16 @@ import { MapPin, CheckCircle2, Clock, AlertTriangle, XCircle, Calendar } from 'l
 import api from '../services/api';
 
 import { getEmployeeAttendanceStatus } from '../utils/attendanceUtils';
+import { useAttendance } from '../context/AttendanceContext';
 
 const EmployeeAttendance = () => {
-  const { user } = useAuth();
+  const [user] = useState(JSON.parse(localStorage.getItem('user')) || { name: 'Employee', slug: '', id: '' });
   const { refreshKey } = useAttendance();
   const navigate = useNavigate();
   const [todayAttendance, setTodayAttendance] = useState(null);
   const [attendanceLog, setAttendanceLog] = useState([]);
   const [loading, setLoading] = useState(true);
+  const today = new Date();
 
   const fetchAttendance = async () => {
     try {
@@ -76,7 +78,7 @@ const EmployeeAttendance = () => {
         <div className="bg-white rounded-[40px] border border-slate-100 shadow-xl shadow-slate-200/50 p-8 md:p-10 relative overflow-hidden">
           <div className="absolute top-0 left-0 w-full h-2 bg-[#1e293b]" />
           <div className="mb-8">
-            <h2 className="text-3xl font-black text-[#1e293b] mb-1">Today s Attendance</h2>
+            <h2 className="text-3xl font-black text-[#1e293b] mb-1">Today's Attendance</h2>
             <p className="text-slate-400 font-bold text-sm">{fmtDate(today)}</p>
           </div>
 
@@ -173,7 +175,7 @@ const EmployeeAttendance = () => {
               <Clock size={28} />
             </div>
             <div>
-              <p className="text-slate-400 text-[10px] font-black uppercase tracking-[2px] mb-1">Today s Work Hours</p>
+              <p className="text-slate-400 text-[10px] font-black uppercase tracking-[2px] mb-1">Today's Work Hours</p>
               <h4 className="text-lg font-black text-[#1e293b]">{todayAttendance?.workHours || '0h 0m'}</h4>
               <p className="text-xs font-bold text-slate-400">Expected: 9h 0m</p>
             </div>
