@@ -1972,7 +1972,9 @@ const AdminEmployeeDetails = () => {
           <div className="bg-white rounded-[40px] border border-border shadow-sm p-8 mb-8">
             <h3 className="text-xl font-bold text-slate-800 mb-8">Employment Journey</h3>
             <div className="relative pl-8 border-l-2 border-slate-200 space-y-10 pb-4">
-              {employee.employmentHistory?.map((hist, idx) => (
+              {[...(employee.employmentHistory || [])]
+                .sort((a, b) => new Date(a.startDate) - new Date(b.startDate))
+                .map((hist, idx) => (
                 <div key={idx} className="relative">
                   <div className="absolute -left-[41px] w-5 h-5 rounded-full bg-blue-500 border-4 border-white shadow shadow-blue-500/50"></div>
                   <div className="bg-blue-50/50 border border-blue-100 p-5 rounded-2xl relative overflow-hidden max-w-2xl">

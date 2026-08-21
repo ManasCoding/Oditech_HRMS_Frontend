@@ -228,7 +228,9 @@ const EmployeeProfile = () => {
               <p className="text-[9px] font-black text-slate-400 uppercase tracking-widest mb-6">Employment Journey</p>
               
               <div className="relative pl-6 border-l-2 border-slate-100 space-y-6 pb-2">
-                {profile?.employmentHistory?.map((hist, idx) => (
+                {[...(profile?.employmentHistory || [])]
+                  .sort((a, b) => new Date(a.startDate) - new Date(b.startDate))
+                  .map((hist, idx) => (
                   <div key={idx} className="relative">
                     <div className="absolute -left-[31px] w-4 h-4 rounded-full bg-blue-500 border-4 border-white shadow shadow-blue-500/50"></div>
                     <div className="bg-blue-50/50 border border-blue-100 p-4 rounded-xl relative overflow-hidden">
