@@ -98,7 +98,8 @@ const InlineAttendanceStatusEditor = ({ record, employeeId, onUpdateSuccess }) =
       }
     } catch (error) {
       console.error('Attendance update error:', error);
-      toast.error('Failed to update attendance');
+      const errorMessage = error.response?.data?.message || 'Failed to update attendance';
+      toast.error(errorMessage, { duration: 5000 });
       // Rollback Optimistic UI
       setCurrentStatus(oldStatus);
     } finally {
