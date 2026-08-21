@@ -100,7 +100,32 @@ const AdminPromoteEmployeeDetails = () => {
   const submitUpgrade = async () => {
     setSubmitting(true);
     try {
-      const res = await api.post(`/admin/employees/${id}/upgrade`, formData);
+      // Build history item
+      const newHistoryItem = {
+        empCode: employee.empCode,
+        employmentType: employee.employmentType || (employee.empCode?.includes('OD-IN') ? 'Intern' : 'Regular'),
+        designation: employee.role,
+        department: employee.department,
+        startDate: employee.joinDate,
+        endDate: formData.effectiveDate ? new Date(formData.effectiveDate) : new Date(),
+        status: 'Completed',
+        reason: formData.reason || 'Upgraded'
+      };
+
+      const updatedHistory = [...(employee.employmentHistory || []), newHistoryItem];
+
+      const payload = {
+        empCode: formData.empCode || employee.empCode,
+        employmentType: formData.employmentType || employee.employmentType,
+        role: formData.role || employee.role,
+        department: formData.department || employee.department,
+        joinDate: formData.effectiveDate ? new Date(formData.effectiveDate) : employee.joinDate,
+        employmentHistory: updatedHistory
+      };
+
+      // Call the existing PUT endpoint that is already deployed to Render
+      const res = await api.put(`/admin/employees/${id}`, payload);
+      
       if (res.data.success) {
         toast.success('Employment upgraded successfully');
         setIsModalOpen(false);
