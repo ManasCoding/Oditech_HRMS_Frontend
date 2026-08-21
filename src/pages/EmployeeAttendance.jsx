@@ -66,6 +66,25 @@ const EmployeeAttendance = () => {
     }
   };
 
+  const getDynamicWorkHours = (record) => {
+    if (!record) return '0h 0m';
+    if (record.workHours && record.workHours !== '0h 0m' && record.workHours !== '--') return record.workHours;
+    if (!record.checkIn) return '0h 0m';
+    if (record.checkOut) {
+      const mins = Math.floor((new Date(record.checkOut) - new Date(record.checkIn)) / (1000 * 60));
+      if (mins < 0) return '0h 0m';
+      return `${Math.floor(mins / 60)}h ${mins % 60}m`;
+    }
+    const checkInDate = new Date(record.checkIn);
+    const now = new Date();
+    if (checkInDate.toDateString() === now.toDateString()) {
+      const mins = Math.floor((now - checkInDate) / (1000 * 60));
+      if (mins < 0) return '0h 0m';
+      return `${Math.floor(mins / 60)}h ${mins % 60}m`;
+    }
+    return '0h 0m';
+  };
+
   const slug = user.slug || user.id;
   const todayStatus = getDisplayStatus(todayAttendance);
   const approval = todayAttendance?.checkInApprovalStatus;
@@ -97,7 +116,7 @@ const EmployeeAttendance = () => {
                 </div>
                 <div>
                   <p className="text-[9px] font-black text-slate-400 uppercase tracking-widest mb-1">Hours</p>
-                  <p className="text-lg font-black text-blue-600">{todayAttendance?.workHours || '—'}</p>
+                  <p className="text-lg font-black text-blue-600">{getDynamicWorkHours(todayAttendance)}</p>
                 </div>
               </div>
 
@@ -176,7 +195,7 @@ const EmployeeAttendance = () => {
             </div>
             <div>
               <p className="text-slate-400 text-[10px] font-black uppercase tracking-[2px] mb-1">Today's Work Hours</p>
-              <h4 className="text-lg font-black text-[#1e293b]">{todayAttendance?.workHours || '0h 0m'}</h4>
+              <h4 className="text-lg font-black text-[#1e293b]">{getDynamicWorkHours(todayAttendance)}</h4>
               <p className="text-xs font-bold text-slate-400">Expected: 9h 0m</p>
             </div>
           </div>
@@ -204,7 +223,7 @@ const EmployeeAttendance = () => {
                       <p className="text-sm font-black text-[#1e293b]">{fmtDate(rec.date)}</p>
                       <p className="text-[10px] font-bold text-slate-400 mt-0.5">
                         {fmtTime(rec.checkIn)} to {fmtTime(rec.checkOut)}
-                        {rec.workHours ? <span className="ml-2 text-blue-500">({rec.workHours})</span> : null}
+                        {getDynamicWorkHours(rec) !== '0h 0m' ? <span className="ml-2 text-blue-500">({getDynamicWorkHours(rec)})</span> : null}
                       </p>
                     </div>
                     <div className="flex flex-col items-end gap-1">

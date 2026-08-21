@@ -373,13 +373,10 @@ const AdminEmployeeDetails = () => {
       const d = new Date(rawDate);
       const formattedDate = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
 
-      const localDate = new Date(`${formattedDate}T${editingCheckIn.time}:00`);
-      const checkInTimeUTC = localDate.toISOString().substring(11, 16);
-
       await api.put('/admin/attendance/checkin', {
         employeeId: employee._id,
         date: formattedDate,
-        checkInTime: checkInTimeUTC
+        checkInTime: editingCheckIn.time
       });
       setEditingCheckIn({ date: null, time: '' });
       fetchRealStats();
@@ -393,13 +390,10 @@ const AdminEmployeeDetails = () => {
       const d = new Date(rawDate);
       const formattedDate = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
 
-      const localDate = new Date(`${formattedDate}T${editingCheckOut.time}:00`);
-      const checkOutTimeUTC = localDate.toISOString().substring(11, 16);
-
       await api.put('/admin/attendance/checkout', {
         employeeId: employee._id,
         date: formattedDate,
-        checkOutTime: checkOutTimeUTC
+        checkOutTime: editingCheckOut.time
       });
       setEditingCheckOut({ date: null, time: '' });
       fetchRealStats();
@@ -597,6 +591,24 @@ const AdminEmployeeDetails = () => {
   );
 
   const tabs = ['Overview', 'Attendance', 'Leaves', 'Late Marks', 'Login History', 'Document', 'Timesheet', 'Messages', 'Payroll', 'Payslips', 'Journey'];
+
+  const getDynamicWorkHours = (row) => {
+    if (row.workHours && row.workHours !== '0h 0m' && row.workHours !== '--') return row.workHours;
+    if (!row.checkIn) return '0h 0m';
+    if (row.checkOut) {
+      const mins = Math.floor((new Date(row.checkOut) - new Date(row.checkIn)) / (1000 * 60));
+      if (mins < 0) return '0h 0m';
+      return `${Math.floor(mins / 60)}h ${mins % 60}m`;
+    }
+    const checkInDate = new Date(row.checkIn);
+    const now = new Date();
+    if (checkInDate.toDateString() === now.toDateString()) {
+      const mins = Math.floor((now - checkInDate) / (1000 * 60));
+      if (mins < 0) return '0h 0m';
+      return `${Math.floor(mins / 60)}h ${mins % 60}m`;
+    }
+    return '0h 0m';
+  };
 
   return (
     <AdminLayout title="Profile Deep-Dive" hideHeader={true}>
@@ -1198,7 +1210,7 @@ const AdminEmployeeDetails = () => {
                               </div>
                             )}
                           </td>
-                          <td className="px-10 py-1.5 text-[11px] font-black text-primary">{row.workHours || '--'}</td>
+                          <td className="px-10 py-1.5 text-[11px] font-black text-primary">{getDynamicWorkHours(row)}</td>
                           <td className="px-10 py-1.5 text-[9px] font-bold text-slate-400 tracking-tight">{row.remarks || row.note || row.notes || '—'}</td>
                         </tr>
                       ))
@@ -1476,7 +1488,7 @@ const AdminEmployeeDetails = () => {
                           {row.checkOut ? new Date(row.checkOut).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) : '--:--'}
                         </td>
                         <td className="px-10 py-4 text-[11px] font-black text-slate-500">
-                          {row.workHours || '0h 0m'}
+                          {getDynamicWorkHours(row)}
                         </td>
                       </tr>
                     ))}
