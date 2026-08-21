@@ -212,24 +212,24 @@ const AdminPromoteEmployeeDetails = () => {
               {/* History Items */}
               {employee.employmentHistory?.map((hist, idx) => (
                 <div key={idx} className="relative">
-                  <div className="absolute -left-[41px] w-5 h-5 rounded-full bg-slate-200 border-4 border-white"></div>
-                  <div className="bg-slate-50 border border-slate-200 p-5 rounded-2xl">
+                  <div className="absolute -left-[41px] w-5 h-5 rounded-full bg-blue-500 border-4 border-white shadow shadow-blue-500/50"></div>
+                  <div className="bg-blue-50/50 border border-blue-100 p-5 rounded-2xl relative overflow-hidden">
+                    <div className="absolute top-0 left-0 w-1 h-full bg-blue-500"></div>
                     <div className="flex justify-between items-start mb-3">
                       <div>
-                        <h4 className="font-bold text-slate-800 flex items-center gap-2">
-                          <Clock size={16} className="text-slate-400" />
+                        <h4 className="font-bold text-blue-900 flex items-center gap-2">
                           {hist.employmentType}
                         </h4>
-                        <p className="text-sm font-semibold text-slate-500">{hist.empCode}</p>
+                        <p className="text-sm font-semibold text-blue-600 mt-1">{hist.empCode}</p>
                       </div>
-                      <span className="px-2.5 py-1 bg-slate-200 text-slate-700 text-[10px] font-bold uppercase tracking-wider rounded-full">
-                        {hist.status}
+                      <span className="px-2.5 py-1 bg-slate-200 text-slate-500 text-[10px] font-bold uppercase tracking-wider rounded-full">
+                        COMPLETED
                       </span>
                     </div>
-                    <div className="grid grid-cols-2 gap-y-2 text-sm">
-                      <p><span className="text-slate-400">Designation:</span> <span className="font-medium text-slate-700">{hist.designation}</span></p>
-                      <p><span className="text-slate-400">Department:</span> <span className="font-medium text-slate-700">{hist.department}</span></p>
-                      <p className="col-span-2 text-slate-500 mt-2 text-xs font-semibold">
+                    <div className="grid grid-cols-2 gap-y-2 text-sm mt-4">
+                      <p><span className="text-slate-500">Designation:</span> <span className="font-medium text-slate-800">{hist.designation}</span></p>
+                      <p><span className="text-slate-500">Department:</span> <span className="font-medium text-slate-800">{hist.department}</span></p>
+                      <p className="col-span-2 text-blue-700 mt-2 text-xs font-bold">
                         {new Date(hist.startDate).toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' })} → {hist.endDate ? new Date(hist.endDate).toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' }) : 'N/A'}
                       </p>
                     </div>
@@ -245,15 +245,15 @@ const AdminPromoteEmployeeDetails = () => {
                   <div className="flex justify-between items-start mb-3">
                     <div>
                       <h4 className="font-bold text-blue-900 flex items-center gap-2">
-                        ⭐ {employee.employmentType || (employee.empCode?.includes('OD-IN') ? 'Intern' : 'Regular')}
+                        ⭐ {employee.employmentType || (employee.empCode?.includes('OD-IN') ? 'Intern' : 'Regular')} (Current)
                       </h4>
-                      <p className="text-sm font-semibold text-blue-600">{employee.empCode}</p>
+                      <p className="text-sm font-semibold text-blue-600 mt-1">{employee.empCode}</p>
                     </div>
                     <span className="px-2.5 py-1 bg-green-100 text-green-700 text-[10px] font-bold uppercase tracking-wider rounded-full">
                       ACTIVE
                     </span>
                   </div>
-                  <div className="grid grid-cols-2 gap-y-2 text-sm">
+                  <div className="grid grid-cols-2 gap-y-2 text-sm mt-4">
                     <p><span className="text-slate-500">Designation:</span> <span className="font-medium text-slate-800">{employee.role}</span></p>
                     <p><span className="text-slate-500">Department:</span> <span className="font-medium text-slate-800">{employee.department}</span></p>
                     <p className="col-span-2 text-blue-700 mt-2 text-xs font-bold">
