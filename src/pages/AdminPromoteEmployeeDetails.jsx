@@ -147,7 +147,7 @@ const AdminPromoteEmployeeDetails = () => {
               
               <div className="inline-flex items-center gap-2 px-3 py-1 bg-green-50 text-green-700 rounded-full text-xs font-bold uppercase tracking-wider mb-6">
                 <div className="w-2 h-2 rounded-full bg-green-500"></div>
-                {employee.employmentType || 'Regular'}
+                {employee.employmentType || (employee.role?.toLowerCase().includes('intern') ? 'Intern' : 'Regular')}
               </div>
 
               <div className="space-y-3 text-left bg-slate-50 p-4 rounded-2xl">
@@ -166,19 +166,6 @@ const AdminPromoteEmployeeDetails = () => {
               </div>
           </div>
 
-          <div className="bg-white rounded-3xl p-6 border border-slate-200 shadow-sm">
-            <h3 className="font-bold text-slate-800 mb-4">Current Employment Stats</h3>
-            <div className="grid grid-cols-2 gap-4">
-              <div className="bg-blue-50 p-4 rounded-2xl">
-                <p className="text-xs font-bold text-blue-600 uppercase mb-1">Attendance</p>
-                <p className="text-xl font-bold text-slate-800">{stats.attendance} Days</p>
-              </div>
-              <div className="bg-orange-50 p-4 rounded-2xl">
-                <p className="text-xs font-bold text-orange-600 uppercase mb-1">Leave</p>
-                <p className="text-xl font-bold text-slate-800">{stats.leaves} Days</p>
-              </div>
-            </div>
-          </div>
         </div>
 
         {/* Right Column - Timeline */}
@@ -233,7 +220,7 @@ const AdminPromoteEmployeeDetails = () => {
                   <div className="flex justify-between items-start mb-3">
                     <div>
                       <h4 className="font-bold text-blue-900 flex items-center gap-2">
-                        ⭐ {employee.employmentType || 'Regular'}
+                        ⭐ {employee.employmentType || (employee.role?.toLowerCase().includes('intern') ? 'Intern' : 'Regular')}
                       </h4>
                       <p className="text-sm font-semibold text-blue-600">{employee.empCode}</p>
                     </div>
@@ -273,7 +260,7 @@ const AdminPromoteEmployeeDetails = () => {
                 <div className="space-y-6">
                   <div className="bg-slate-50 p-4 rounded-2xl border border-slate-200">
                     <p className="text-xs font-bold text-slate-400 uppercase tracking-widest mb-1">Current</p>
-                    <p className="font-bold text-slate-800">{employee.employmentType || 'Regular'} • {employee.empCode}</p>
+                    <p className="font-bold text-slate-800">{employee.employmentType || (employee.role?.toLowerCase().includes('intern') ? 'Intern' : 'Regular')} • {employee.empCode}</p>
                   </div>
 
                   <div className="grid grid-cols-2 gap-4">
@@ -327,7 +314,7 @@ const AdminPromoteEmployeeDetails = () => {
                   <div className="flex items-center gap-4 p-6 bg-slate-50 border border-slate-200 rounded-2xl">
                     <div className="flex-1">
                       <p className="text-xs font-bold text-slate-400 uppercase tracking-widest mb-1">Current</p>
-                      <h4 className="font-bold text-slate-800">{employee.employmentType || 'Regular'}</h4>
+                      <h4 className="font-bold text-slate-800">{employee.employmentType || (employee.role?.toLowerCase().includes('intern') ? 'Intern' : 'Regular')}</h4>
                       <p className="text-sm font-semibold text-slate-500">{employee.empCode}</p>
                     </div>
                     <div className="text-slate-300">

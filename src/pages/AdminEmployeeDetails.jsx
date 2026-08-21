@@ -2002,12 +2002,12 @@ const AdminEmployeeDetails = () => {
 
               <div className="relative">
                 <div className="absolute -left-[41px] w-5 h-5 rounded-full bg-blue-500 border-4 border-white shadow shadow-blue-500/50"></div>
-                <div className="bg-blue-50/50 border border-blue-100 p-5 rounded-2xl relative overflow-hidden max-w-2xl">
+                <div className="bg-blue-50 border border-blue-100 p-5 rounded-2xl relative overflow-hidden max-w-2xl">
                   <div className="absolute top-0 left-0 w-1 h-full bg-blue-500"></div>
                   <div className="flex justify-between items-start mb-3">
                     <div>
                       <h4 className="font-bold text-blue-900 flex items-center gap-2">
-                        ⭐ {employee.employmentType || 'Regular'} (Current)
+                        ⭐ {employee.employmentType || (employee.role?.toLowerCase().includes('intern') ? 'Intern' : 'Regular')} (Current)
                       </h4>
                       <p className="text-sm font-semibold text-blue-600">{employee.empCode}</p>
                     </div>
