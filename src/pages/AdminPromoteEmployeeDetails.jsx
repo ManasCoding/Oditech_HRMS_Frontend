@@ -4,7 +4,6 @@ import AdminLayout from '../layouts/AdminLayout';
 import api from '../services/api';
 import toast from 'react-hot-toast';
 import { ArrowLeft, TrendingUp, X, CheckCircle, Clock } from 'lucide-react';
-import moment from 'moment';
 
 const AdminPromoteEmployeeDetails = () => {
   const { id } = useParams();
@@ -162,7 +161,7 @@ const AdminPromoteEmployeeDetails = () => {
                 </div>
                 <div className="flex justify-between items-center text-sm">
                   <span className="text-slate-500">Joined</span>
-                  <span className="font-semibold text-slate-800">{moment(employee.joinDate).format('DD MMM YYYY')}</span>
+                  <span className="font-semibold text-slate-800">{new Date(employee.joinDate).toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' })}</span>
                 </div>
               </div>
           </div>
@@ -219,7 +218,7 @@ const AdminPromoteEmployeeDetails = () => {
                       <p><span className="text-slate-400">Designation:</span> <span className="font-medium text-slate-700">{hist.designation}</span></p>
                       <p><span className="text-slate-400">Department:</span> <span className="font-medium text-slate-700">{hist.department}</span></p>
                       <p className="col-span-2 text-slate-500 mt-2 text-xs font-semibold">
-                        {moment(hist.startDate).format('DD MMM YYYY')} → {hist.endDate ? moment(hist.endDate).format('DD MMM YYYY') : 'N/A'}
+                        {new Date(hist.startDate).toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' })} → {hist.endDate ? new Date(hist.endDate).toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' }) : 'N/A'}
                       </p>
                     </div>
                   </div>
@@ -246,7 +245,7 @@ const AdminPromoteEmployeeDetails = () => {
                     <p><span className="text-slate-500">Designation:</span> <span className="font-medium text-slate-800">{employee.role}</span></p>
                     <p><span className="text-slate-500">Department:</span> <span className="font-medium text-slate-800">{employee.department}</span></p>
                     <p className="col-span-2 text-blue-700 mt-2 text-xs font-bold">
-                      {moment(employee.joinDate).format('DD MMM YYYY')} → Present
+                      {new Date(employee.joinDate).toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' })} → Present
                     </p>
                   </div>
                 </div>
