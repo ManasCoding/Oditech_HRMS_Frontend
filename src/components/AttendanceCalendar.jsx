@@ -6,6 +6,8 @@ import { useAttendance } from '../context/AttendanceContext';
 
 const SOCKET_URL = (import.meta.env.VITE_API_BASE_URL || 'https://oditech-hrms-backend-2.onrender.com/api').replace('/api', '');
 
+import { getEmployeeAttendanceStatus } from '../utils/attendanceUtils';
+
 const AttendanceCalendar = ({ employeeId }) => {
   const { refreshKey } = useAttendance();
   const [currentDate, setCurrentDate] = useState(new Date());
@@ -125,7 +127,7 @@ const AttendanceCalendar = ({ employeeId }) => {
       //   Pending  → status = 'Absent'
       //   Approved → status = actual (Late / Half Day / Present)
       //   Rejected → status = 'Absent'
-      const s = log.status;
+      const s = getEmployeeAttendanceStatus(log);
       if (s === 'Half Day') return { status: 'Half Day', color: 'bg-[#F0FDFA] text-[#0D9488] shadow-[#F0FDFA]', tooltip: 'Half Day' };
       if (s === 'Late')     return { status: 'Late',     color: 'bg-[#FFF3E0] text-[#FB8C00] shadow-[#FFF3E0]', tooltip: 'Late' };
       if (s === 'Present')  return { status: 'Present',  color: 'bg-[#E8F8F0] text-[#00A86B] shadow-[#E8F8F0]', tooltip: 'Present' };

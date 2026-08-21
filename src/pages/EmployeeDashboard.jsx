@@ -22,6 +22,8 @@ const StatCard = ({ label, value, subValue, colorClass, bgClass, textClass, icon
   </div>
 );
 
+import { getEmployeeAttendanceStatus } from '../utils/attendanceUtils';
+
 const EmployeeDashboard = () => {
   const { refreshKey } = useAttendance();
   const navigate = useNavigate();

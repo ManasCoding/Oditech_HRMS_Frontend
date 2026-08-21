@@ -4,35 +4,39 @@ import { useNavigate } from 'react-router-dom';
 import { MapPin, CheckCircle2, Clock, AlertTriangle, XCircle, Calendar } from 'lucide-react';
 import api from '../services/api';
 
+import { getEmployeeAttendanceStatus } from '../utils/attendanceUtils';
+
 const EmployeeAttendance = () => {
+  const { user } = useAuth();
+  const { refreshKey } = useAttendance();
   const navigate = useNavigate();
   const [todayAttendance, setTodayAttendance] = useState(null);
   const [attendanceLog, setAttendanceLog] = useState([]);
   const [loading, setLoading] = useState(true);
 
-  const user = JSON.parse(localStorage.getItem('employee') || '{}');
-  const employeeId = user.id || user.slug || user._id;
-  const today = new Date().toISOString().split('T')[0];
+  const fetchAttendance = async () => {
+    try {
+      setLoading(true);
+      const [todayRes, logRes] = await Promise.all([
+        api.get(`/employee/attendance/today/${user.id}`).catch(() => ({ data: { success: false } })),
+        api.get(`/employee/attendance/log/${user.id}`).catch(() => ({ data: { success: false } })),
+      ]);
+      if (todayRes.data.success) setTodayAttendance(todayRes.data.attendance || null);
+      if (logRes.data.success) {
+        setAttendanceLog((logRes.data.records || []).slice(0, 10));
+      }
+    } catch (err) {
+      console.error('Error fetching attendance:', err);
+    } finally {
+      setLoading(false);
+    }
+  };
 
   useEffect(() => {
-    if (!employeeId) return;
-    const fetchData = async () => {
-      setLoading(true);
-      try {
-        const [todayRes, logRes] = await Promise.all([
-          api.get(`/employee/attendance/today/${employeeId}`).catch(() => null),
-          api.get(`/employee/attendance/log/${employeeId}`).catch(() => null),
-        ]);
-        if (todayRes?.data?.success) setTodayAttendance(todayRes.data.attendance || null);
-        if (logRes?.data?.success) setAttendanceLog((logRes.data.records || []).slice(0, 10));
-      } catch {
-        // silently ignore
-      } finally {
-        setLoading(false);
-      }
-    };
-    fetchData();
-  }, [employeeId]);
+    if (user?.id) {
+      fetchAttendance();
+    }
+  }, [user?.id, refreshKey]);
 
   const fmtTime = (dt) =>
     dt ? new Date(dt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', hour12: true }) : '—';
@@ -44,12 +48,7 @@ const EmployeeAttendance = () => {
   };
 
   const getDisplayStatus = (att) => {
-    if (!att || !att.checkIn) return 'Absent';
-    const approval = att.checkInApprovalStatus;
-    if (approval === 'Pending') return 'Absent';
-    if (approval === 'Approved') return att.status;
-    if (approval === 'Rejected') return 'Absent';
-    return att.status || 'Absent';
+    return getEmployeeAttendanceStatus(att);
   };
 
   const statusColor = (s) => {
@@ -107,17 +106,15 @@ const EmployeeAttendance = () => {
                   </span>
                 </div>
 
-                {approval === 'Pending' && exType && exType !== 'None' && (
-                  <div className="flex items-center gap-3 bg-amber-50 border border-amber-200 rounded-2xl px-5 py-4">
-                    <AlertTriangle size={20} className="text-amber-600 shrink-0" />
+                {approval === 'Pending' && (
+                  <div className="flex items-center gap-3 bg-rose-50 border border-rose-200 rounded-2xl px-5 py-4">
+                    <AlertTriangle size={20} className="text-rose-600 shrink-0" />
                     <div>
-                      <p className="text-amber-800 font-black text-sm">
-                        {exType === 'Half Day' ? 'Half-Day' : 'Late Check-In'} Approval Pending
+                      <p className="text-rose-800 font-black text-sm">
+                        Absent — Awaiting Admin Approval
                       </p>
-                      <p className="text-amber-600 text-xs font-bold mt-0.5">
-                        {exType === 'Half Day'
-                          ? 'You worked less than 4 hours today. Admin review required.'
-                          : 'Your check-in was recorded late. Admin review required.'}
+                      <p className="text-rose-600 text-xs font-bold mt-0.5">
+                        Your check-in requires admin approval before it is recorded.
                       </p>
                     </div>
                   </div>
@@ -212,9 +209,9 @@ const EmployeeAttendance = () => {
                       <span className={`px-3 py-1 rounded-full text-[9px] font-black uppercase tracking-widest ${statusColor(ds)}`}>
                         {ds}
                       </span>
-                      {recApproval === 'Pending' && recExType && recExType !== 'None' && (
-                        <span className="px-2 py-0.5 bg-amber-100 text-amber-700 rounded-full text-[8px] font-black uppercase tracking-widest animate-pulse">
-                          {recExType} Pending
+                      {recApproval === 'Pending' && (
+                        <span className="px-2 py-0.5 bg-rose-100 text-rose-700 rounded-full text-[8px] font-black uppercase tracking-widest animate-pulse">
+                          Awaiting Approval
                         </span>
                       )}
                       {recApproval === 'Approved' && recExType && recExType !== 'None' && (
