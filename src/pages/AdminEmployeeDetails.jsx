@@ -373,12 +373,23 @@ const AdminEmployeeDetails = () => {
       const d = new Date(rawDate);
       const formattedDate = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
 
-      await api.put('/admin/attendance/checkin', {
+      const res = await api.put('/admin/attendance/checkin', {
         employeeId: employee._id,
         date: formattedDate,
         checkInTime: editingCheckIn.time
       });
       setEditingCheckIn({ date: null, time: '' });
+      if (res.data.success && res.data.record) {
+        const updatedRec = res.data.record;
+        setAttendanceRecords(prev => prev.map(rec => {
+          const dRec = new Date(rec.date);
+          const recDateStr = `${dRec.getFullYear()}-${String(dRec.getMonth() + 1).padStart(2, '0')}-${String(dRec.getDate()).padStart(2, '0')}`;
+          if (recDateStr === formattedDate) {
+            return { ...rec, ...updatedRec, status: updatedRec.status, workHours: updatedRec.workHours };
+          }
+          return rec;
+        }));
+      }
       fetchRealStats();
     } catch (err) {
       alert(err.response?.data?.message || 'Failed to update check-in');
@@ -390,12 +401,23 @@ const AdminEmployeeDetails = () => {
       const d = new Date(rawDate);
       const formattedDate = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
 
-      await api.put('/admin/attendance/checkout', {
+      const res = await api.put('/admin/attendance/checkout', {
         employeeId: employee._id,
         date: formattedDate,
         checkOutTime: editingCheckOut.time
       });
       setEditingCheckOut({ date: null, time: '' });
+      if (res.data.success && res.data.record) {
+        const updatedRec = res.data.record;
+        setAttendanceRecords(prev => prev.map(rec => {
+          const dRec = new Date(rec.date);
+          const recDateStr = `${dRec.getFullYear()}-${String(dRec.getMonth() + 1).padStart(2, '0')}-${String(dRec.getDate()).padStart(2, '0')}`;
+          if (recDateStr === formattedDate) {
+            return { ...rec, ...updatedRec, status: updatedRec.status, workHours: updatedRec.workHours };
+          }
+          return rec;
+        }));
+      }
       fetchRealStats();
     } catch (err) {
       alert(err.response?.data?.message || 'Failed to update check-out');
@@ -407,11 +429,22 @@ const AdminEmployeeDetails = () => {
       const d = new Date(rawDate);
       const formattedDate = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
       
-      await api.put('/admin/attendance/status', {
+      const res = await api.put('/admin/attendance/status', {
         employeeId: employee._id,
         date: formattedDate,
         status: newStatus
       });
+      if (res.data.success && res.data.record) {
+        const updatedRec = res.data.record;
+        setAttendanceRecords(prev => prev.map(rec => {
+          const dRec = new Date(rec.date);
+          const recDateStr = `${dRec.getFullYear()}-${String(dRec.getMonth() + 1).padStart(2, '0')}-${String(dRec.getDate()).padStart(2, '0')}`;
+          if (recDateStr === formattedDate) {
+            return { ...rec, ...updatedRec, status: updatedRec.status, workHours: updatedRec.workHours };
+          }
+          return rec;
+        }));
+      }
       fetchRealStats();
     } catch (err) {
       alert(err.response?.data?.message || 'Failed to update status');
@@ -590,22 +623,36 @@ const AdminEmployeeDetails = () => {
     </AdminLayout>
   );
 
-  const tabs = ['Overview', 'Attendance', 'Leaves', 'Late Marks', 'Login History', 'Document', 'Timesheet', 'Messages', 'Payroll', 'Payslips', 'Journey'];
+  const formatHHMM = (dateVal) => {
+    if (!dateVal) return '';
+    const d = new Date(dateVal);
+    if (isNaN(d.getTime())) return '';
+    const hours = String(d.getHours()).padStart(2, '0');
+    const minutes = String(d.getMinutes()).padStart(2, '0');
+    return `${hours}:${minutes}`;
+  };
 
   const getDynamicWorkHours = (row) => {
     if (row.workHours && row.workHours !== '0h 0m' && row.workHours !== '--') return row.workHours;
     if (!row.checkIn) return '0h 0m';
     if (row.checkOut) {
-      const mins = Math.floor((new Date(row.checkOut) - new Date(row.checkIn)) / (1000 * 60));
-      if (mins < 0) return '0h 0m';
-      return `${Math.floor(mins / 60)}h ${mins % 60}m`;
+      const cIn = new Date(row.checkIn);
+      const cOut = new Date(row.checkOut);
+      let diffMs = cOut.getTime() - cIn.getTime();
+      const outTimeStr = cOut.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', hour12: false });
+      if (diffMs <= 0 && outTimeStr === '00:00') {
+        diffMs += 24 * 60 * 60 * 1000;
+      }
+      if (diffMs <= 0) return '0h 0m';
+      const mins = Math.floor(diffMs / (1000 * 60));
+      return `${Math.floor(mins / 60)}h ${String(mins % 60).padStart(2, '0')}m`;
     }
     const checkInDate = new Date(row.checkIn);
     const now = new Date();
     if (checkInDate.toDateString() === now.toDateString()) {
       const mins = Math.floor((now - checkInDate) / (1000 * 60));
       if (mins < 0) return '0h 0m';
-      return `${Math.floor(mins / 60)}h ${mins % 60}m`;
+      return `${Math.floor(mins / 60)}h ${String(mins % 60).padStart(2, '0')}m (In Progress)`;
     }
     return '0h 0m';
   };
@@ -1171,7 +1218,7 @@ const AdminEmployeeDetails = () => {
                                   <button 
                                     onClick={() => setEditingCheckIn({ 
                                       date: row.date, 
-                                      time: row.checkIn ? new Date(row.checkIn).toLocaleTimeString('en-US', {hour12: false, hour: '2-digit', minute: '2-digit'}) : '09:00' 
+                                      time: row.checkIn ? formatHHMM(row.checkIn) : '09:00' 
                                     })}
                                     className="text-slate-300 hover:text-primary opacity-0 group-hover:opacity-100 transition-opacity"
                                     title="Edit Check-In Time"
@@ -1200,7 +1247,7 @@ const AdminEmployeeDetails = () => {
                                   <button 
                                     onClick={() => setEditingCheckOut({ 
                                       date: row.date, 
-                                      time: row.checkOut ? new Date(row.checkOut).toLocaleTimeString('en-US', {hour12: false, hour: '2-digit', minute: '2-digit'}) : '18:00' 
+                                      time: row.checkOut ? formatHHMM(row.checkOut) : '18:00' 
                                     })}
                                     className="text-slate-300 hover:text-primary opacity-0 group-hover:opacity-100 transition-opacity"
                                     title="Edit Check-Out Time"
