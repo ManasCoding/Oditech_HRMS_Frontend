@@ -1,7 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import AdminLayout from '../layouts/AdminLayout';
-import { UserPlus, X, Edit2, Trash2, CheckCircle2, Users } from 'lucide-react';
+import { UserPlus, X, Edit2, Trash2, CheckCircle2, Users, TrendingUp } from 'lucide-react';
 import api from '../services/api';
 import SearchHeader from '../components/SearchHeader';
 
@@ -134,8 +134,10 @@ const AdminEmployees = () => {
   const departments = ['All', ...new Set(employees.map(e => e.department).filter(Boolean))];
 
   const filteredEmployees = employees.filter(emp => {
-    const matchesSearch = emp.fullName.toLowerCase().includes(searchTerm.toLowerCase()) ||
-                         emp.empCode.toLowerCase().includes(searchTerm.toLowerCase());
+    const searchLower = searchTerm.toLowerCase();
+    const matchesSearch = emp.fullName.toLowerCase().includes(searchLower) ||
+                         emp.empCode.toLowerCase().includes(searchLower) ||
+                         emp.employmentHistory?.some(h => h.empCode && h.empCode.toLowerCase().includes(searchLower));
     const matchesDept = filterDept === 'All' || emp.department === filterDept;
     return matchesSearch && matchesDept;
   });
@@ -150,6 +152,13 @@ const AdminEmployees = () => {
         >
           <Users size={18} />
           Ex-Employees
+        </button>
+        <button 
+          onClick={() => navigate('/admin/employees/promote')}
+          className="flex items-center gap-2 px-6 py-3 bg-blue-50 text-blue-700 border border-blue-200 rounded-2xl text-sm font-bold hover:bg-blue-100 transition-all shadow-sm"
+        >
+          <TrendingUp size={18} />
+          Promote / Upgrade Employee
         </button>
         <button 
           onClick={() => {

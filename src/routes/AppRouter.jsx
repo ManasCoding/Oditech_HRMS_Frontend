@@ -25,6 +25,8 @@ import AdminPerformance from '../pages/AdminPerformance';
 import AdminEmployees from '../pages/AdminEmployees';
 import AdminExEmployees from '../pages/AdminExEmployees';
 import AdminEmployeeDetails from '../pages/AdminEmployeeDetails';
+import AdminPromoteEmployeeSelect from '../pages/AdminPromoteEmployeeSelect';
+import AdminPromoteEmployeeDetails from '../pages/AdminPromoteEmployeeDetails';
 import EmployeePaySlip from '../pages/EmployeePaySlip';
 import EmployeeApplyLeave from '../pages/EmployeeApplyLeave';
 import EmployeeResignation from '../pages/EmployeeResignation';
@@ -111,6 +113,8 @@ const AppRouter = () => {
       <Route path="/admin/dashboard" element={<AdminDashboard />} />
       <Route path="/admin/attendance" element={<AdminAttendance />} />
       <Route path="/admin/employees" element={<AdminEmployees />} />
+      <Route path="/admin/employees/promote" element={<AdminPromoteEmployeeSelect />} />
+      <Route path="/admin/employees/promote/:id" element={<AdminPromoteEmployeeDetails />} />
       <Route path="/admin/employees/ex" element={<AdminExEmployees />} />
       <Route path="/admin/employees/:id" element={<AdminEmployeeDetails />} />
       <Route path="/admin/leaves" element={<AdminLeaves />} />
