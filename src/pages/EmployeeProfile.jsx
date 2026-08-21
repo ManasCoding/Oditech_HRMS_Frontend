@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { useParams } from 'react-router-dom';
 import {
   User, Mail, Phone, Briefcase, Calendar,
-  Edit3, Save, X, CheckCircle2, Lock, Camera
+  Edit3, Save, X, CheckCircle2, Lock, Camera, Clock
 } from 'lucide-react';
 import EmployeeLayout from '../layouts/EmployeeLayout';
 import api from '../services/api';
@@ -220,6 +220,48 @@ const EmployeeProfile = () => {
                     ? new Date(profile.joinDate).toLocaleDateString('en-IN', { day: '2-digit', month: 'long', year: 'numeric' })
                     : '—'}
                 </p>
+              </div>
+            </div>
+
+            {/* Employment Journey */}
+            <div className="bg-white rounded-[24px] border border-slate-100 shadow-sm p-6">
+              <p className="text-[9px] font-black text-slate-400 uppercase tracking-widest mb-6">Employment Journey</p>
+              
+              <div className="relative pl-6 border-l-2 border-slate-100 space-y-6">
+                {profile?.employmentHistory?.map((hist, idx) => (
+                  <div key={idx} className="relative">
+                    <div className="absolute -left-[31px] w-4 h-4 rounded-full bg-slate-200 border-4 border-white"></div>
+                    <div className="bg-slate-50 border border-slate-100 p-3 rounded-xl">
+                      <div className="flex justify-between items-start mb-1">
+                        <h4 className="font-bold text-slate-700 text-xs flex items-center gap-1.5">
+                          {hist.employmentType}
+                        </h4>
+                        <span className="text-[9px] font-bold text-slate-400 uppercase bg-slate-200 px-2 py-0.5 rounded-full">{hist.status}</span>
+                      </div>
+                      <p className="text-[10px] font-semibold text-slate-500 mb-1">{hist.designation}</p>
+                      <p className="text-[9px] font-bold text-slate-400">
+                        {new Date(hist.startDate).toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' })} → {hist.endDate ? new Date(hist.endDate).toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' }) : 'N/A'}
+                      </p>
+                    </div>
+                  </div>
+                ))}
+
+                <div className="relative">
+                  <div className="absolute -left-[31px] w-4 h-4 rounded-full bg-blue-500 border-4 border-white shadow shadow-blue-500/50"></div>
+                  <div className="bg-blue-50/50 border border-blue-100 p-3 rounded-xl relative overflow-hidden">
+                    <div className="absolute top-0 left-0 w-1 h-full bg-blue-500"></div>
+                    <div className="flex justify-between items-start mb-1">
+                      <h4 className="font-bold text-blue-900 text-xs flex items-center gap-1.5">
+                        ⭐ {profile?.employmentType || (profile?.empCode?.includes('OD-IN') ? 'Intern' : 'Regular')}
+                      </h4>
+                      <span className="text-[9px] font-bold text-green-700 uppercase bg-green-100 px-2 py-0.5 rounded-full">Active</span>
+                    </div>
+                    <p className="text-[10px] font-semibold text-blue-800 mb-1">{profile?.role}</p>
+                    <p className="text-[9px] font-bold text-blue-600">
+                      {profile?.joinDate ? new Date(profile.joinDate).toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' }) : 'N/A'} → Present
+                    </p>
+                  </div>
+                </div>
               </div>
             </div>
           </div>
