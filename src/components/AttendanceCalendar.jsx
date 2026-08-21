@@ -121,18 +121,15 @@ const AttendanceCalendar = ({ employeeId }) => {
     });
 
     if (log) {
-      // Check if employee has checked in properly
-      const hasCheckedIn = log.checkIn && log.checkIn !== "00:00";
-
-      if (hasCheckedIn || log.status === 'Half Day') {
-        // 4. Present / Late / Half Day
-        if (log.status === 'Half Day') return { status: 'Half Day', color: 'bg-[#F0FDFA] text-[#0D9488] shadow-[#F0FDFA]', tooltip: 'Half Day' };
-        if (log.status === 'Late') return { status: 'Late', color: 'bg-[#FFF3E0] text-[#FB8C00] shadow-[#FFF3E0]', tooltip: 'Late' };
-        return { status: 'Present', color: 'bg-[#E8F8F0] text-[#00A86B] shadow-[#E8F8F0]', tooltip: 'Present' };
-      } else {
-        // 5. Absent
-        return { status: 'Absent', color: 'bg-[#FDECEC] text-[#E53935] shadow-[#FDECEC]', tooltip: 'Absent' };
-      }
+      // The backend already applies applyDisplayStatus():
+      //   Pending  → status = 'Absent'
+      //   Approved → status = actual (Late / Half Day / Present)
+      //   Rejected → status = 'Absent'
+      const s = log.status;
+      if (s === 'Half Day') return { status: 'Half Day', color: 'bg-[#F0FDFA] text-[#0D9488] shadow-[#F0FDFA]', tooltip: 'Half Day' };
+      if (s === 'Late')     return { status: 'Late',     color: 'bg-[#FFF3E0] text-[#FB8C00] shadow-[#FFF3E0]', tooltip: 'Late' };
+      if (s === 'Present')  return { status: 'Present',  color: 'bg-[#E8F8F0] text-[#00A86B] shadow-[#E8F8F0]', tooltip: 'Present' };
+      return { status: 'Absent', color: 'bg-[#FDECEC] text-[#E53935] shadow-[#FDECEC]', tooltip: 'Absent' };
     }
 
     // If past and no record, and not weekend/holiday -> Absent

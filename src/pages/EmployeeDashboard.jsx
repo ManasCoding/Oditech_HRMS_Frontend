@@ -168,17 +168,17 @@ const EmployeeDashboard = () => {
                 <>
                   <h4 className="text-xl font-bold text-slate-800">
                     {todayStatus.checkInApprovalStatus === 'Pending'
-                      ? 'Awaiting Approval'
+                      ? 'Checked In — Approval Pending'
                       : `Checked In at ${new Date(todayStatus.checkIn).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}`}
                   </h4>
                   {todayStatus.checkInApprovalStatus === 'Pending' && (
-                    <span className="inline-block mt-1 text-[10px] font-black bg-amber-100 text-amber-700 px-3 py-1 rounded-full uppercase tracking-widest">
-                      Late · Pending Admin Approval
+                    <span className="inline-block mt-1 text-[10px] font-black bg-rose-100 text-rose-700 px-3 py-1 rounded-full uppercase tracking-widest">
+                      Absent · Awaiting Admin Approval
                     </span>
                   )}
-                  {todayStatus.checkInApprovalStatus === 'Approved' && (
+                  {todayStatus.checkInApprovalStatus === 'Approved' && todayStatus.exceptionType && todayStatus.exceptionType !== 'None' && (
                     <span className="inline-block mt-1 text-[10px] font-black bg-amber-100 text-amber-700 px-3 py-1 rounded-full uppercase tracking-widest">
-                      Late · Approved
+                      {todayStatus.status} · Approved
                     </span>
                   )}
                   {todayStatus.checkInApprovalStatus === 'Rejected' && (
