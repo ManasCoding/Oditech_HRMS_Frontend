@@ -633,6 +633,7 @@ const AdminEmployeeDetails = () => {
         <h2 className="text-2xl font-black text-slate-800">Profile Not Found</h2>
         <button onClick={() => navigate('/admin/dashboard')} className="mt-6 px-8 py-3 bg-primary text-white rounded-2xl font-bold shadow-lg shadow-primary/20">Return to Dashboard</button>
       </div>
+    </AdminLayout>
   );
 
   const formatHHMM = (dateVal) => {
