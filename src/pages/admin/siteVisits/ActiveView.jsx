@@ -41,17 +41,18 @@ const ActiveView = () => {
 
         <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-6">
           {ongoingVisits.map(visit => {
-            const empName = visit.employeeId?.fullName || `${visit.employeeId?.firstName || ''} ${visit.employeeId?.lastName || ''}`.trim() || 'Employee';
-            const empCode = visit.employeeId?.employeeId || visit.employeeId?.empCode || '—';
+            const empName = visit.employeeId?.fullName || `${visit.employeeId?.firstName || ''} ${visit.employeeId?.lastName || ''}`.trim() || visit.employeeName || 'Employee';
+            const empCode = visit.employeeId?.empCode || visit.employeeId?.employeeId || '—';
+            const avatarImg = visit.employeeId?.profileImage || visit.employeeId?.profilePicture;
 
             return (
               <div key={visit._id} className="bg-white p-6 rounded-3xl border border-slate-200 shadow-sm relative overflow-hidden space-y-4">
                 <div className="absolute top-0 left-0 w-1.5 h-full bg-emerald-500"></div>
                 <div className="flex justify-between items-start">
                   <div className="flex items-center gap-3">
-                    <div className="w-10 h-10 rounded-full bg-slate-100 flex items-center justify-center font-black text-xs text-slate-600 border border-slate-200 overflow-hidden">
-                      {visit.employeeId?.profilePicture ? (
-                        <img src={visit.employeeId.profilePicture} alt="" className="w-full h-full object-cover" />
+                    <div className="w-10 h-10 rounded-full bg-slate-100 flex items-center justify-center font-black text-xs text-slate-600 border border-slate-200 overflow-hidden shrink-0">
+                      {avatarImg ? (
+                        <img src={avatarImg} alt="" className="w-full h-full object-cover" onError={(e) => { e.target.onerror = null; e.target.style.display = 'none'; }} />
                       ) : (
                         empName.charAt(0)
                       )}
@@ -117,17 +118,18 @@ const ActiveView = () => {
               </thead>
               <tbody className="divide-y divide-slate-100">
                 {completedVisits.map(visit => {
-                  const empName = visit.employeeId?.fullName || `${visit.employeeId?.firstName || ''} ${visit.employeeId?.lastName || ''}`.trim() || 'Employee';
-                  const empCode = visit.employeeId?.employeeId || visit.employeeId?.empCode || '—';
+                  const empName = visit.employeeId?.fullName || `${visit.employeeId?.firstName || ''} ${visit.employeeId?.lastName || ''}`.trim() || visit.employeeName || 'Employee';
+                  const empCode = visit.employeeId?.empCode || visit.employeeId?.employeeId || '—';
+                  const avatarImg = visit.employeeId?.profileImage || visit.employeeId?.profilePicture;
                   const completedTimeStr = visit.completedAt ? new Date(visit.completedAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', hour12: true }) : '—';
 
                   return (
                     <tr key={visit._id} className="hover:bg-slate-50/50 transition-all">
                       <td className="px-6 py-4">
                         <div className="flex items-center gap-3">
-                          <div className="w-9 h-9 rounded-full bg-slate-100 flex items-center justify-center font-black text-xs text-slate-600 border border-slate-200 overflow-hidden">
-                            {visit.employeeId?.profilePicture ? (
-                              <img src={visit.employeeId.profilePicture} alt="" className="w-full h-full object-cover" />
+                          <div className="w-9 h-9 rounded-full bg-slate-100 flex items-center justify-center font-black text-xs text-slate-600 border border-slate-200 overflow-hidden shrink-0">
+                            {avatarImg ? (
+                              <img src={avatarImg} alt="" className="w-full h-full object-cover" onError={(e) => { e.target.onerror = null; e.target.style.display = 'none'; }} />
                             ) : (
                               empName.charAt(0)
                             )}
