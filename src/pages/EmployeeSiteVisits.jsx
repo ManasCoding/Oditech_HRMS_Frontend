@@ -98,7 +98,7 @@ const EmployeeSiteVisits = () => {
               <div className="space-y-2">
                 <div className="flex items-center gap-2">
                   <span className={`px-3 py-1 text-[10px] font-black rounded-full uppercase tracking-widest border ${getStatusBadge(activeVisit.status)}`}>
-                    {activeVisit.status === 'Active' ? 'Visit Ongoing / Active' : 'Approved — Ready to Visit'}
+                    Visit Ongoing / Active
                   </span>
                 </div>
                 <h3 className="text-2xl md:text-3xl font-black tracking-tight text-white">{activeVisit.clientName}</h3>
@@ -113,27 +113,14 @@ const EmployeeSiteVisits = () => {
               </div>
               
               <div className="flex flex-col gap-3 shrink-0 min-w-[200px]">
-                {activeVisit.status === 'Approved' && (
-                  <button 
-                    disabled={processing}
-                    onClick={() => handleStartVisit(activeVisit._id)}
-                    className="w-full py-4 bg-emerald-500 hover:bg-emerald-600 text-white rounded-2xl font-black text-xs uppercase tracking-widest transition-all shadow-lg shadow-emerald-500/30 flex items-center justify-center gap-2 active:scale-95 disabled:opacity-50"
-                  >
-                    <PlayCircle size={18} />
-                    Start Visit
-                  </button>
-                )}
-
-                {activeVisit.status === 'Active' && (
-                  <button 
-                    disabled={processing}
-                    onClick={() => handleEndVisit(activeVisit._id)}
-                    className="w-full py-4 bg-rose-500 hover:bg-rose-600 text-white rounded-2xl font-black text-xs uppercase tracking-widest transition-all shadow-lg shadow-rose-500/30 flex items-center justify-center gap-2 active:scale-95 disabled:opacity-50"
-                  >
-                    <StopCircle size={18} />
-                    End Visit
-                  </button>
-                )}
+                <button 
+                  disabled={processing}
+                  onClick={() => handleEndVisit(activeVisit._id)}
+                  className="w-full py-4 bg-rose-500 hover:bg-rose-600 text-white rounded-2xl font-black text-xs uppercase tracking-widest transition-all shadow-lg shadow-rose-500/30 flex items-center justify-center gap-2 active:scale-95 disabled:opacity-50"
+                >
+                  <StopCircle size={18} />
+                  End Visit
+                </button>
               </div>
             </div>
           </div>
@@ -160,7 +147,7 @@ const EmployeeSiteVisits = () => {
                     <div className="flex items-center gap-3">
                       <h4 className="font-black text-base text-slate-800">{visit.clientName}</h4>
                       <span className={`px-3 py-1 text-[9px] font-black rounded-full uppercase tracking-widest border ${getStatusBadge(visit.status)}`}>
-                        {visit.status}
+                        {visit.status === 'Active' || visit.status === 'Approved' ? 'Active / Ongoing' : visit.status}
                       </span>
                     </div>
                     <p className="text-xs font-bold text-slate-500">
@@ -179,16 +166,7 @@ const EmployeeSiteVisits = () => {
                   </div>
 
                   <div className="flex items-center gap-3">
-                    {visit.status === 'Approved' && (
-                      <button
-                        disabled={processing}
-                        onClick={() => handleStartVisit(visit._id)}
-                        className="px-4 py-2 bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl text-xs font-bold transition-all shadow-sm"
-                      >
-                        Start Visit
-                      </button>
-                    )}
-                    {visit.status === 'Active' && (
+                    {(visit.status === 'Active' || visit.status === 'Approved') && (
                       <button
                         disabled={processing}
                         onClick={() => handleEndVisit(visit._id)}
