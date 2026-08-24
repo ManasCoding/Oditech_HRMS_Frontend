@@ -300,6 +300,7 @@ const SalarySlipA4 = ({ data, employee, containerId = 'salary-slip-print' }) => 
     { label: 'TDS',                    amount: data.tds },
     { label: 'Advance',                amount: data.advance },
     { label: 'Loan',                   amount: data.loan },
+    { label: 'Penalty',                amount: data.penalty },
     { label: 'Absent Deduction',       amount: data.absentDeduction },
     { label: 'Unpaid Leave Deduction', amount: data.unpaidLeaveDeduction },
     { label: 'Late Fine',              amount: data.lateFine },

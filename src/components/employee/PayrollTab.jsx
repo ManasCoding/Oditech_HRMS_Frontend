@@ -123,6 +123,7 @@ const PayrollTab = ({ employeeId, employee }) => {
   const [tds, setTds]                         = useState(0);
   const [advance, setAdvance]                 = useState(0);
   const [loan, setLoan]                       = useState(0);
+  const [penalty, setPenalty]                 = useState(0);
   const [lateFine, setLateFine]               = useState(0);
   const [otherDeductions, setOtherDeductions] = useState(0);
 
@@ -170,6 +171,7 @@ const PayrollTab = ({ employeeId, employee }) => {
           setTds(d.tds || 0);
           setAdvance(d.advance || 0);
           setLoan(d.loan || 0);
+          setPenalty(d.penalty || 0);
           setLateFine(d.lateFine || 0);
           setOtherDeductions(d.otherDeductions || 0);
         }
@@ -201,7 +203,7 @@ const PayrollTab = ({ employeeId, employee }) => {
   const unpaidLeaveDeduction = (att.unpaidLeave  ?? 0) * pd;
   const halfDayDeduction     = (att.halfDay      ?? 0) * (pd / 2);
 
-  const totalDeductions = professionalTax + pf + esi + tds + advance + loan +
+  const totalDeductions = professionalTax + pf + esi + tds + advance + loan + penalty +
     lateFine + otherDeductions + absentDeduction + unpaidLeaveDeduction + halfDayDeduction;
   const netSalary = Math.max(0, grossSalary - totalDeductions);
 
@@ -237,7 +239,7 @@ const PayrollTab = ({ employeeId, employee }) => {
         payableDays:  att.payableDays  ?? 0,
         hra, medicalAllowance, travelAllowance, foodAllowance,
         specialAllowance, bonus, overtime, otherEarnings,
-        professionalTax, pf, esi, tds, advance, loan, lateFine, otherDeductions,
+        professionalTax, pf, esi, tds, advance, loan, penalty, lateFine, otherDeductions,
         adminId: adminInfo._id,
       });
       if (res.data.success) {
@@ -432,6 +434,7 @@ const PayrollTab = ({ employeeId, employee }) => {
               <InputField label="TDS"              value={tds}            onChange={setTds}            disabled={isGenerated} />
               <InputField label="Advance"          value={advance}        onChange={setAdvance}        disabled={isGenerated} />
               <InputField label="Loan"             value={loan}           onChange={setLoan}           disabled={isGenerated} />
+              <InputField label="Penalty"          value={penalty}        onChange={setPenalty}        disabled={isGenerated} />
               <InputField label="Late Fine"        value={lateFine}       onChange={setLateFine}       disabled={isGenerated} />
               <InputField label="Other Deductions" value={otherDeductions} onChange={setOtherDeductions} disabled={isGenerated} />
             </div>
