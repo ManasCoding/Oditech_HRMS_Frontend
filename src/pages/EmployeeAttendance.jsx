@@ -1,11 +1,12 @@
 import React, { useState, useEffect } from 'react';
 import EmployeeLayout from '../layouts/EmployeeLayout';
 import { useNavigate } from 'react-router-dom';
-import { MapPin, CheckCircle2, Clock, AlertTriangle, XCircle, Calendar } from 'lucide-react';
+import { MapPin, CheckCircle2, Clock, AlertTriangle, XCircle, Calendar, Hourglass } from 'lucide-react';
 import api from '../services/api';
 
 import { getEmployeeAttendanceStatus } from '../utils/attendanceUtils';
 import { useAttendance } from '../context/AttendanceContext';
+import { useAttendanceTimer } from '../hooks/useAttendanceTimer';
 
 const EmployeeAttendance = () => {
   const [user] = useState(JSON.parse(localStorage.getItem('user')) || { name: 'Employee', slug: '', id: '' });
@@ -15,6 +16,9 @@ const EmployeeAttendance = () => {
   const [attendanceLog, setAttendanceLog] = useState([]);
   const [loading, setLoading] = useState(true);
   const today = new Date();
+
+  // Hook for live timer states
+  const timerState = useAttendanceTimer(todayAttendance);
 
   const fetchAttendance = async () => {
     try {
@@ -66,25 +70,6 @@ const EmployeeAttendance = () => {
     }
   };
 
-  const getDynamicWorkHours = (record) => {
-    if (!record) return '0h 0m';
-    if (record.workHours && record.workHours !== '0h 0m' && record.workHours !== '--') return record.workHours;
-    if (!record.checkIn) return '0h 0m';
-    if (record.checkOut) {
-      const mins = Math.floor((new Date(record.checkOut) - new Date(record.checkIn)) / (1000 * 60));
-      if (mins < 0) return '0h 0m';
-      return `${Math.floor(mins / 60)}h ${mins % 60}m`;
-    }
-    const checkInDate = new Date(record.checkIn);
-    const now = new Date();
-    if (checkInDate.toDateString() === now.toDateString()) {
-      const mins = Math.floor((now - checkInDate) / (1000 * 60));
-      if (mins < 0) return '0h 0m';
-      return `${Math.floor(mins / 60)}h ${mins % 60}m`;
-    }
-    return '0h 0m';
-  };
-
   const slug = user.slug || user.id;
   const todayStatus = getDisplayStatus(todayAttendance);
   const approval = todayAttendance?.checkInApprovalStatus;
@@ -105,18 +90,37 @@ const EmployeeAttendance = () => {
             <div className="text-slate-400 font-bold text-sm py-4">Loading...</div>
           ) : (
             <>
-              <div className="grid grid-cols-3 gap-4 bg-slate-50 rounded-2xl p-5 mb-6">
+              {/* Detailed Timer & Attendance Card */}
+              <div className="grid grid-cols-2 md:grid-cols-5 gap-4 bg-slate-50 rounded-2xl p-6 mb-6">
                 <div>
-                  <p className="text-[9px] font-black text-slate-400 uppercase tracking-widest mb-1">Check In</p>
-                  <p className="text-lg font-black text-[#1e293b]">{fmtTime(todayAttendance?.checkIn)}</p>
+                  <p className="text-[9px] font-black text-slate-400 uppercase tracking-widest mb-1">Login Time</p>
+                  <p className="text-base font-black text-[#1e293b]">{fmtTime(todayAttendance?.checkIn)}</p>
                 </div>
                 <div>
-                  <p className="text-[9px] font-black text-slate-400 uppercase tracking-widest mb-1">Check Out</p>
-                  <p className="text-lg font-black text-[#1e293b]">{fmtTime(todayAttendance?.checkOut)}</p>
+                  <p className="text-[9px] font-black text-slate-400 uppercase tracking-widest mb-1">Logout Time</p>
+                  <p className="text-base font-black text-[#1e293b]">
+                    {todayAttendance?.checkOut ? fmtTime(todayAttendance.checkOut) : (todayAttendance?.autoCheckedOut ? 'AUTO' : '—')}
+                  </p>
                 </div>
                 <div>
-                  <p className="text-[9px] font-black text-slate-400 uppercase tracking-widest mb-1">Hours</p>
-                  <p className="text-lg font-black text-blue-600">{getDynamicWorkHours(todayAttendance)}</p>
+                  <p className="text-[9px] font-black text-slate-400 uppercase tracking-widest mb-1">Break Time</p>
+                  <p className="text-base font-black text-[#1e293b]">45 Min</p>
+                </div>
+                <div>
+                  <p className="text-[9px] font-black text-slate-400 uppercase tracking-widest mb-1">Working Time</p>
+                  <p className="text-base font-black text-blue-600">
+                    {todayAttendance?.checkIn ? (
+                      todayAttendance.checkInApprovalStatus === 'Pending' ? '00h 00m' : timerState.workingFormatted
+                    ) : '00h 00m'}
+                  </p>
+                </div>
+                <div>
+                  <p className="text-[9px] font-black text-slate-400 uppercase tracking-widest mb-1">Overtime</p>
+                  <p className="text-base font-black text-orange-500">
+                    {todayAttendance?.checkIn ? (
+                      todayAttendance.checkInApprovalStatus === 'Pending' ? '00h 00m' : timerState.overtimeFormatted
+                    ) : '00h 00m'}
+                  </p>
                 </div>
               </div>
 
@@ -125,6 +129,18 @@ const EmployeeAttendance = () => {
                   <span className={`px-4 py-2 rounded-2xl text-sm font-black uppercase tracking-widest ${statusColor(todayStatus)}`}>
                     {todayStatus}
                   </span>
+                  
+                  {todayAttendance?.checkIn && todayAttendance.checkInApprovalStatus !== 'Pending' && (
+                    <span className={`px-4 py-2 rounded-2xl text-sm font-black uppercase tracking-widest ${
+                      timerState.isOnLunchBreak ? 'bg-amber-100 text-amber-700' :
+                      timerState.statusText === 'Shift Completed' ? 'bg-emerald-100 text-emerald-700' :
+                      timerState.statusText === 'Overtime' ? 'bg-orange-100 text-orange-700' :
+                      timerState.statusText === 'Working' ? 'bg-blue-100 text-blue-700' :
+                      'bg-slate-100 text-slate-700'
+                    }`}>
+                      {timerState.isOnLunchBreak ? 'On Lunch Break' : timerState.statusText}
+                    </span>
+                  )}
                 </div>
 
                 {approval === 'Pending' && (
@@ -195,8 +211,12 @@ const EmployeeAttendance = () => {
             </div>
             <div>
               <p className="text-slate-400 text-[10px] font-black uppercase tracking-[2px] mb-1">Today's Work Hours</p>
-              <h4 className="text-lg font-black text-[#1e293b]">{getDynamicWorkHours(todayAttendance)}</h4>
-              <p className="text-xs font-bold text-slate-400">Expected: 9h 0m</p>
+              <h4 className="text-lg font-black text-[#1e293b]">
+                {todayAttendance?.checkIn ? (
+                  todayAttendance.checkInApprovalStatus === 'Pending' ? '00h 00m' : timerState.workingFormatted
+                ) : '00h 00m'}
+              </h4>
+              <p className="text-xs font-bold text-slate-400">Expected: 8h 15m</p>
             </div>
           </div>
         </div>
@@ -223,7 +243,9 @@ const EmployeeAttendance = () => {
                       <p className="text-sm font-black text-[#1e293b]">{fmtDate(rec.date)}</p>
                       <p className="text-[10px] font-bold text-slate-400 mt-0.5">
                         {fmtTime(rec.checkIn)} to {fmtTime(rec.checkOut)}
-                        {getDynamicWorkHours(rec) !== '0h 0m' ? <span className="ml-2 text-blue-500">({getDynamicWorkHours(rec)})</span> : null}
+                        {rec.workHours !== '0h 0m' && rec.workHours !== '00h 00m' ? (
+                          <span className="ml-2 text-blue-500">({rec.workHours})</span>
+                        ) : null}
                       </p>
                     </div>
                     <div className="flex flex-col items-end gap-1">

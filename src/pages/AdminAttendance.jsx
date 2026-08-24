@@ -11,6 +11,7 @@ import {
 import api from '../services/api';
 import CustomDropdown from '../components/CustomDropdown';
 import { useAttendance } from '../context/AttendanceContext';
+import { useAttendanceTimer } from '../hooks/useAttendanceTimer';
 
 // Removed SOCKET_URL
 
@@ -815,59 +816,10 @@ const AdminAttendance = () => {
 
         {/* Employee Detail Modal */}
         {selectedEmployee && (
-          <div className="fixed inset-0 bg-slate-900/20 backdrop-blur-sm z-[100] flex items-center justify-center p-4" onClick={() => setSelectedEmployee(null)}>
-            <div className="bg-[#1e293b] rounded-[24px] w-full max-w-sm shadow-2xl overflow-hidden p-6 text-white relative animate-in zoom-in-95 duration-200" onClick={e => e.stopPropagation()}>
-               <button onClick={() => setSelectedEmployee(null)} className="absolute top-4 right-4 w-8 h-8 bg-white/10 rounded-full flex items-center justify-center hover:bg-white/20 transition-all">
-                 <X size={16} />
-               </button>
-               
-               <h3 className="text-lg font-bold">{selectedEmployee.employeeId?.fullName}</h3>
-               <div className="flex items-center gap-2 text-slate-400 text-xs font-bold mt-1 mb-6">
-                 <Calendar size={12} /> {selectedEmployee.date?.split('-').reverse().join('-')}
-               </div>
-
-               <div className="space-y-4 text-sm font-bold border-b border-white/10 pb-6 mb-4">
-                 <div className="flex items-center justify-between">
-                   <span className="text-slate-400">Login Time</span>
-                   <span>{selectedEmployee.checkIn ? new Date(selectedEmployee.checkIn).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', hour12: true }) : '—'}</span>
-                 </div>
-                 <div className="flex items-center justify-between">
-                   <span className="text-slate-400">Logout Time</span>
-                   <span>{selectedEmployee.checkOut ? new Date(selectedEmployee.checkOut).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', hour12: true }) : '—'}</span>
-                 </div>
-                 <div className="flex items-center justify-between">
-                   <span className="text-slate-400">Break Time</span>
-                   <span>45 Min</span>
-                 </div>
-                 <div className="flex items-center justify-between">
-                   <span className="text-slate-400">Working Hours</span>
-                   <span className="text-blue-400">{selectedEmployee.workHours || '—'}</span>
-                 </div>
-                 <div className="flex items-center justify-between">
-                   <span className="text-slate-400">Overtime</span>
-                   <span>{selectedEmployee.overtime || '—'}</span>
-                 </div>
-               </div>
-
-               <div>
-                 <h4 className="text-sm font-bold text-slate-400 mb-3">Tasks Submitted:</h4>
-                 <div className="space-y-2 text-sm font-bold">
-                   <div className="flex items-center gap-2">
-                     <div className="w-4 h-4 rounded bg-emerald-500/20 text-emerald-400 flex items-center justify-center">✓</div>
-                     UI Design
-                   </div>
-                   <div className="flex items-center gap-2">
-                     <div className="w-4 h-4 rounded bg-emerald-500/20 text-emerald-400 flex items-center justify-center">✓</div>
-                     API Integration
-                   </div>
-                   <div className="flex items-center gap-2">
-                     <div className="w-4 h-4 rounded bg-emerald-500/20 text-emerald-400 flex items-center justify-center">✓</div>
-                     Testing
-                   </div>
-                 </div>
-               </div>
-            </div>
-          </div>
+          <EmployeeDetailModal 
+            record={selectedEmployee} 
+            onClose={() => setSelectedEmployee(null)} 
+          />
         )}
 
         {/* ── Reject Reason Modal ──────────────────────────────────────────── */}
@@ -922,6 +874,90 @@ const AdminAttendance = () => {
 
       </div>
     </AdminLayout>
+  );
+};
+
+const EmployeeDetailModal = ({ record, onClose }) => {
+  const timerState = useAttendanceTimer(record);
+
+  const loginTime = record.checkIn
+    ? new Date(record.checkIn).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', hour12: true })
+    : '—';
+  const logoutTime = record.checkOut
+    ? new Date(record.checkOut).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', hour12: true })
+    : (record.autoCheckedOut ? 'AUTO' : '—');
+
+  return (
+    <div className="fixed inset-0 bg-slate-900/20 backdrop-blur-sm z-[100] flex items-center justify-center p-4" onClick={onClose}>
+      <div className="bg-[#1e293b] rounded-[24px] w-full max-w-sm shadow-2xl overflow-hidden p-6 text-[#FFFFFF] relative animate-in zoom-in-95 duration-200" onClick={e => e.stopPropagation()}>
+        <button onClick={onClose} className="absolute top-4 right-4 w-8 h-8 bg-white/10 rounded-full flex items-center justify-center hover:bg-white/20 transition-all">
+          <X size={16} />
+        </button>
+
+        <h3 className="text-lg font-bold">{record.employeeId?.fullName || record.employeeName || 'Employee Details'}</h3>
+        <div className="flex items-center gap-2 text-slate-400 text-xs font-bold mt-1 mb-6">
+          <Calendar size={12} /> {record.date ? record.date.split('-').reverse().join('-') : '—'}
+        </div>
+
+        <div className="space-y-4 text-sm font-bold border-b border-white/10 pb-6 mb-4">
+          <div className="flex items-center justify-between">
+            <span className="text-slate-400">Login Time</span>
+            <span>{loginTime}</span>
+          </div>
+          <div className="flex items-center justify-between">
+            <span className="text-slate-400">Logout Time</span>
+            <span>{logoutTime}</span>
+          </div>
+          <div className="flex items-center justify-between">
+            <span className="text-slate-400">Break Time</span>
+            <span>45 Min</span>
+          </div>
+          <div className="flex items-center justify-between">
+            <span className="text-slate-400">Working Hours</span>
+            <span className="text-blue-400">
+              {record.checkInApprovalStatus === 'Pending' ? '00h 00m' : timerState.workingFormatted}
+              {!record.checkOut && record.checkIn && record.checkInApprovalStatus !== 'Pending' ? ' (In Progress)' : ''}
+            </span>
+          </div>
+          <div className="flex items-center justify-between">
+            <span className="text-slate-400">Overtime</span>
+            <span className="text-orange-400">
+              {record.checkInApprovalStatus === 'Pending' ? '00h 00m' : timerState.overtimeFormatted}
+            </span>
+          </div>
+          <div className="flex items-center justify-between">
+            <span className="text-slate-400">Current Status</span>
+            <span className={`px-3 py-1 rounded-[16px] text-[10px] font-black uppercase tracking-wider transition-all ${
+              timerState.isOnLunchBreak ? 'bg-[#FFF3E0] text-[#FB8C00]' :
+              timerState.statusText === 'Shift Completed' ? 'bg-[#E8F8F0] text-[#00A86B]' :
+              timerState.statusText === 'Overtime' ? 'bg-[#FFF8E1] text-[#F59E0B]' :
+              timerState.statusText === 'Working' ? 'bg-[#E8F4FD] text-[#1E88E5]' :
+              'bg-slate-700 text-slate-300'
+            }`}>
+              {timerState.isOnLunchBreak ? 'Lunch Break' : timerState.statusText}
+            </span>
+          </div>
+        </div>
+
+        <div>
+          <h4 className="text-sm font-bold text-slate-400 mb-3">Tasks Submitted:</h4>
+          <div className="space-y-2 text-sm font-bold">
+            <div className="flex items-center gap-2">
+              <div className="w-4 h-4 rounded bg-emerald-500/20 text-emerald-400 flex items-center justify-center">✓</div>
+              UI Design
+            </div>
+            <div className="flex items-center gap-2">
+              <div className="w-4 h-4 rounded bg-emerald-500/20 text-emerald-400 flex items-center justify-center">✓</div>
+              API Integration
+            </div>
+            <div className="flex items-center gap-2">
+              <div className="w-4 h-4 rounded bg-emerald-500/20 text-emerald-400 flex items-center justify-center">✓</div>
+              Testing
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
   );
 };
 

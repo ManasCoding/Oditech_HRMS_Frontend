@@ -1,11 +1,13 @@
 import React, { useEffect, useState } from 'react';
 import api from '../../../services/api';
 import toast from 'react-hot-toast';
-import { Eye, Check, X } from 'lucide-react';
+import { Eye, Check, X, Clock, MapPin, Calendar, User } from 'lucide-react';
 
 const RequestsView = () => {
   const [visits, setVisits] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [filterStatus, setFilterStatus] = useState('All');
+  const [processingId, setProcessingId] = useState(null);
 
   useEffect(() => {
     fetchVisits();
@@ -13,6 +15,7 @@ const RequestsView = () => {
 
   const fetchVisits = async () => {
     try {
+      setLoading(true);
       const res = await api.get('/site-visits');
       setVisits(res.data.siteVisits || []);
     } catch (error) {
@@ -24,102 +27,167 @@ const RequestsView = () => {
 
   const handleAction = async (id, action) => {
     try {
+      setProcessingId(id);
       const endpoint = action === 'approve' ? `/site-visits/${id}/approve` : `/site-visits/${id}/reject`;
-      const payload = action === 'reject' ? { rejectionReason: 'Admin decision' } : {}; // Could add a modal for reason
+      const payload = action === 'reject' ? { rejectionReason: 'Admin decision' } : {};
       
       const user = JSON.parse(localStorage.getItem('user'));
       payload.adminId = user?.id;
 
       await api.post(endpoint, payload);
-      toast.success(`Visit ${action}d successfully`);
+      toast.success(`Visit request ${action}d successfully`);
       fetchVisits();
     } catch (error) {
       toast.error(`Failed to ${action} visit`);
+    } finally {
+      setProcessingId(null);
     }
   };
 
   const getStatusBadge = (status) => {
     switch (status) {
-      case 'Pending': return 'bg-amber-100 text-amber-700';
-      case 'Approved': return 'bg-blue-100 text-blue-700';
-      case 'Active': return 'bg-green-100 text-green-700';
-      case 'Completed': return 'bg-purple-100 text-purple-700';
-      case 'Rejected': return 'bg-red-100 text-red-700';
-      default: return 'bg-slate-100 text-slate-700';
+      case 'Pending': return 'bg-amber-100 text-amber-700 border-amber-200';
+      case 'Approved': return 'bg-blue-100 text-blue-700 border-blue-200';
+      case 'Active': return 'bg-emerald-100 text-emerald-700 border-emerald-200';
+      case 'Completed': return 'bg-purple-100 text-purple-700 border-purple-200';
+      case 'Rejected': return 'bg-rose-100 text-rose-700 border-rose-200';
+      default: return 'bg-slate-100 text-slate-700 border-slate-200';
     }
   };
 
-  if (loading) return <div className="py-10 text-center">Loading...</div>;
+  const filteredVisits = filterStatus === 'All'
+    ? visits
+    : visits.filter(v => v.status === filterStatus);
+
+  if (loading) return <div className="py-10 text-center text-slate-400 font-bold text-sm">Loading requests...</div>;
 
   return (
-    <div className="bg-white rounded-xl shadow-sm border border-slate-200 overflow-hidden">
-      <div className="overflow-x-auto">
-        <table className="w-full">
-          <thead className="bg-slate-50 border-b border-slate-200">
-            <tr>
-              <th className="px-6 py-4 text-left text-xs font-semibold text-slate-500 uppercase">Employee</th>
-              <th className="px-6 py-4 text-left text-xs font-semibold text-slate-500 uppercase">Client / Site</th>
-              <th className="px-6 py-4 text-left text-xs font-semibold text-slate-500 uppercase">Dates</th>
-              <th className="px-6 py-4 text-left text-xs font-semibold text-slate-500 uppercase">Status</th>
-              <th className="px-6 py-4 text-center text-xs font-semibold text-slate-500 uppercase">Actions</th>
-            </tr>
-          </thead>
-          <tbody className="divide-y divide-slate-100">
-            {visits.map(visit => (
-              <tr key={visit._id} className="hover:bg-slate-50">
-                <td className="px-6 py-4">
-                  <div className="flex items-center gap-3">
-                    <div className="w-8 h-8 rounded-full bg-slate-200 overflow-hidden">
-                      {visit.employeeId?.profilePicture ? (
-                        <img src={visit.employeeId.profilePicture} alt="" className="w-full h-full object-cover" />
-                      ) : (
-                        <div className="w-full h-full flex items-center justify-center font-bold text-slate-500 text-xs">
-                          {visit.employeeId?.firstName?.[0]}
-                        </div>
-                      )}
-                    </div>
-                    <div>
-                      <p className="text-sm font-semibold text-slate-900">{visit.employeeId?.firstName} {visit.employeeId?.lastName}</p>
-                      <p className="text-xs text-slate-500">{visit.employeeId?.employeeId}</p>
-                    </div>
-                  </div>
-                </td>
-                <td className="px-6 py-4">
-                  <p className="text-sm font-medium text-slate-900">{visit.clientName}</p>
-                  <p className="text-xs text-slate-500">{visit.siteName}</p>
-                </td>
-                <td className="px-6 py-4 text-sm text-slate-600">
-                  {visit.startDate} to {visit.endDate}
-                </td>
-                <td className="px-6 py-4">
-                  <span className={`px-2.5 py-1 text-[11px] font-bold uppercase tracking-wider rounded-full ${getStatusBadge(visit.status)}`}>
-                    {visit.status}
-                  </span>
-                </td>
-                <td className="px-6 py-4 text-center">
-                  <div className="flex items-center justify-center gap-2">
-                    {visit.status === 'Pending' && (
-                      <>
-                        <button onClick={() => handleAction(visit._id, 'approve')} className="p-1.5 text-green-600 hover:bg-green-50 rounded-lg" title="Approve">
-                          <Check size={18} />
-                        </button>
-                        <button onClick={() => handleAction(visit._id, 'reject')} className="p-1.5 text-red-600 hover:bg-red-50 rounded-lg" title="Reject">
-                          <X size={18} />
-                        </button>
-                      </>
-                    )}
-                    {/* Add View details button later */}
-                  </div>
-                </td>
-              </tr>
-            ))}
-            {visits.length === 0 && (
+    <div className="space-y-6">
+      
+      {/* Filter Tabs */}
+      <div className="flex flex-wrap items-center justify-between gap-4 bg-white p-4 rounded-2xl border border-slate-200 shadow-sm">
+        <h3 className="text-lg font-black text-slate-800 tracking-tight">Site Visit Requests & Approvals</h3>
+        <div className="flex flex-wrap gap-2">
+          {['All', 'Pending', 'Approved', 'Active', 'Completed', 'Rejected'].map(status => (
+            <button
+              key={status}
+              onClick={() => setFilterStatus(status)}
+              className={`px-4 py-2 text-xs font-bold rounded-xl transition-all ${
+                filterStatus === status
+                  ? 'bg-blue-600 text-white shadow-md shadow-blue-200'
+                  : 'bg-slate-50 text-slate-600 hover:bg-slate-100'
+              }`}
+            >
+              {status} {status === 'All' ? `(${visits.length})` : `(${visits.filter(v => v.status === status).length})`}
+            </button>
+          ))}
+        </div>
+      </div>
+
+      {/* Table List */}
+      <div className="bg-white rounded-3xl shadow-sm border border-slate-200 overflow-hidden">
+        <div className="overflow-x-auto">
+          <table className="w-full text-left">
+            <thead className="bg-slate-50 border-b border-slate-200">
               <tr>
-                <td colSpan="5" className="px-6 py-8 text-center text-slate-500">No site visits found.</td>
+                <th className="px-6 py-4 text-[10px] font-black text-slate-400 uppercase tracking-widest">Employee</th>
+                <th className="px-6 py-4 text-[10px] font-black text-slate-400 uppercase tracking-widest">Client & Site</th>
+                <th className="px-6 py-4 text-[10px] font-black text-slate-400 uppercase tracking-widest">Start Date & Time</th>
+                <th className="px-6 py-4 text-[10px] font-black text-slate-400 uppercase tracking-widest">Purpose</th>
+                <th className="px-6 py-4 text-[10px] font-black text-slate-400 uppercase tracking-widest">Status / Time Taken</th>
+                <th className="px-6 py-4 text-center text-[10px] font-black text-slate-400 uppercase tracking-widest">Actions</th>
               </tr>
-            )}
-          </tbody>
-        </table>
+            </thead>
+            <tbody className="divide-y divide-slate-100">
+              {filteredVisits.map(visit => {
+                const empName = visit.employeeId?.fullName || `${visit.employeeId?.firstName || ''} ${visit.employeeId?.lastName || ''}`.trim() || 'Employee';
+                const empCode = visit.employeeId?.employeeId || visit.employeeId?.empCode || '—';
+
+                return (
+                  <tr key={visit._id} className="hover:bg-slate-50/50 transition-all">
+                    <td className="px-6 py-4">
+                      <div className="flex items-center gap-3">
+                        <div className="w-9 h-9 rounded-full bg-slate-100 flex items-center justify-center font-black text-xs text-slate-600 border border-slate-200 overflow-hidden">
+                          {visit.employeeId?.profilePicture ? (
+                            <img src={visit.employeeId.profilePicture} alt="" className="w-full h-full object-cover" />
+                          ) : (
+                            empName.charAt(0)
+                          )}
+                        </div>
+                        <div>
+                          <p className="text-sm font-black text-slate-900">{empName}</p>
+                          <p className="text-[10px] font-bold text-slate-400">{empCode}</p>
+                        </div>
+                      </div>
+                    </td>
+                    <td className="px-6 py-4">
+                      <p className="text-sm font-black text-slate-900">{visit.clientName}</p>
+                      <p className="text-xs font-bold text-slate-500">{visit.siteName}</p>
+                      <p className="text-[10px] text-slate-400 font-medium truncate max-w-xs">{visit.siteAddress}</p>
+                    </td>
+                    <td className="px-6 py-4">
+                      <div className="space-y-0.5 text-xs font-bold text-slate-600">
+                        <p className="flex items-center gap-1"><Calendar size={12} className="text-blue-500" /> {visit.startDate}</p>
+                        {visit.startTime && (
+                          <p className="flex items-center gap-1"><Clock size={12} className="text-emerald-500" /> {visit.startTime}</p>
+                        )}
+                      </div>
+                    </td>
+                    <td className="px-6 py-4 text-xs font-medium text-slate-700 max-w-xs truncate">
+                      {visit.purpose}
+                    </td>
+                    <td className="px-6 py-4">
+                      <div className="space-y-1">
+                        <span className={`inline-block px-3 py-1 text-[9px] font-black uppercase tracking-widest rounded-full border ${getStatusBadge(visit.status)}`}>
+                          {visit.status}
+                        </span>
+                        {visit.status === 'Completed' && (
+                          <p className="text-[10px] font-black text-purple-700 bg-purple-50 px-2 py-0.5 rounded border border-purple-100">
+                            Time Taken: {visit.timeTaken || 'Completed'}
+                          </p>
+                        )}
+                      </div>
+                    </td>
+                    <td className="px-6 py-4 text-center">
+                      <div className="flex items-center justify-center gap-2">
+                        {visit.status === 'Pending' && (
+                          <>
+                            <button
+                              disabled={processingId === visit._id}
+                              onClick={() => handleAction(visit._id, 'approve')}
+                              className="px-3 py-1.5 bg-emerald-500 hover:bg-emerald-600 text-white rounded-xl text-xs font-bold transition-all shadow-sm flex items-center gap-1 disabled:opacity-50"
+                              title="Approve Request"
+                            >
+                              <Check size={14} /> Approve
+                            </button>
+                            <button
+                              disabled={processingId === visit._id}
+                              onClick={() => handleAction(visit._id, 'reject')}
+                              className="px-3 py-1.5 bg-rose-500 hover:bg-rose-600 text-white rounded-xl text-xs font-bold transition-all shadow-sm flex items-center gap-1 disabled:opacity-50"
+                              title="Reject Request"
+                            >
+                              <X size={14} /> Reject
+                            </button>
+                          </>
+                        )}
+                        {visit.status !== 'Pending' && (
+                          <span className="text-xs text-slate-400 font-bold">—</span>
+                        )}
+                      </div>
+                    </td>
+                  </tr>
+                );
+              })}
+              {filteredVisits.length === 0 && (
+                <tr>
+                  <td colSpan="6" className="px-6 py-12 text-center text-slate-400 font-bold text-sm">
+                    No site visit requests found.
+                  </td>
+                </tr>
+              )}
+            </tbody>
+          </table>
+        </div>
       </div>
     </div>
   );

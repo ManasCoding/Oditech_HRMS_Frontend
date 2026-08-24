@@ -319,7 +319,6 @@ const AdminHourlyReports = () => {
                             <th className="px-6 py-5 text-left text-[10px] font-black text-slate-400 uppercase tracking-widest">Employee ID</th>
                             <th className="px-6 py-5 text-left text-[10px] font-black text-slate-400 uppercase tracking-widest">Department</th>
                             <th className="px-6 py-5 text-left text-[10px] font-black text-slate-400 uppercase tracking-widest">Date</th>
-                            <th className="px-6 py-5 text-left text-[10px] font-black text-slate-400 uppercase tracking-widest">Total Hours</th>
                             <th className="px-6 py-5 text-left text-[10px] font-black text-slate-400 uppercase tracking-widest">Overtime</th>
                             <th className="px-6 py-5 text-left text-[10px] font-black text-slate-400 uppercase tracking-widest">Status</th>
                             <th className="px-6 py-5 text-left text-[10px] font-black text-slate-400 uppercase tracking-widest">Action</th>
@@ -328,7 +327,7 @@ const AdminHourlyReports = () => {
                       <tbody className="divide-y divide-slate-50">
                          {loading ? (
                            <tr>
-                             <td colSpan="9" className="px-6 py-20 text-center">
+                             <td colSpan="8" className="px-6 py-20 text-center">
                                <div className="flex flex-col items-center gap-3">
                                  <div className="w-8 h-8 border-4 border-slate-200 border-t-blue-500 rounded-full animate-spin"></div>
                                  <p className="text-xs font-black text-slate-400 uppercase tracking-widest">Loading reports...</p>
@@ -337,7 +336,7 @@ const AdminHourlyReports = () => {
                            </tr>
                          ) : data.reports.length === 0 ? (
                            <tr>
-                             <td colSpan="9" className="px-6 py-20 text-center">
+                             <td colSpan="8" className="px-6 py-20 text-center">
                                <div className="flex flex-col items-center gap-3 opacity-20">
                                  <FileText size={48} />
                                  <p className="text-sm font-bold">No reports found for this date.</p>
@@ -365,7 +364,6 @@ const AdminHourlyReports = () => {
                                    </span>
                                 </td>
                                 <td className="px-6 py-5 text-xs font-bold text-slate-500">{report.date}</td>
-                                <td className="px-6 py-5 text-sm font-black text-[#1e293b]">{report.totalHours || '0h 0m'}</td>
                                 <td className="px-6 py-5 text-xs font-bold text-slate-400">{report.overtime || '0h 0m'}</td>
                                 <td className="px-6 py-5">
                                    <span className={`px-4 py-1.5 rounded-full text-[9px] font-black uppercase tracking-widest ${

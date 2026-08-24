@@ -654,7 +654,6 @@ const AdminReports = () => {
                        <th className="px-8 py-5 text-[10px] font-black text-slate-400 uppercase tracking-widest">Employee ID</th>
                        <th className="px-8 py-5 text-[10px] font-black text-slate-400 uppercase tracking-widest">Department</th>
                        <th className="px-8 py-5 text-[10px] font-black text-slate-400 uppercase tracking-widest">Date</th>
-                       <th className="px-8 py-5 text-[10px] font-black text-slate-400 uppercase tracking-widest">Total Hours</th>
                        <th className="px-8 py-5 text-[10px] font-black text-slate-400 uppercase tracking-widest">Overtime</th>
                        <th className="px-8 py-5 text-[10px] font-black text-slate-400 uppercase tracking-widest">Submitted At</th>
                        <th className="px-8 py-5 text-[10px] font-black text-slate-400 uppercase tracking-widest">Status</th>
@@ -664,7 +663,7 @@ const AdminReports = () => {
                  <tbody className="divide-y divide-slate-50">
                     {loading ? (
                       <tr>
-                        <td colSpan="10" className="px-8 py-20 text-center">
+                        <td colSpan="9" className="px-8 py-20 text-center">
                           <div className="flex flex-col items-center gap-3">
                             <div className="w-10 h-10 border-4 border-slate-100 border-t-blue-500 rounded-full animate-spin"></div>
                             <p className="text-xs font-black text-slate-400 uppercase tracking-widest">Loading records...</p>
@@ -673,7 +672,7 @@ const AdminReports = () => {
                       </tr>
                     ) : data.reports.length === 0 ? (
                       <tr>
-                        <td colSpan="10" className="px-8 py-20 text-center">
+                        <td colSpan="9" className="px-8 py-20 text-center">
                           <div className="flex flex-col items-center gap-3 opacity-20">
                             <FileText size={64} />
                             <p className="text-sm font-bold uppercase tracking-widest">No reports available</p>

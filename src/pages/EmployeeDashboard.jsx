@@ -10,6 +10,8 @@ import {
 import ActiveAnnouncements from '../components/ActiveAnnouncements';
 import AttendanceCalendar from '../components/AttendanceCalendar';
 import { useAttendance } from '../context/AttendanceContext';
+import { useAttendanceTimer } from '../hooks/useAttendanceTimer';
+import { getEmployeeAttendanceStatus } from '../utils/attendanceUtils';
 
 const StatCard = ({ label, value, subValue, colorClass, bgClass, textClass, icon }) => (
   <div className={`bg-white rounded-2xl shadow-[0_8px_30px_rgb(0,0,0,0.04)] border border-slate-100 p-6 flex flex-col items-center justify-center border-t-4 ${colorClass} hover:-translate-y-1 transition-transform duration-300`}>
@@ -21,8 +23,6 @@ const StatCard = ({ label, value, subValue, colorClass, bgClass, textClass, icon
     <p className={`text-[9px] font-bold uppercase tracking-widest text-center ${textClass}`}>{subValue}</p>
   </div>
 );
-
-import { getEmployeeAttendanceStatus } from '../utils/attendanceUtils';
 
 const EmployeeDashboard = () => {
   const { refreshKey } = useAttendance();
@@ -47,6 +47,8 @@ const EmployeeDashboard = () => {
     year: new Date().getFullYear(),
     view: 'monthly',
   });
+
+  const timerState = useAttendanceTimer(todayStatus);
 
   const fetchDashboardData = useCallback(async () => {
     if (!employeeId) {
@@ -163,31 +165,55 @@ const EmployeeDashboard = () => {
           </div>
 
           {/* Today's Status Card */}
-          <div className="bg-white rounded-2xl shadow-[0_8px_30px_rgb(0,0,0,0.04)] border border-slate-100 p-6 lg:p-8 flex items-center justify-between min-w-[340px]">
-            <div>
-              <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-2">Today&apos;s Status</p>
+          <div className="bg-white rounded-2xl shadow-[0_8px_30px_rgb(0,0,0,0.04)] border border-slate-100 p-6 lg:p-8 flex items-center justify-between min-w-[380px]">
+            <div className="space-y-2">
+              <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Today&apos;s Status</p>
               {todayStatus ? (
                 <>
-                  <h4 className="text-xl font-bold text-slate-800">
-                    {todayStatus.checkInApprovalStatus === 'Pending'
-                      ? 'Checked In — Approval Pending'
-                      : `Checked In at ${new Date(todayStatus.checkIn).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}`}
-                  </h4>
+                  <div className="flex items-center gap-2">
+                    <h4 className="text-xl font-bold text-slate-800">
+                      {todayStatus.checkInApprovalStatus === 'Pending'
+                        ? 'Checked In — Approval Pending'
+                        : `Checked In at ${timerState.checkInTimeFormatted}`}
+                    </h4>
+                  </div>
+
                   {todayStatus.checkInApprovalStatus === 'Pending' && (
-                    <span className="inline-block mt-1 text-[10px] font-black bg-rose-100 text-rose-700 px-3 py-1 rounded-full uppercase tracking-widest">
-                      Absent · Awaiting Admin Approval
+                    <span className="inline-block text-[10px] font-black bg-rose-100 text-rose-700 px-3 py-1 rounded-full uppercase tracking-widest">
+                      ABSENT · AWAITING ADMIN APPROVAL
                     </span>
                   )}
-                  {todayStatus.checkInApprovalStatus === 'Approved' && todayStatus.exceptionType && todayStatus.exceptionType !== 'None' && (
-                    <span className="inline-block mt-1 text-[10px] font-black bg-amber-100 text-amber-700 px-3 py-1 rounded-full uppercase tracking-widest">
-                      {todayStatus.status} · Approved
-                    </span>
+
+                  {todayStatus.checkInApprovalStatus !== 'Pending' && (
+                    <div className="flex items-center gap-4 text-xs font-bold pt-1 text-slate-600">
+                      <div>
+                        <span className="text-[10px] text-slate-400 block uppercase">Working Time</span>
+                        <span className="text-sm font-black text-blue-600">
+                          {timerState.workingFormatted} {timerState.isShiftCompleted ? '✓' : ''}
+                        </span>
+                      </div>
+                      <div>
+                        <span className="text-[10px] text-slate-400 block uppercase">Break</span>
+                        <span className="text-sm font-black text-amber-600">45 Min</span>
+                      </div>
+                      <div>
+                        <span className="text-[10px] text-slate-400 block uppercase">Overtime</span>
+                        <span className="text-sm font-black text-orange-500">{timerState.overtimeFormatted}</span>
+                      </div>
+                    </div>
                   )}
-                  {todayStatus.checkInApprovalStatus === 'Rejected' && (
-                    <span className="inline-block mt-1 text-[10px] font-black bg-rose-100 text-rose-700 px-3 py-1 rounded-full uppercase tracking-widest">
-                      Check-In Rejected
+
+                  <div className="pt-1">
+                    <span className={`inline-block text-[10px] font-black px-3 py-1 rounded-full uppercase tracking-widest ${
+                      timerState.isOnLunchBreak ? 'bg-amber-100 text-amber-700' :
+                      timerState.statusText === 'Shift Completed' ? 'bg-emerald-100 text-emerald-700' :
+                      timerState.statusText === 'Overtime' ? 'bg-orange-100 text-orange-700' :
+                      timerState.statusText === 'Working' ? 'bg-blue-100 text-blue-700' :
+                      'bg-slate-100 text-slate-700'
+                    }`}>
+                      {timerState.isOnLunchBreak ? 'On Lunch Break (1:30 PM - 2:15 PM)' : timerState.statusText}
                     </span>
-                  )}
+                  </div>
                 </>
               ) : (
                 <h4 className="text-xl font-bold text-slate-800">Not Checked In</h4>
@@ -201,15 +227,15 @@ const EmployeeDashboard = () => {
                 Check In
               </button>
             ) : todayStatus.checkInApprovalStatus === 'Pending' ? (
-              <div className="w-14 h-14 rounded-full bg-amber-50 text-amber-500 border border-amber-200 flex items-center justify-center">
+              <div className="w-14 h-14 rounded-full bg-amber-50 text-amber-500 border border-amber-200 flex items-center justify-center shrink-0 ml-4">
                 <Hourglass size={24} strokeWidth={2.5} />
               </div>
             ) : todayStatus.checkInApprovalStatus === 'Rejected' ? (
-              <div className="w-14 h-14 rounded-full bg-rose-50 text-rose-500 border border-rose-100 flex items-center justify-center">
+              <div className="w-14 h-14 rounded-full bg-rose-50 text-rose-500 border border-rose-100 flex items-center justify-center shrink-0 ml-4">
                 <XCircle size={24} strokeWidth={2.5} />
               </div>
             ) : (
-              <div className="w-14 h-14 rounded-full bg-emerald-50 text-emerald-500 border border-emerald-100 flex items-center justify-center">
+              <div className="w-14 h-14 rounded-full bg-emerald-50 text-emerald-500 border border-emerald-100 flex items-center justify-center shrink-0 ml-4">
                 <UserCheck size={24} strokeWidth={2.5} />
               </div>
             )}
