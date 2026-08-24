@@ -299,9 +299,9 @@ const EmployeeDashboard = () => {
             icon={<ClipboardList size={24} strokeWidth={2.5} />}
           />
           <StatCard
-            label="Available"
-            value={stats.availableLeaves ?? 12}
-            subValue="Leave Quota"
+            label="Holidays"
+            value={stats.holidayCount ?? 0}
+            subValue="This Period"
             colorClass="border-blue-400"
             bgClass="bg-blue-50"
             textClass="text-blue-500"
