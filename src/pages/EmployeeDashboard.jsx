@@ -301,7 +301,13 @@ const EmployeeDashboard = () => {
           <StatCard
             label="Holidays"
             value={stats.holidayCount ?? 0}
-            subValue="This Period"
+            subValue={
+              stats.holidays && stats.holidays.length === 1 
+                ? (stats.holidays[0].holidayName.length > 18 ? stats.holidays[0].holidayName.substring(0, 18) + '...' : stats.holidays[0].holidayName)
+                : stats.holidays && stats.holidays.length > 1
+                  ? "Multiple Holidays"
+                  : "This Period"
+            }
             colorClass="border-blue-400"
             bgClass="bg-blue-50"
             textClass="text-blue-500"
