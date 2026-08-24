@@ -5,7 +5,7 @@ import api from '../services/api';
 import {
   Calendar, CheckCircle, XCircle, Clock,
   AlertCircle, ChevronRight, ChevronLeft, LayoutDashboard,
-  ClipboardList, UserCheck, Bell, ArrowRight, PieChart, Hourglass
+  ClipboardList, UserCheck, Bell, ArrowRight, PieChart, Hourglass, Coffee
 } from 'lucide-react';
 import ActiveAnnouncements from '../components/ActiveAnnouncements';
 import AttendanceCalendar from '../components/AttendanceCalendar';
@@ -57,14 +57,13 @@ const EmployeeDashboard = () => {
     }
     setLoading(true);
     try {
-      const [todayRes, statsRes, lateRes] = await Promise.all([
+      const [todayRes, statsRes] = await Promise.all([
         api.get(`/employee/attendance/today/${employeeId}`),
         api.get(`/employee/stats/${employeeId}?month=${currentPeriod.month}&year=${currentPeriod.year}&period=${currentPeriod.view}`),
-        api.get(`/employee/late/count/${employeeId}`),
       ]);
 
       if (todayRes.data.success) setTodayStatus(todayRes.data.attendance);
-      if (statsRes.data.success) setStats({ ...statsRes.data.stats, lateCount: lateRes.data.count ?? 0 });
+      if (statsRes.data.success) setStats(statsRes.data.stats);
     } catch (err) {
       console.error('Error fetching dashboard data:', err);
     } finally {
@@ -282,13 +281,13 @@ const EmployeeDashboard = () => {
             icon={<Calendar size={24} strokeWidth={2.5} />}
           />
           <StatCard
-            label="Attendance Rate"
-            value={stats.attendanceRate != null ? `${stats.attendanceRate}%` : 'N/A'}
-            subValue={getAttendanceSubValue(stats.attendanceRate || 0)}
-            colorClass={attendanceColors.colorClass}
-            bgClass={attendanceColors.bgClass}
-            textClass={attendanceColors.textClass}
-            icon={<PieChart size={24} strokeWidth={2.5} />}
+            label="Week Off"
+            value={stats.weekOffs ?? 4}
+            subValue="Scheduled Days"
+            colorClass="border-indigo-400"
+            bgClass="bg-indigo-50"
+            textClass="text-indigo-500"
+            icon={<Coffee size={24} strokeWidth={2.5} />}
           />
           <StatCard
             label="Leaves Taken"

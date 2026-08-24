@@ -2,12 +2,14 @@ import React, { useEffect, useState } from 'react';
 import api from '../../../services/api';
 import toast from 'react-hot-toast';
 import { Eye, Check, X, Clock, MapPin, Calendar, User } from 'lucide-react';
+import SiteVisitDetailModal from './SiteVisitDetailModal';
 
 const RequestsView = () => {
   const [visits, setVisits] = useState([]);
   const [loading, setLoading] = useState(true);
   const [filterStatus, setFilterStatus] = useState('All');
   const [processingId, setProcessingId] = useState(null);
+  const [selectedVisit, setSelectedVisit] = useState(null);
 
   useEffect(() => {
     fetchVisits();
@@ -25,7 +27,8 @@ const RequestsView = () => {
     }
   };
 
-  const handleAction = async (id, action) => {
+  const handleAction = async (id, action, e) => {
+    if (e) e.stopPropagation();
     try {
       setProcessingId(id);
       const endpoint = action === 'approve' ? `/site-visits/${id}/approve` : `/site-visits/${id}/reject`;
@@ -105,7 +108,12 @@ const RequestsView = () => {
                 const avatarImg = visit.employeeId?.profileImage || visit.employeeId?.profilePicture;
 
                 return (
-                  <tr key={visit._id} className="hover:bg-slate-50/50 transition-all">
+                  <tr 
+                    key={visit._id} 
+                    onClick={() => setSelectedVisit(visit)}
+                    className="hover:bg-slate-50 transition-all cursor-pointer group"
+                    title="Click to view full form details"
+                  >
                     <td className="px-6 py-4">
                       <div className="flex items-center gap-3">
                         <div className="w-9 h-9 rounded-full bg-slate-100 flex items-center justify-center font-black text-xs text-slate-600 border border-slate-200 overflow-hidden shrink-0">
@@ -116,7 +124,7 @@ const RequestsView = () => {
                           )}
                         </div>
                         <div>
-                          <p className="text-sm font-black text-slate-900">{empName}</p>
+                          <p className="text-sm font-black text-slate-900 group-hover:text-blue-600 transition-colors">{empName}</p>
                           <p className="text-[10px] font-bold text-slate-400">{empCode}</p>
                         </div>
                       </div>
@@ -140,7 +148,7 @@ const RequestsView = () => {
                     <td className="px-6 py-4">
                       <div className="space-y-1">
                         <span className={`inline-block px-3 py-1 text-[9px] font-black uppercase tracking-widest rounded-full border ${getStatusBadge(visit.status)}`}>
-                          {visit.status}
+                          {visit.status === 'Active' ? 'Ongoing / Active' : visit.status}
                         </span>
                         {visit.status === 'Completed' && (
                           <p className="text-[10px] font-black text-purple-700 bg-purple-50 px-2 py-0.5 rounded border border-purple-100">
@@ -149,13 +157,13 @@ const RequestsView = () => {
                         )}
                       </div>
                     </td>
-                    <td className="px-6 py-4 text-center">
+                    <td className="px-6 py-4 text-center" onClick={(e) => e.stopPropagation()}>
                       <div className="flex items-center justify-center gap-2">
                         {visit.status === 'Pending' && (
                           <>
                             <button
                               disabled={processingId === visit._id}
-                              onClick={() => handleAction(visit._id, 'approve')}
+                              onClick={(e) => handleAction(visit._id, 'approve', e)}
                               className="px-3 py-1.5 bg-emerald-500 hover:bg-emerald-600 text-white rounded-xl text-xs font-bold transition-all shadow-sm flex items-center gap-1 disabled:opacity-50"
                               title="Approve Request"
                             >
@@ -163,7 +171,7 @@ const RequestsView = () => {
                             </button>
                             <button
                               disabled={processingId === visit._id}
-                              onClick={() => handleAction(visit._id, 'reject')}
+                              onClick={(e) => handleAction(visit._id, 'reject', e)}
                               className="px-3 py-1.5 bg-rose-500 hover:bg-rose-600 text-white rounded-xl text-xs font-bold transition-all shadow-sm flex items-center gap-1 disabled:opacity-50"
                               title="Reject Request"
                             >
@@ -171,9 +179,13 @@ const RequestsView = () => {
                             </button>
                           </>
                         )}
-                        {visit.status !== 'Pending' && (
-                          <span className="text-xs text-slate-400 font-bold">—</span>
-                        )}
+                        <button
+                          onClick={() => setSelectedVisit(visit)}
+                          className="p-1.5 text-slate-400 hover:text-blue-600 hover:bg-blue-50 rounded-lg transition-all"
+                          title="View Full Form Details"
+                        >
+                          <Eye size={16} />
+                        </button>
                       </div>
                     </td>
                   </tr>
@@ -190,6 +202,12 @@ const RequestsView = () => {
           </table>
         </div>
       </div>
+
+      {/* Details Modal */}
+      {selectedVisit && (
+        <SiteVisitDetailModal visit={selectedVisit} onClose={() => setSelectedVisit(null)} />
+      )}
+
     </div>
   );
 };

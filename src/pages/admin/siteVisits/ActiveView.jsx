@@ -1,11 +1,13 @@
 import React, { useEffect, useState } from 'react';
 import api from '../../../services/api';
-import { MapPin, Clock, CheckCircle2, User, Calendar, AlertCircle } from 'lucide-react';
+import { MapPin, Clock, CheckCircle2, User, Calendar, AlertCircle, Eye } from 'lucide-react';
 import toast from 'react-hot-toast';
+import SiteVisitDetailModal from './SiteVisitDetailModal';
 
 const ActiveView = () => {
   const [allVisits, setAllVisits] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [selectedVisit, setSelectedVisit] = useState(null);
 
   useEffect(() => {
     fetchVisits();
@@ -46,7 +48,11 @@ const ActiveView = () => {
             const avatarImg = visit.employeeId?.profileImage || visit.employeeId?.profilePicture;
 
             return (
-              <div key={visit._id} className="bg-white p-6 rounded-3xl border border-slate-200 shadow-sm relative overflow-hidden space-y-4">
+              <div 
+                key={visit._id} 
+                onClick={() => setSelectedVisit(visit)}
+                className="bg-white p-6 rounded-3xl border border-slate-200 shadow-sm relative overflow-hidden space-y-4 cursor-pointer hover:shadow-md hover:border-blue-300 transition-all group"
+              >
                 <div className="absolute top-0 left-0 w-1.5 h-full bg-emerald-500"></div>
                 <div className="flex justify-between items-start">
                   <div className="flex items-center gap-3">
@@ -58,7 +64,7 @@ const ActiveView = () => {
                       )}
                     </div>
                     <div>
-                      <h4 className="font-black text-sm text-slate-900">{empName}</h4>
+                      <h4 className="font-black text-sm text-slate-900 group-hover:text-blue-600 transition-colors">{empName}</h4>
                       <p className="text-[10px] font-bold text-slate-400">{empCode}</p>
                     </div>
                   </div>
@@ -106,16 +112,6 @@ const ActiveView = () => {
         <div className="bg-white rounded-3xl border border-slate-200 shadow-sm overflow-hidden">
           <div className="overflow-x-auto">
             <table className="w-full text-left">
-              <thead className="bg-slate-50 border-b border-slate-200">
-                <tr>
-                  <th className="px-6 py-4 text-[10px] font-black text-slate-400 uppercase tracking-widest">Employee</th>
-                  <th className="px-6 py-4 text-[10px] font-black text-slate-400 uppercase tracking-widest">Client & Site</th>
-                  <th className="px-6 py-4 text-[10px] font-black text-slate-400 uppercase tracking-widest">Start Date & Time</th>
-                  <th className="px-6 py-4 text-[10px] font-black text-slate-400 uppercase tracking-widest">End Visit Time</th>
-                  <th className="px-6 py-4 text-[10px] font-black text-slate-400 uppercase tracking-widest">Total Time Taken</th>
-                  <th className="px-6 py-4 text-[10px] font-black text-slate-400 uppercase tracking-widest">Status</th>
-                </tr>
-              </thead>
               <tbody className="divide-y divide-slate-100">
                 {completedVisits.map(visit => {
                   const empName = visit.employeeId?.fullName || `${visit.employeeId?.firstName || ''} ${visit.employeeId?.lastName || ''}`.trim() || visit.employeeName || 'Employee';
@@ -124,7 +120,12 @@ const ActiveView = () => {
                   const completedTimeStr = visit.completedAt ? new Date(visit.completedAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', hour12: true }) : '—';
 
                   return (
-                    <tr key={visit._id} className="hover:bg-slate-50/50 transition-all">
+                    <tr 
+                      key={visit._id} 
+                      onClick={() => setSelectedVisit(visit)}
+                      className="hover:bg-slate-50 transition-all cursor-pointer group"
+                      title="Click to view full form details"
+                    >
                       <td className="px-6 py-4">
                         <div className="flex items-center gap-3">
                           <div className="w-9 h-9 rounded-full bg-slate-100 flex items-center justify-center font-black text-xs text-slate-600 border border-slate-200 overflow-hidden shrink-0">
@@ -135,7 +136,7 @@ const ActiveView = () => {
                             )}
                           </div>
                           <div>
-                            <p className="text-sm font-black text-slate-900">{empName}</p>
+                            <p className="text-sm font-black text-slate-900 group-hover:text-blue-600 transition-colors">{empName}</p>
                             <p className="text-[10px] font-bold text-slate-400">{empCode}</p>
                           </div>
                         </div>
@@ -162,12 +163,21 @@ const ActiveView = () => {
                           COMPLETED
                         </span>
                       </td>
+                      <td className="px-4 py-4 text-right">
+                        <button 
+                          onClick={(e) => { e.stopPropagation(); setSelectedVisit(visit); }}
+                          className="p-2 text-slate-400 hover:text-blue-600 hover:bg-blue-50 rounded-xl transition-all" 
+                          title="View Details"
+                        >
+                          <Eye size={18} />
+                        </button>
+                      </td>
                     </tr>
                   );
                 })}
                 {completedVisits.length === 0 && (
                   <tr>
-                    <td colSpan="6" className="px-6 py-10 text-center text-slate-400 font-bold text-sm">
+                    <td colSpan="7" className="px-6 py-10 text-center text-slate-400 font-bold text-sm">
                       No completed site visits yet.
                     </td>
                   </tr>
@@ -177,6 +187,11 @@ const ActiveView = () => {
           </div>
         </div>
       </div>
+
+      {/* Modal */}
+      {selectedVisit && (
+        <SiteVisitDetailModal visit={selectedVisit} onClose={() => setSelectedVisit(null)} />
+      )}
 
     </div>
   );
