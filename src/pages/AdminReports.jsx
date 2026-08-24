@@ -257,10 +257,13 @@ const AdminReports = () => {
       ws['!merges'] = [{ s: { r: 0, c: 0 }, e: { r: 0, c: totalCols - 1 } }];
 
       // ── Row 2: Payroll Period ────────────────────────────────────────────────
+      const firstSummary = summaries[0]?.summary;
+      const totalWorkingDays = firstSummary?.workingDays ?? 0;
+
       setCell('A2', 'Payroll Period', true, null, false, false, 9, false, 'left');
       setCell('B2', `${startLabel} to ${endLabel}`, false, null, false, false, 9, false, 'left');
       setCell('C2', 'Formula', true, null, false, false, 9, false, 'left');
-      setCell('D2', 'Basic Salary ÷ 24 × Payable Working Days', false, null, false, false, 9, false, 'left');
+      setCell('D2', `Basic Salary ÷ ${totalWorkingDays || 26} × Payable Working Days`, false, null, false, false, 9, false, 'left');
       ws['!merges'].push({ s: { r: 1, c: 1 }, e: { r: 1, c: 1 } });
       ws['!merges'].push({ s: { r: 1, c: 3 }, e: { r: 1, c: totalCols - 1 } });
 
@@ -273,8 +276,7 @@ const AdminReports = () => {
       ws['!merges'].push({ s: { r: 2, c: 1 }, e: { r: 2, c: totalCols - 1 } });
 
       // ── Row 4: Total Working Days ────────────────────────────────────────────
-      const firstSummary = summaries[0]?.summary;
-      const totalWorkingDays = firstSummary?.workingDays ?? 0;
+      // ── Row 4: Total Working Days ────────────────────────────────────────────
       setCell('A4', 'Total Working Days', true, null, false, false, 9, false, 'left');
       setCell('B4', totalWorkingDays, false, null, false, false, 9, false, 'left');
       ws['!merges'].push({ s: { r: 3, c: 1 }, e: { r: 3, c: totalCols - 1 } });
