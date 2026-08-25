@@ -636,14 +636,14 @@ const AdminEmployeeDetails = () => {
     </AdminLayout>
   );
 
-  const formatHHMM = (dateVal) => {
+  function formatHHMM(dateVal) {
     if (!dateVal) return '';
     const d = new Date(dateVal);
     if (isNaN(d.getTime())) return '';
     const hours = String(d.getHours()).padStart(2, '0');
     const minutes = String(d.getMinutes()).padStart(2, '0');
     return `${hours}:${minutes}`;
-  };
+  }
 
   const getDynamicWorkHours = (row) => {
     if (row.workHours && row.workHours !== '0h 0m' && row.workHours !== '--') return row.workHours;
