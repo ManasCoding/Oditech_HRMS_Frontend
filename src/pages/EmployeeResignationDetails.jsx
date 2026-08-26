@@ -23,13 +23,20 @@ const EmployeeResignationDetails = () => {
           setResignation({
             _id: "mock12345678901234567890",
             resignationDate: new Date().toISOString(),
-            lastWorkingDay: new Date(Date.now() + 30 * 86400000).toISOString(),
+            lastWorkingDay: new Date(Date.now() + 60 * 86400000).toISOString(),
             reason: "Better Career Opportunity",
             comments: "Testing the details page layout.",
             attachment: "https://example.com/mock.pdf",
             status: "APPROVED",
             submittedOn: new Date().toISOString(),
             reviewedOn: new Date().toISOString(),
+            exitChecklist: [
+              { task: "Handover Documents", status: "Completed" },
+              { task: "Return Company Assets", status: "Pending" },
+              { task: "Clear Dues", status: "Pending" },
+              { task: "Exit Interview", status: "Pending" },
+              { task: "Final Settlement", status: "Pending" }
+            ]
           });
           setLoading(false);
           return;
@@ -66,8 +73,10 @@ const EmployeeResignationDetails = () => {
   );
 
   const resDate = new Date(resignation.resignationDate);
-  const lwd = resignation.lastWorkingDay ? new Date(resignation.lastWorkingDay) : new Date(resDate.getTime() + 30 * 86400000);
+  const lwd = resignation.lastWorkingDay ? new Date(resignation.lastWorkingDay) : new Date(resDate.getTime() + 60 * 86400000);
   const today = new Date();
+  
+  // Notice period logic: always 60 days standard
   const noticePeriodTotal = Math.max(1, Math.round((lwd - resDate) / 86400000));
   const daysCompleted = Math.max(0, Math.min(noticePeriodTotal, Math.round((today - resDate) / 86400000)));
   const daysRemaining = Math.max(0, noticePeriodTotal - daysCompleted);
@@ -93,13 +102,16 @@ const EmployeeResignationDetails = () => {
     { title: "Separation Complete",     desc: "All formalities completed",                        date: "—", done: false, active: false },
   ];
 
-  const exitTasks = [
-    { title: "Handover Documents",    status: "Pending" },
-    { title: "Return Company Assets", status: "Pending" },
-    { title: "Clear Dues",            status: "Pending" },
-    { title: "Exit Interview",        status: "Pending" },
-    { title: "Final Settlement",      status: "Pending" },
+  const exitChecklist = resignation.exitChecklist?.length > 0 ? resignation.exitChecklist : [
+    { task: "Handover Documents", status: "Pending" },
+    { task: "Return Company Assets", status: "Pending" },
+    { task: "Clear Dues", status: "Pending" },
+    { task: "Exit Interview", status: "Pending" },
+    { task: "Final Settlement", status: "Pending" }
   ];
+  
+  const completedTasksCount = exitChecklist.filter(t => t.status === "Completed").length;
+  const allTasksCompleted = exitChecklist.length > 0 && completedTasksCount === exitChecklist.length;
 
   return (
     <EmployeeLayout title="" subtitle="" hideHeader={true}>
@@ -129,7 +141,7 @@ const EmployeeResignationDetails = () => {
             { label: "Status",         val: resignation.status.charAt(0) + resignation.status.slice(1).toLowerCase(), sub: "Current",              color: "text-emerald-600 bg-emerald-50",  icon: StatusIcon },
             { label: "Days Remaining", val: `${daysRemaining}`,   sub: "Till last working day",   color: "text-blue-600 bg-blue-50",     icon: Calendar },
             { label: "Notice Period",  val: `${daysCompleted}/${noticePeriodTotal}`, sub: "Days completed",   color: "text-indigo-600 bg-indigo-50", icon: CircleDashed },
-            { label: "Settlement",     val: "Pending",             sub: "After exit",              color: "text-rose-600 bg-rose-50",    icon: Wallet },
+            { label: "Settlement",     val: allTasksCompleted ? "In Progress" : "Pending", sub: "After exit", color: allTasksCompleted ? "text-emerald-600 bg-emerald-50" : "text-rose-600 bg-rose-50",    icon: Wallet },
           ].map(({ label, val, sub, color, icon: Icon }) => (
             <div key={label} className="bg-white rounded-xl border border-slate-100 shadow-sm p-4 flex items-center gap-3">
               <div className={`w-9 h-9 rounded-lg flex items-center justify-center shrink-0 ${color}`}><Icon size={16} /></div>
@@ -155,7 +167,7 @@ const EmployeeResignationDetails = () => {
                 {[
                   { label: "Request ID",       val: `RES-${(resignation._id || "").toString().slice(-6).toUpperCase()}`, color: "text-blue-600" },
                   { label: "Resignation Date", val: fmtDate(resignation.resignationDate) },
-                  { label: "Last Working Day", val: fmtDate(resignation.lastWorkingDay) },
+                  { label: "Last Working Day", val: fmtDate(resignation.lastWorkingDay) || "Pending Approval" },
                 ].map(({ label, val, color }) => (
                   <div key={label}>
                     <p className="text-[10px] font-bold text-slate-400 uppercase tracking-wide mb-1">{label}</p>
@@ -205,16 +217,23 @@ const EmployeeResignationDetails = () => {
               <div className="bg-white rounded-2xl border border-slate-100 shadow-sm p-5">
                 <div className="flex items-center justify-between mb-4">
                   <h3 className="text-[11px] font-black text-slate-400 uppercase tracking-widest">Exit Checklist</h3>
-                  <span className="text-[10px] font-black text-amber-600 bg-amber-50 border border-amber-100 px-2 py-0.5 rounded-full">0/{exitTasks.length} Done</span>
+                  <span className="text-[10px] font-black text-amber-600 bg-amber-50 border border-amber-100 px-2 py-0.5 rounded-full">{completedTasksCount}/{exitChecklist.length} Done</span>
                 </div>
                 <div className="space-y-2">
-                  {exitTasks.map((task, i) => (
-                    <div key={i} className="flex items-center gap-2.5 p-2.5 hover:bg-slate-50 rounded-lg transition-colors">
-                      <div className="w-4 h-4 rounded-full border-2 border-slate-200 shrink-0" />
-                      <span className="text-[12px] font-semibold text-slate-600 flex-1">{task.title}</span>
-                      <span className="text-[9px] font-black text-amber-600 bg-amber-50 px-1.5 py-0.5 rounded uppercase">Pending</span>
-                    </div>
-                  ))}
+                  {exitChecklist.map((task, i) => {
+                    const isCompleted = task.status === "Completed";
+                    return (
+                      <div key={i} className="flex items-center gap-2.5 p-2.5 bg-slate-50 rounded-lg border border-slate-100">
+                        <div className={`w-4 h-4 rounded-full border-2 shrink-0 flex items-center justify-center ${isCompleted ? 'bg-emerald-500 border-emerald-500' : 'border-slate-300'}`}>
+                          {isCompleted && <Check size={8} className="text-white" />}
+                        </div>
+                        <span className={`text-[12px] font-semibold flex-1 ${isCompleted ? 'text-slate-400 line-through' : 'text-slate-600'}`}>{task.task}</span>
+                        <span className={`text-[9px] font-black px-1.5 py-0.5 rounded uppercase tracking-wide ${isCompleted ? 'bg-emerald-50 text-emerald-600' : 'bg-amber-50 text-amber-600'}`}>
+                          {task.status}
+                        </span>
+                      </div>
+                    );
+                  })}
                 </div>
               </div>
 
@@ -275,7 +294,7 @@ const EmployeeResignationDetails = () => {
                 <div className="flex justify-between text-[9px] font-bold text-white/30">
                   <span>{fmtDate(resDate)}</span>
                   <span>{progressPercent}%</span>
-                  <span>{fmtDate(lwd)}</span>
+                  <span>{fmtDate(lwd) || "TBD"}</span>
                 </div>
               </div>
             </div>

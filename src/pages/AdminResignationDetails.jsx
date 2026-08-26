@@ -44,13 +44,28 @@ const AdminResignationDetails = () => {
     }
   };
 
+  const handleChecklistUpdate = async (taskIndex, currentStatus) => {
+    if (data.status !== "APPROVED") {
+      alert("Checklist can only be updated after the resignation is approved.");
+      return;
+    }
+    const newStatus = currentStatus === "Pending" ? "Completed" : "Pending";
+    try {
+      const res = await api.patch(`/admin/resignations/${id}/checklist`, { taskIndex, status: newStatus });
+      if (res.data.success) setData(res.data.resignation);
+    } catch (err) {
+      alert("Failed to update checklist: " + (err.response?.data?.message || err.message));
+    }
+  };
+
   const fmtDate = (val) => val ? new Date(val).toLocaleDateString("en-IN", { day: "2-digit", month: "short", year: "numeric" }) : "—";
   const fmtDateTime = (val) => val ? new Date(val).toLocaleString("en-IN", { day: "2-digit", month: "short", year: "numeric", hour: "2-digit", minute: "2-digit" }) : "—";
 
   const getNoticeDays = () => {
-    if (!data?.resignationDate || !data?.lastWorkingDay) return { total: 0, elapsed: 0, remaining: 0 };
+    if (!data?.resignationDate) return { total: 0, elapsed: 0, remaining: 0 };
     const start = new Date(data.resignationDate);
-    const end = new Date(data.lastWorkingDay);
+    // Notice period is 60 days
+    const end = data.lastWorkingDay ? new Date(data.lastWorkingDay) : new Date(start.getTime() + 60 * 86400000);
     const now = new Date();
     const total = Math.max(1, Math.round((end - start) / 86400000));
     const elapsed = Math.max(0, Math.min(total, Math.round((now - start) / 86400000)));
@@ -92,11 +107,18 @@ const AdminResignationDetails = () => {
   };
   const sc = statusCfg[data.status] || statusCfg.PENDING;
 
-  const exitTasks = ["Handover Documents", "Return Company Assets", "Clear Dues", "Exit Interview", "Final Settlement"];
+  const exitChecklist = data.exitChecklist?.length > 0 ? data.exitChecklist : [
+    { task: "Handover Documents", status: "Pending" },
+    { task: "Return Company Assets", status: "Pending" },
+    { task: "Clear Dues", status: "Pending" },
+    { task: "Exit Interview", status: "Pending" },
+    { task: "Final Settlement", status: "Pending" }
+  ];
+  const completedTasksCount = exitChecklist.filter(t => t.status === "Completed").length;
 
   return (
     <AdminLayout hideHeader={true}>
-      <div className="max-w-[1500px] mx-auto space-y-4">
+      <div className="max-w-[1500px] mx-auto space-y-4 pb-12">
 
         {/* ── Header Bar ── */}
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 bg-white px-5 py-4 rounded-2xl border border-slate-100 shadow-sm">
@@ -140,7 +162,6 @@ const AdminResignationDetails = () => {
 
             {/* Employee Card */}
             <div className="bg-white rounded-2xl border border-slate-100 shadow-sm overflow-hidden">
-              {/* Cover gradient */}
               <div className="h-20 bg-gradient-to-br from-[#0B1426] via-[#1e3a5f] to-[#2563eb] relative">
                 <div className="absolute inset-0 opacity-20" style={{backgroundImage: "radial-gradient(circle at 80% 50%, #60a5fa 0%, transparent 60%)"}} />
               </div>
@@ -169,7 +190,7 @@ const AdminResignationDetails = () => {
               <h3 className="text-[11px] font-black text-slate-400 uppercase tracking-widest">Resignation Details</h3>
               {[
                 { icon: Calendar,     label: "Resignation Date", value: fmtDate(data.resignationDate) },
-                { icon: CalendarDays, label: "Last Working Day",  value: fmtDate(data.lastWorkingDay)  },
+                { icon: CalendarDays, label: "Last Working Day",  value: fmtDate(data.lastWorkingDay) || "Pending Approval" },
                 { icon: FileText,     label: "Reason",            value: data.reason || "—"            },
                 { icon: Clock,        label: "Submitted",         value: fmtDateTime(data.createdAt)   },
                 ...(data.reviewedOn ? [{ icon: Check, label: "Reviewed On", value: fmtDateTime(data.reviewedOn) }] : []),
@@ -214,7 +235,7 @@ const AdminResignationDetails = () => {
                 <div className="flex justify-between text-[10px] font-bold text-white/40">
                   <span>{fmtDate(data.resignationDate)}</span>
                   <span>{percentage}% elapsed</span>
-                  <span>{fmtDate(data.lastWorkingDay)}</span>
+                  <span>{fmtDate(data.lastWorkingDay) || "TBD"}</span>
                 </div>
               </div>
             </div>
@@ -257,7 +278,7 @@ const AdminResignationDetails = () => {
               </div>
               <div className="flex items-center gap-3 p-3 bg-rose-50 rounded-xl border border-rose-100">
                 <div className="w-8 h-8 rounded-lg bg-rose-400 flex items-center justify-center shrink-0"><CalendarDays size={14} className="text-white" /></div>
-                <div><p className="text-[9px] font-black text-rose-600 uppercase tracking-wider">Last Working Day</p><p className="text-[12px] font-black text-rose-800">{fmtDate(data.lastWorkingDay)}</p></div>
+                <div><p className="text-[9px] font-black text-rose-600 uppercase tracking-wider">Last Working Day</p><p className="text-[12px] font-black text-rose-800">{fmtDate(data.lastWorkingDay) || "Pending Approval"}</p></div>
               </div>
             </div>
           </div>
@@ -268,16 +289,28 @@ const AdminResignationDetails = () => {
             <div className="bg-white rounded-2xl border border-slate-100 shadow-sm p-4">
               <div className="flex items-center justify-between mb-4">
                 <h3 className="text-[11px] font-black text-slate-400 uppercase tracking-widest">Exit Checklist</h3>
-                <span className="text-[10px] font-black text-amber-600 bg-amber-50 border border-amber-100 px-2 py-0.5 rounded-full">0/{exitTasks.length} Done</span>
+                <span className="text-[10px] font-black text-amber-600 bg-amber-50 border border-amber-100 px-2 py-0.5 rounded-full">{completedTasksCount}/{exitChecklist.length} Done</span>
               </div>
               <div className="space-y-2">
-                {exitTasks.map((task, i) => (
-                  <div key={i} className="flex items-center gap-3 p-2.5 hover:bg-slate-50 rounded-lg transition-colors">
-                    <div className="w-5 h-5 rounded-full border-2 border-slate-200 flex items-center justify-center shrink-0"><Circle size={10} className="text-slate-300" /></div>
-                    <span className="text-[12px] font-semibold text-slate-600 flex-1">{task}</span>
-                    <span className="text-[9px] font-black text-amber-600 bg-amber-50 px-2 py-0.5 rounded uppercase tracking-wide">Pending</span>
-                  </div>
-                ))}
+                {exitChecklist.map((task, i) => {
+                  const isCompleted = task.status === "Completed";
+                  return (
+                    <div 
+                      key={i} 
+                      onClick={() => handleChecklistUpdate(i, task.status)}
+                      className={`flex items-center gap-3 p-2.5 rounded-lg transition-colors border border-transparent ${data.status === "APPROVED" ? 'cursor-pointer hover:bg-slate-50 hover:border-slate-200' : 'opacity-75 cursor-not-allowed'}`}
+                      title={data.status === "APPROVED" ? "Click to toggle status" : "Approve resignation first to update checklist"}
+                    >
+                      <div className={`w-5 h-5 rounded-full border-2 flex items-center justify-center shrink-0 transition-colors ${isCompleted ? 'bg-emerald-500 border-emerald-500' : 'border-slate-300'}`}>
+                        {isCompleted && <Check size={10} className="text-white" />}
+                      </div>
+                      <span className={`text-[12px] font-semibold flex-1 transition-colors ${isCompleted ? 'text-slate-400 line-through' : 'text-slate-600'}`}>{task.task}</span>
+                      <span className={`text-[9px] font-black px-2 py-0.5 rounded uppercase tracking-wide ${isCompleted ? 'text-emerald-600 bg-emerald-50' : 'text-amber-600 bg-amber-50'}`}>
+                        {task.status}
+                      </span>
+                    </div>
+                  );
+                })}
               </div>
             </div>
 
