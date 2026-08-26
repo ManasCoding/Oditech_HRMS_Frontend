@@ -21,20 +21,30 @@ import api from '../services/api';
 import PublishAnnouncement from '../components/PublishAnnouncement';
 import ActiveAnnouncements from '../components/ActiveAnnouncements';
 
-const SettingCard = ({ label, value, name, onChange, colorClass = "bg-slate-50", type = "text", suffix = "" }) => (
-  <div className={`bg-white p-6 rounded-[32px] border border-slate-100 shadow-sm flex flex-col items-center text-center group transition-all hover:shadow-md relative overflow-hidden`}>
+const SettingCard = ({ label, value, name, onChange, colorClass = "bg-slate-50", type = "text", suffix = "", subLabel = "", readOnly = false }) => (
+  <div className={`bg-white p-6 rounded-[32px] border border-slate-100 shadow-sm flex flex-col items-center text-center group transition-all hover:shadow-md relative overflow-hidden ${readOnly ? 'select-none' : ''}`}>
     <div className={`absolute top-0 left-0 w-full h-1.5 ${colorClass}`}></div>
+    {readOnly && (
+      <div className="absolute top-3 right-3 w-5 h-5 text-slate-300">
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor"><path d="M12 1C9.24 1 7 3.24 7 6v1H5a2 2 0 0 0-2 2v12a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V9a2 2 0 0 0-2-2h-2V6c0-2.76-2.24-5-5-5zm0 2c1.66 0 3 1.34 3 3v1H9V6c0-1.66 1.34-3 3-3zm0 10a2 2 0 1 1 0 4 2 2 0 0 1 0-4z"/></svg>
+      </div>
+    )}
     <span className="text-slate-400 text-[9px] font-black uppercase tracking-[0.2em] mb-4">{label}</span>
     <div className="flex items-center justify-center gap-1 w-full">
-      <input 
-        type={type} 
-        name={name}
-        value={value}
-        onChange={onChange}
-        className="bg-transparent border-none p-0 text-2xl font-black text-[#1e293b] w-full text-center focus:outline-none placeholder:text-slate-200"
-      />
+      {readOnly ? (
+        <span className="text-2xl font-black text-[#1e293b]">{value}</span>
+      ) : (
+        <input
+          type={type}
+          name={name}
+          value={value}
+          onChange={onChange}
+          className="bg-transparent border-none p-0 text-2xl font-black text-[#1e293b] w-full text-center focus:outline-none placeholder:text-slate-200"
+        />
+      )}
       {suffix && <span className="text-[10px] font-black text-slate-400 uppercase tracking-tighter mt-1">{suffix}</span>}
     </div>
+    {subLabel && <span className="text-[10px] font-medium text-slate-400 mt-2">{subLabel}</span>}
   </div>
 );
 
@@ -44,6 +54,12 @@ const AdminSettings = () => {
     logout_time: '19:00',
     late_threshold: '09:40',
     max_work_hours: '9.0',
+    lunch_start: '13:00',
+    lunch_end: '14:00',
+    break_duration: '1.0',
+    min_work_hours: '4.0',
+    half_day_threshold: '13:30',
+    overtime_threshold: '18:30',
     casual_leave: '12',
     sick_leave: '10',
     Holidays: '13',
@@ -55,6 +71,7 @@ const AdminSettings = () => {
   });
   
   const [loading, setLoading] = useState(false);
+  const [editMode, setEditMode] = useState(false);
   const [success, setSuccess] = useState('');
   const [error, setError] = useState('');
   const [admins, setAdmins] = useState([]);
@@ -250,14 +267,31 @@ const AdminSettings = () => {
                    <ShieldCheck size={16} /> {error}
                 </div>
               )}
-              <button 
-                onClick={handleSave}
-                disabled={loading}
-                className="flex-1 md:flex-none flex items-center justify-center gap-3 px-10 py-4 bg-white text-[#1e293b] rounded-2xl text-xs font-black uppercase tracking-[0.2em] hover:scale-105 active:scale-95 transition-all shadow-lg shadow-white/10 disabled:opacity-50"
+              {/* Edit / Lock toggle */}
+              <button
+                onClick={() => setEditMode(prev => !prev)}
+                className={`flex items-center justify-center gap-2 px-6 py-4 rounded-2xl text-xs font-black uppercase tracking-[0.2em] transition-all border ${
+                  editMode
+                    ? 'bg-amber-50 text-amber-600 border-amber-200 hover:bg-amber-100'
+                    : 'bg-white/10 text-white border-white/20 hover:bg-white/20'
+                }`}
               >
-                {loading ? <div className="w-4 h-4 border-2 border-[#1e293b]/30 border-t-[#1e293b] rounded-full animate-spin"></div> : <Save size={16} />}
-                {loading ? 'Saving...' : 'Save Settings'}
+                {editMode ? (
+                  <><svg xmlns="http://www.w3.org/2000/svg" className="w-4 h-4" viewBox="0 0 24 24" fill="currentColor"><path d="M17 1a5 5 0 0 1 5 5v1h-2V6a3 3 0 0 0-6 0v1h-2V6a5 5 0 0 1 5-5zM3 9a2 2 0 0 0-2 2v10a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V11a2 2 0 0 0-2-2H3zm7 5a2 2 0 1 1 0 4 2 2 0 0 1 0-4z"/></svg> Lock Settings</>
+                ) : (
+                  <><svg xmlns="http://www.w3.org/2000/svg" className="w-4 h-4" viewBox="0 0 24 24" fill="currentColor"><path d="M3 11V9a9 9 0 1 1 18 0v2h1a1 1 0 0 1 1 1v10a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V12a1 1 0 0 1 1-1h1zm2 0h14V9A7 7 0 0 0 5 9v2zm7 4a2 2 0 1 0 0 4 2 2 0 0 0 0-4z"/></svg> Edit Settings</>
+                )}
               </button>
+              {editMode && (
+                <button 
+                  onClick={handleSave}
+                  disabled={loading}
+                  className="flex-1 md:flex-none flex items-center justify-center gap-3 px-10 py-4 bg-white text-[#1e293b] rounded-2xl text-xs font-black uppercase tracking-[0.2em] hover:scale-105 active:scale-95 transition-all shadow-lg shadow-white/10 disabled:opacity-50"
+                >
+                  {loading ? <div className="w-4 h-4 border-2 border-[#1e293b]/30 border-t-[#1e293b] rounded-full animate-spin"></div> : <Save size={16} />}
+                  {loading ? 'Saving...' : 'Save Settings'}
+                </button>
+              )}
            </div>
         </div>
 
@@ -322,13 +356,39 @@ const AdminSettings = () => {
               <div className="w-10 h-10 bg-sky-50 text-sky-600 rounded-xl flex items-center justify-center">
                 <Clock size={20} />
               </div>
-              <h4 className="text-lg font-black text-[#1e293b] uppercase tracking-widest">Timing & Attendance Rules</h4>
+              <h4 className="text-lg font-black text-[#1e293b] uppercase tracking-widest">Timing &amp; Attendance Rules</h4>
             </div>
-            <div className="grid grid-cols-2 md:grid-cols-4 gap-6">
-              <SettingCard label="Shift Start" name="workday_start" value={settings.workday_start} onChange={handleChange} type="time" colorClass="bg-sky-500" />
-              <SettingCard label="Shift End" name="logout_time" value={settings.logout_time} onChange={handleChange} type="time" colorClass="bg-sky-500" />
-              <SettingCard label="Late Threshold" name="late_threshold" value={settings.late_threshold} onChange={handleChange} type="time" colorClass="bg-rose-500" />
-              <SettingCard label="Daily Max Hours" name="max_work_hours" value={settings.max_work_hours} onChange={handleChange} suffix="HRS" type="number" colorClass="bg-emerald-500" />
+
+            {/* Row 1 — Core shift times */}
+            <div className="grid grid-cols-2 md:grid-cols-4 gap-6 mb-6">
+              <SettingCard label="Shift Start"      name="workday_start"   value={settings.workday_start}   onChange={handleChange} type="time"   colorClass="bg-sky-500"     />
+              <SettingCard label="Shift End"        name="logout_time"     value={settings.logout_time}     onChange={handleChange} type="time"   colorClass="bg-sky-500"     />
+              <SettingCard label="Late Threshold"   name="late_threshold"  value={settings.late_threshold}  onChange={handleChange} type="time"   colorClass="bg-rose-500"    />
+              <SettingCard label="Daily Max Hours"  name="max_work_hours"  value={settings.max_work_hours}  onChange={handleChange} suffix="HRS"  type="number" colorClass="bg-emerald-500" />
+            </div>
+
+            {/* Row 2 — Lunch & break */}
+            <div className="grid grid-cols-2 md:grid-cols-4 gap-6 mb-6">
+              <SettingCard label="Lunch Start"      name="lunch_start"     value={settings.lunch_start}     onChange={handleChange} type="time"   colorClass="bg-violet-500"  subLabel="Lunch break begins" />
+              <SettingCard label="Lunch End"        name="lunch_end"       value={settings.lunch_end}       onChange={handleChange} type="time"   colorClass="bg-violet-500"  subLabel="Lunch break ends" />
+              <SettingCard label="Break Duration"   name="break_duration"  value={settings.break_duration}  onChange={handleChange} suffix="HRS"  type="number" colorClass="bg-orange-500" subLabel="Lunch break duration" />
+              <SettingCard label="Min. Work Hours"  name="min_work_hours"  value={settings.min_work_hours}  onChange={handleChange} suffix="HRS"  type="number" colorClass="bg-teal-500"   subLabel="Minimum hours for half day" />
+            </div>
+
+            {/* Row 3 — Half day & overtime thresholds */}
+            <div className="grid grid-cols-2 md:grid-cols-4 gap-6 mb-6">
+              <SettingCard label="Half Day Threshold"  name="half_day_threshold"  value={settings.half_day_threshold}  onChange={handleChange} type="time"   colorClass="bg-amber-500"  subLabel="Check-in for half day" />
+              <SettingCard label="Overtime Starts"     name="overtime_threshold"  value={settings.overtime_threshold}  onChange={handleChange} type="time"   colorClass="bg-indigo-500" subLabel="Overtime begins after" />
+            </div>
+
+            {/* Info Banner */}
+            <div className="flex items-start gap-3 px-5 py-4 bg-sky-50 border border-sky-100 rounded-2xl text-sky-700">
+              <Clock size={16} className="mt-0.5 shrink-0 text-sky-500" />
+              <p className="text-xs font-bold leading-relaxed">
+                Employees must work at least <span className="font-black text-sky-600">{settings.min_work_hours}</span> hours to be eligible for half day.
+                Full day requires <span className="font-black text-sky-600">{settings.max_work_hours}</span> hours or more of working time.
+                Check-in at or after <span className="font-black text-sky-600">{settings.half_day_threshold}</span> is counted as a Half Day.
+              </p>
             </div>
           </section>
 

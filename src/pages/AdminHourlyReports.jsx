@@ -83,17 +83,15 @@ const AdminHourlyReports = () => {
   const fetchReports = useCallback(async (showLoader = true) => {
     if (showLoader) setLoading(true);
     try {
-      const res = await api.get('/admin/timesheets');
+      const params = {};
+      if (filters.date) params.date = filters.date;
+      if (filters.department !== 'All Departments') params.department = filters.department;
+      if (filters.status !== 'All Status') params.status = filters.status;
+      if (search.trim()) params.search = search.trim();
+
+      const res = await api.get('/admin/timesheets', { params });
       if (res.data.success) {
-        // Build stats from returned timesheets
         const ts = res.data.timesheets;
-        const filtered = ts.filter(r => {
-          const matchDate = !filters.date || r.date === filters.date;
-          const matchDept = filters.department === 'All Departments' || r.department === filters.department;
-          const matchStatus = filters.status === 'All Status' || r.status === filters.status;
-          const matchSearch = !search || r.employeeName?.toLowerCase().includes(search.toLowerCase());
-          return matchDate && matchDept && matchStatus && matchSearch;
-        });
 
         const parseMin = (str) => {
           if (!str) return 0;
@@ -103,21 +101,21 @@ const AdminHourlyReports = () => {
         };
         const fmtMin = (min) => `${Math.floor(min / 60)}h ${Math.floor(min % 60)}m`;
 
-        const totalMins = filtered.reduce((a, r) => a + parseMin(r.totalHours), 0);
-        const totalOTMins = filtered.reduce((a, r) => a + parseMin(r.overtime), 0);
-        const avgMins = filtered.length > 0 ? Math.round(totalMins / filtered.length) : 0;
-        const submitted = filtered.filter(r => r.status === 'Submitted').length;
-        const completed = filtered.filter(r => r.status === 'Completed').length;
+        const totalMins = ts.reduce((a, r) => a + parseMin(r.totalHours), 0);
+        const totalOTMins = ts.reduce((a, r) => a + parseMin(r.overtime), 0);
+        const avgMins = ts.length > 0 ? Math.round(totalMins / ts.length) : 0;
+        const completed = ts.filter(r => r.status === 'Completed').length;
+        const submitted = ts.filter(r => r.status === 'Submitted').length;
 
         // Build pie chart summary by department
         const deptMap = {};
-        filtered.forEach(r => {
+        ts.forEach(r => {
           const dept = r.department || 'General';
           deptMap[dept] = (deptMap[dept] || 0) + parseMin(r.totalHours);
         });
         const summary = Object.entries(deptMap).map(([name, minutes]) => ({ name, minutes, hours: fmtMin(minutes) }));
 
-        const uniqueEmployees = [...new Set(filtered.map(r => String(r.employeeId?._id || r.employeeId)))].length;
+        const uniqueEmployees = [...new Set(ts.map(r => String(r.employeeId?._id || r.employeeId)))].length;
 
         setData({
           stats: {
@@ -126,13 +124,13 @@ const AdminHourlyReports = () => {
             averageHours: fmtMin(avgMins),
             totalOvertimeToday: fmtMin(totalOTMins),
           },
-          reports: filtered,
-          totalEntries: filtered.length,
+          reports: ts,
+          totalEntries: ts.length,
           summary,
           statusCounts: {
             Completed: completed,
-            Pending: ts.filter(r => r.status === 'Pending').length,
-            NotSubmitted: Math.max(0, uniqueEmployees - submitted - completed),
+            Pending: submitted,
+            NotSubmitted: 0,
           }
         });
       }
