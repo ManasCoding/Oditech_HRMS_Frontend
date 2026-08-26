@@ -115,11 +115,11 @@ const EmployeeResignationDetails = () => {
 
   // Mock HR info
   const hrContact = {
-    name: "Sonali Das",
+    name: "Priyanka Nayak",
     role: "HR Manager",
-    email: "hr@oditechglobal.com",
-    phone: "+91 98765 43210",
-    location: "HR Department, 2nd Floor",
+    email: "official@oditechglobal.com",
+    phone: "+91 9124670012",
+    location: "HR Department",
     initials: "SD"
   };
 
