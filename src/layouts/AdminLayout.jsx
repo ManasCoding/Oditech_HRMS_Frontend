@@ -15,6 +15,7 @@ import {
   Menu,
   X,
   FileMinus,
+  FileSignature,
   TrendingUp
 } from 'lucide-react';
 
@@ -37,6 +38,7 @@ const AdminLayout = ({ children, title, subtitle, hideHeader = false }) => {
     { name: 'Employee Management', icon: <Users size={18} />, path: '/admin/employees' },
     { name: 'Attendance Management', icon: <Calendar size={18} />, path: '/admin/attendance' },
     { name: 'Leave Management', icon: <Clock size={18} />, path: '/admin/leaves' },
+    { name: 'Resignation', icon: <FileSignature size={18} />, path: '/admin/resignations' },
     { name: 'Reports', icon: <FileText size={18} />, path: '/admin/reports' },
     { name: 'Performance', icon: <TrendingUp size={18} />, path: '/admin/performance' },
     { name: 'System Settings', icon: <Settings size={18} />, path: '/admin/settings' },
