@@ -1,11 +1,11 @@
-﻿import React, { useEffect, useState } from "react";
+import React, { useEffect, useState } from "react";
 import { useNavigate, useParams } from "react-router-dom";
 import AdminLayout from "../layouts/AdminLayout";
 import api from "../services/api";
 import {
   ArrowLeft, Calendar, Clock, FileText, Building, Hash, Check, X,
   CalendarDays, Briefcase, Award, Loader2, User, CheckCircle2, Circle,
-  AlertCircle, ChevronRight
+  AlertCircle, ChevronRight, Mail
 } from "lucide-react";
 
 const AdminResignationDetails = () => {
@@ -186,25 +186,24 @@ const AdminResignationDetails = () => {
 
             {/* Employee Card */}
             <div className="bg-white rounded-2xl border border-slate-100 shadow-sm overflow-hidden">
-              <div className="h-20 bg-gradient-to-br from-[#0B1426] via-[#1e3a5f] to-[#2563eb] relative">
+              <div className="h-24 bg-gradient-to-br from-[#0B1426] via-[#1e3a5f] to-[#2563eb] relative flex items-center px-5 gap-3">
                 <div className="absolute inset-0 opacity-20" style={{backgroundImage: "radial-gradient(circle at 80% 50%, #60a5fa 0%, transparent 60%)"}} />
-              </div>
-              <div className="px-5 pb-5 -mt-10 relative">
-                <div className="flex items-end gap-3 mb-4">
-                  <img
-                    src={avatar}
-                    alt={emp.fullName}
-                    className="w-16 h-16 rounded-xl object-cover border-3 border-white shadow-lg ring-2 ring-white"
-                    onError={(e) => { e.target.src = `https://ui-avatars.com/api/?name=${encodeURIComponent(emp.fullName || "E")}&background=6366f1&color=fff&size=200`; }}
-                  />
-                  <div className="pb-1">
-                    <h2 className="text-[13px] font-black text-slate-800 leading-tight">{emp.fullName || "—"}</h2>
-                    <p className="text-[11px] font-bold text-slate-500">{emp.designation || "—"}</p>
-                  </div>
+                <div className="relative z-10">
+                  <h2 className="text-[14px] font-black text-white leading-tight">{emp.fullName || "—"}</h2>
+                  <p className="text-[11px] font-bold text-white/60">{emp.designation || "—"}</p>
                 </div>
-                <div className="grid grid-cols-2 gap-2">
+              </div>
+              <div className="px-5 pb-5 pt-3 relative flex items-center gap-4">
+                <img
+                  src={avatar}
+                  alt={emp.fullName}
+                  className="w-14 h-14 rounded-xl object-cover border-2 border-white shadow-lg shrink-0"
+                  onError={(e) => { e.target.src = `https://ui-avatars.com/api/?name=${encodeURIComponent(emp.fullName || "E")}&background=6366f1&color=fff&size=200`; }}
+                />
+                <div className="flex-1 min-w-0 space-y-1.5">
                   <div className="flex items-center gap-1.5 text-[11px] font-semibold text-slate-500"><Hash size={11} className="text-slate-400 shrink-0" />{emp.empCode || "—"}</div>
                   <div className="flex items-center gap-1.5 text-[11px] font-semibold text-slate-500"><Building size={11} className="text-slate-400 shrink-0" />{emp.department || "—"}</div>
+                  {emp.email && <div className="flex items-center gap-1.5 text-[11px] font-semibold text-blue-500 truncate"><Mail size={11} className="text-blue-400 shrink-0" />{emp.email}</div>}
                 </div>
               </div>
             </div>
