@@ -94,7 +94,6 @@ export const calculateLiveAttendanceState = (attendanceRecord, now = new Date())
 
   const isOnLunchBreak = !isCheckedOut && evalTime >= lunchStart && evalTime < lunchEnd && checkInDate < lunchEnd;
   const isShiftCompleted = rawWorkedSeconds >= targetSeconds;
-  const shouldAutoCheckout = !isCheckedOut && rawWorkedSeconds >= (targetSeconds + maxOvertimeSeconds);
 
   let statusText = 'Working';
   if (attendanceRecord.checkInApprovalStatus === 'Pending') {
@@ -102,7 +101,7 @@ export const calculateLiveAttendanceState = (attendanceRecord, now = new Date())
   } else if (attendanceRecord.checkInApprovalStatus === 'Rejected') {
     statusText = 'Check-In Rejected';
   } else if (isCheckedOut || isAutoCheckedOut) {
-    statusText = isAutoCheckedOut ? 'Shift Completed' : 'Checked Out';
+    statusText = 'Checked Out';
   } else if (isOnLunchBreak) {
     statusText = 'Lunch Break';
   } else if (isShiftCompleted) {
@@ -118,7 +117,6 @@ export const calculateLiveAttendanceState = (attendanceRecord, now = new Date())
     isOnLunchBreak,
     isShiftCompleted,
     isAutoCheckedOut,
-    shouldAutoCheckout,
     checkInTimeFormatted: checkInDate.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', hour12: true }),
     checkOutTimeFormatted: isCheckedOut ? new Date(attendanceRecord.checkOut).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', hour12: true }) : (isAutoCheckedOut ? 'AUTO' : '—')
   };
