@@ -384,16 +384,6 @@ const EmployeeResignation = () => {
                   >
                     Submit Request
                   </button>
-                  <button
-                    type="button"
-                    onClick={() => {
-                      const id = resignations.length > 0 ? resignations[0]._id : 'test';
-                      navigate(`/employee/${user.empCode}/resignation/${id}`);
-                    }}
-                    className="px-8 py-3.5 border border-indigo-100 text-indigo-600 bg-indigo-50/50 rounded-2xl font-bold text-sm hover:bg-indigo-100 transition-all md:ml-auto"
-                  >
-                    Track Status
-                  </button>
                 </div>
               </form>
             )}

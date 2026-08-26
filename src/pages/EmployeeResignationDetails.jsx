@@ -73,7 +73,7 @@ const EmployeeResignationDetails = () => {
   );
 
   const resDate = new Date(resignation.resignationDate);
-  const lwd = resignation.lastWorkingDay ? new Date(resignation.lastWorkingDay) : new Date(resDate.getTime() + 60 * 86400000);
+  const lwd = new Date(resDate.getTime() + 60 * 86400000);
   const today = new Date();
   
   // Notice period logic: always 60 days standard
@@ -139,7 +139,7 @@ const EmployeeResignationDetails = () => {
         <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
           {[
             { label: "Status",         val: resignation.status.charAt(0) + resignation.status.slice(1).toLowerCase(), sub: "Current",              color: "text-emerald-600 bg-emerald-50",  icon: StatusIcon },
-            { label: "Days Remaining", val: `${daysRemaining}`,   sub: "Till last working day",   color: "text-blue-600 bg-blue-50",     icon: Calendar },
+            { label: "Days Remaining", val: `${daysRemaining}`, sub: "Till 60 days end",   color: "text-blue-600 bg-blue-50",     icon: Calendar },
             { label: "Notice Period",  val: `${daysCompleted}/${noticePeriodTotal}`, sub: "Days completed",   color: "text-indigo-600 bg-indigo-50", icon: CircleDashed },
             { label: "Settlement",     val: allTasksCompleted ? "In Progress" : "Pending", sub: "After exit", color: allTasksCompleted ? "text-emerald-600 bg-emerald-50" : "text-rose-600 bg-rose-50",    icon: Wallet },
           ].map(({ label, val, sub, color, icon: Icon }) => (
@@ -167,7 +167,7 @@ const EmployeeResignationDetails = () => {
                 {[
                   { label: "Request ID",       val: `RES-${(resignation._id || "").toString().slice(-6).toUpperCase()}`, color: "text-blue-600" },
                   { label: "Resignation Date", val: fmtDate(resignation.resignationDate) },
-                  { label: "Last Working Day", val: fmtDate(resignation.lastWorkingDay) || "Pending Approval" },
+                  { label: "Requested Last Working Day", val: fmtDate(resignation.lastWorkingDay) || "Not Requested" },
                 ].map(({ label, val, color }) => (
                   <div key={label}>
                     <p className="text-[10px] font-bold text-slate-400 uppercase tracking-wide mb-1">{label}</p>
@@ -294,7 +294,7 @@ const EmployeeResignationDetails = () => {
                 <div className="flex justify-between text-[9px] font-bold text-white/30">
                   <span>{fmtDate(resDate)}</span>
                   <span>{progressPercent}%</span>
-                  <span>{fmtDate(lwd) || "TBD"}</span>
+                  <span>{fmtDate(lwd)}</span>
                 </div>
               </div>
             </div>
@@ -365,3 +365,4 @@ const EmployeeResignationDetails = () => {
 };
 
 export default EmployeeResignationDetails;
+

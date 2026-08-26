@@ -65,7 +65,7 @@ const AdminResignationDetails = () => {
     if (!data?.resignationDate) return { total: 0, elapsed: 0, remaining: 0 };
     const start = new Date(data.resignationDate);
     // Notice period is 60 days
-    const end = data.lastWorkingDay ? new Date(data.lastWorkingDay) : new Date(start.getTime() + 60 * 86400000);
+    const end = new Date(start.getTime() + 60 * 86400000);
     const now = new Date();
     const total = Math.max(1, Math.round((end - start) / 86400000));
     const elapsed = Math.max(0, Math.min(total, Math.round((now - start) / 86400000)));
@@ -190,7 +190,7 @@ const AdminResignationDetails = () => {
               <h3 className="text-[11px] font-black text-slate-400 uppercase tracking-widest">Resignation Details</h3>
               {[
                 { icon: Calendar,     label: "Resignation Date", value: fmtDate(data.resignationDate) },
-                { icon: CalendarDays, label: "Last Working Day",  value: fmtDate(data.lastWorkingDay) || "Pending Approval" },
+                { icon: CalendarDays, label: "Requested Last Working Day", value: fmtDate(data.lastWorkingDay) || "Not Requested" },
                 { icon: FileText,     label: "Reason",            value: data.reason || "—"            },
                 { icon: Clock,        label: "Submitted",         value: fmtDateTime(data.createdAt)   },
                 ...(data.reviewedOn ? [{ icon: Check, label: "Reviewed On", value: fmtDateTime(data.reviewedOn) }] : []),
@@ -235,7 +235,7 @@ const AdminResignationDetails = () => {
                 <div className="flex justify-between text-[10px] font-bold text-white/40">
                   <span>{fmtDate(data.resignationDate)}</span>
                   <span>{percentage}% elapsed</span>
-                  <span>{fmtDate(data.lastWorkingDay) || "TBD"}</span>
+                  <span>{fmtDate(new Date(new Date(data.resignationDate).getTime() + 60 * 86400000))}</span>
                 </div>
               </div>
             </div>
@@ -278,7 +278,7 @@ const AdminResignationDetails = () => {
               </div>
               <div className="flex items-center gap-3 p-3 bg-rose-50 rounded-xl border border-rose-100">
                 <div className="w-8 h-8 rounded-lg bg-rose-400 flex items-center justify-center shrink-0"><CalendarDays size={14} className="text-white" /></div>
-                <div><p className="text-[9px] font-black text-rose-600 uppercase tracking-wider">Last Working Day</p><p className="text-[12px] font-black text-rose-800">{fmtDate(data.lastWorkingDay) || "Pending Approval"}</p></div>
+                <div><p className="text-[9px] font-black text-rose-600 uppercase tracking-wider">60-Day Notice End</p><p className="text-[12px] font-black text-rose-800">{fmtDate(new Date(new Date(data.resignationDate).getTime() + 60 * 86400000))}</p></div>
               </div>
             </div>
           </div>
@@ -345,3 +345,4 @@ const AdminResignationDetails = () => {
 };
 
 export default AdminResignationDetails;
+
