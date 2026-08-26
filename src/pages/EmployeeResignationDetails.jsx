@@ -73,10 +73,15 @@ const EmployeeResignationDetails = () => {
   );
 
   const resDate = new Date(resignation.resignationDate);
-  const lwd = new Date(resDate.getTime() + 60 * 86400000);
-  const today = new Date();
   
-  // Notice period logic: always 60 days standard
+  let lwd;
+  if ((resignation.status === 'APPROVED' || resignation.status === 'COMPLETED')) {
+    lwd = new Date(resignation.lastWorkingDay);
+  } else {
+    lwd = new Date(resDate.getTime() + 60 * 86400000);
+  }
+
+  const today = new Date();
   const noticePeriodTotal = Math.max(1, Math.round((lwd - resDate) / 86400000));
   const daysCompleted = Math.max(0, Math.min(noticePeriodTotal, Math.round((today - resDate) / 86400000)));
   const daysRemaining = Math.max(0, noticePeriodTotal - daysCompleted);
@@ -87,6 +92,7 @@ const EmployeeResignationDetails = () => {
 
   const statusCfg = {
     APPROVED: { bg: "bg-emerald-50", text: "text-emerald-600", border: "border-emerald-200", dot: "bg-emerald-500", icon: CheckCircle2 },
+    COMPLETED: { bg: "bg-indigo-50", text: "text-indigo-600", border: "border-indigo-200", dot: "bg-indigo-500", icon: CheckCircle2 },
     PENDING:  { bg: "bg-amber-50",   text: "text-amber-600",   border: "border-amber-200",   dot: "bg-amber-400",  icon: Clock },
     REJECTED: { bg: "bg-rose-50",    text: "text-rose-600",    border: "border-rose-200",    dot: "bg-rose-500",   icon: AlertCircle },
   };
@@ -96,9 +102,9 @@ const EmployeeResignationDetails = () => {
   const timelineSteps = [
     { title: "Resignation Submitted",   desc: "Your request was submitted to HR",                 date: fmtDate(resignation.submittedOn),  done: true,  active: false },
     { title: "Under Admin Review",      desc: "Admin is reviewing your request",                  date: resignation.status !== "PENDING" ? fmtDate(resignation.reviewedOn) : "Pending", done: resignation.status !== "PENDING", active: resignation.status === "PENDING" },
-    { title: resignation.status === "REJECTED" ? "Resignation Rejected" : "Resignation Approved", desc: resignation.status === "REJECTED" ? "Your resignation was rejected" : "Resignation approved by admin", date: resignation.reviewedOn ? fmtDate(resignation.reviewedOn) : "—", done: resignation.status === "APPROVED" || resignation.status === "REJECTED", active: false },
-    { title: "Notice Period Running",   desc: `${fmtDate(resDate)} → ${fmtDate(lwd)}`,           date: `${daysCompleted}/${noticePeriodTotal} days`, done: daysRemaining === 0 && resignation.status === "APPROVED", active: daysRemaining > 0 && resignation.status === "APPROVED" },
-    { title: "Exit Formalities",        desc: "Complete handover & exit process",                 date: "—", done: false, active: daysRemaining === 0 && resignation.status === "APPROVED" },
+    { title: resignation.status === "REJECTED" ? "Resignation Rejected" : "Resignation Approved", desc: resignation.status === "REJECTED" ? "Your resignation was rejected" : "Resignation approved by admin", date: resignation.reviewedOn ? fmtDate(resignation.reviewedOn) : "—", done: (resignation.status === "APPROVED" || resignation.status === "COMPLETED") || resignation.status === "REJECTED", active: false },
+    { title: "Notice Period Running",   desc: `${fmtDate(resDate)} → ${fmtDate(lwd)}`,           date: `${daysCompleted}/${noticePeriodTotal} days`, done: daysRemaining === 0 && (resignation.status === "APPROVED" || resignation.status === "COMPLETED"), active: daysRemaining > 0 && (resignation.status === "APPROVED" || resignation.status === "COMPLETED") },
+    { title: "Exit Formalities",        desc: "Complete handover & exit process",                 date: "—", done: false, active: daysRemaining === 0 && (resignation.status === "APPROVED" || resignation.status === "COMPLETED") },
     { title: "Separation Complete",     desc: "All formalities completed",                        date: "—", done: false, active: false },
   ];
 
@@ -139,7 +145,7 @@ const EmployeeResignationDetails = () => {
         <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
           {[
             { label: "Status",         val: resignation.status.charAt(0) + resignation.status.slice(1).toLowerCase(), sub: "Current",              color: "text-emerald-600 bg-emerald-50",  icon: StatusIcon },
-            { label: "Days Remaining", val: `${daysRemaining}`, sub: "Till 60 days end",   color: "text-blue-600 bg-blue-50",     icon: Calendar },
+            { label: "Days Remaining", val: `${daysRemaining}`,   sub: "Till last working day",   color: "text-blue-600 bg-blue-50",     icon: Calendar },
             { label: "Notice Period",  val: `${daysCompleted}/${noticePeriodTotal}`, sub: "Days completed",   color: "text-indigo-600 bg-indigo-50", icon: CircleDashed },
             { label: "Settlement",     val: allTasksCompleted ? "In Progress" : "Pending", sub: "After exit", color: allTasksCompleted ? "text-emerald-600 bg-emerald-50" : "text-rose-600 bg-rose-50",    icon: Wallet },
           ].map(({ label, val, sub, color, icon: Icon }) => (
@@ -167,7 +173,7 @@ const EmployeeResignationDetails = () => {
                 {[
                   { label: "Request ID",       val: `RES-${(resignation._id || "").toString().slice(-6).toUpperCase()}`, color: "text-blue-600" },
                   { label: "Resignation Date", val: fmtDate(resignation.resignationDate) },
-                  { label: "Requested Last Working Day", val: fmtDate(resignation.lastWorkingDay) || "Not Requested" },
+                  { label: (resignation.status === 'APPROVED' || resignation.status === 'COMPLETED') ? "Approved Last Day" : "Requested Last Day", val: fmtDate(resignation.lastWorkingDay) || "Not Requested" },
                 ].map(({ label, val, color }) => (
                   <div key={label}>
                     <p className="text-[10px] font-bold text-slate-400 uppercase tracking-wide mb-1">{label}</p>
@@ -199,7 +205,7 @@ const EmployeeResignationDetails = () => {
                   </a>
                 </div>
               )}
-              {resignation.status === "APPROVED" && resignation.reviewedOn && (
+              {(resignation.status === "APPROVED" || resignation.status === "COMPLETED") && resignation.reviewedOn && (
                 <div className="mt-4 pt-4 border-t border-slate-50 flex items-center gap-3">
                   <div className="w-8 h-8 rounded-lg bg-emerald-50 text-emerald-500 flex items-center justify-center shrink-0"><Check size={15} /></div>
                   <div>
@@ -365,4 +371,5 @@ const EmployeeResignationDetails = () => {
 };
 
 export default EmployeeResignationDetails;
+
 

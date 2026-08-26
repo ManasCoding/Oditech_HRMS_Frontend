@@ -31,11 +31,23 @@ const AdminResignationDetails = () => {
 
   useEffect(() => { fetchResignation(); }, [id]);
 
-  const handleStatusUpdate = async (status) => {
+  const handleStatusUpdate = async (status, type = '60_DAYS') => {
     if (!window.confirm(`${status === "APPROVED" ? "Approve" : "Reject"} this resignation?`)) return;
     try {
-      setActionLoading(status);
-      const res = await api.patch(`/admin/resignations/${id}`, { status });
+      setActionLoading(status + type);
+      
+      let finalLastWorkingDay = null;
+      if (status === 'APPROVED') {
+         if (type === 'REQUESTED' && data.lastWorkingDay) {
+            finalLastWorkingDay = data.lastWorkingDay;
+         } else {
+            const resDate = new Date(data.resignationDate);
+            resDate.setDate(resDate.getDate() + 60);
+            finalLastWorkingDay = resDate.toISOString();
+         }
+      }
+
+      const res = await api.patch(`/admin/resignations/${id}`, { status, finalLastWorkingDay });
       if (res.data.success) setData(res.data.resignation);
     } catch (err) {
       alert("Error: " + (err.response?.data?.message || err.message));
@@ -64,12 +76,18 @@ const AdminResignationDetails = () => {
   const getNoticeDays = () => {
     if (!data?.resignationDate) return { total: 0, elapsed: 0, remaining: 0 };
     const start = new Date(data.resignationDate);
-    // Notice period is 60 days
-    const end = new Date(start.getTime() + 60 * 86400000);
+    
+    let end;
+    if ((data.status === 'APPROVED' || data.status === 'COMPLETED')) {
+       end = new Date(data.lastWorkingDay);
+    } else {
+       end = new Date(start.getTime() + 60 * 86400000);
+    }
+    
     const now = new Date();
     const total = Math.max(1, Math.round((end - start) / 86400000));
     const elapsed = Math.max(0, Math.min(total, Math.round((now - start) / 86400000)));
-    return { total, elapsed, remaining: Math.max(0, total - elapsed) };
+    return { total, elapsed, remaining: Math.max(0, total - elapsed), end };
   };
 
   if (loading) return (
@@ -94,7 +112,7 @@ const AdminResignationDetails = () => {
   );
 
   const emp = data.employeeId || {};
-  const { total, elapsed, remaining } = getNoticeDays();
+  const { total, elapsed, remaining, end } = getNoticeDays();
   const percentage = total > 0 ? Math.round((elapsed / total) * 100) : 0;
   const avatar = emp.profileImage
     ? emp.profileImage
@@ -103,6 +121,7 @@ const AdminResignationDetails = () => {
   const statusCfg = {
     PENDING:  { bg: "bg-amber-50",   text: "text-amber-600",   border: "border-amber-200",  dot: "bg-amber-400"  },
     APPROVED: { bg: "bg-emerald-50", text: "text-emerald-600", border: "border-emerald-200", dot: "bg-emerald-500" },
+    COMPLETED: { bg: "bg-indigo-50", text: "text-indigo-600", border: "border-indigo-200", dot: "bg-indigo-500" },
     REJECTED: { bg: "bg-rose-50",    text: "text-rose-600",    border: "border-rose-200",   dot: "bg-rose-500"   },
   };
   const sc = statusCfg[data.status] || statusCfg.PENDING;
@@ -142,12 +161,17 @@ const AdminResignationDetails = () => {
           <div className="flex items-center gap-4">
             <span className="text-[11px] font-medium text-slate-400 flex items-center gap-1.5"><Clock size={12} />Submitted {fmtDate(data.createdAt || data.resignationDate)}</span>
             {data.status === "PENDING" && (
-              <div className="flex items-center gap-2">
-                <button onClick={() => handleStatusUpdate("APPROVED")} disabled={!!actionLoading} className="flex items-center gap-1.5 px-3 py-1.5 bg-emerald-500 hover:bg-emerald-600 text-white rounded-lg text-[11px] font-black transition-all disabled:opacity-50 shadow-sm shadow-emerald-200">
-                  {actionLoading === "APPROVED" ? <Loader2 size={12} className="animate-spin" /> : <Check size={12} />} Approve
+              <div className="flex items-center gap-2 flex-wrap justify-end">
+                <button onClick={() => handleStatusUpdate("APPROVED", "60_DAYS")} disabled={!!actionLoading} className="flex items-center gap-1.5 px-3 py-1.5 bg-emerald-500 hover:bg-emerald-600 text-white rounded-lg text-[11px] font-black transition-all disabled:opacity-50 shadow-sm shadow-emerald-200">
+                  {actionLoading === "APPROVED60_DAYS" ? <Loader2 size={12} className="animate-spin" /> : <Check size={12} />} Approve (60 Days)
                 </button>
+                {data.lastWorkingDay && (
+                  <button onClick={() => handleStatusUpdate("APPROVED", "REQUESTED")} disabled={!!actionLoading} className="flex items-center gap-1.5 px-3 py-1.5 bg-indigo-500 hover:bg-indigo-600 text-white rounded-lg text-[11px] font-black transition-all disabled:opacity-50 shadow-sm shadow-indigo-200">
+                    {actionLoading === "APPROVEDREQUESTED" ? <Loader2 size={12} className="animate-spin" /> : <Check size={12} />} Approve (As Requested)
+                  </button>
+                )}
                 <button onClick={() => handleStatusUpdate("REJECTED")} disabled={!!actionLoading} className="flex items-center gap-1.5 px-3 py-1.5 bg-rose-500 hover:bg-rose-600 text-white rounded-lg text-[11px] font-black transition-all disabled:opacity-50 shadow-sm shadow-rose-200">
-                  {actionLoading === "REJECTED" ? <Loader2 size={12} className="animate-spin" /> : <X size={12} />} Reject
+                  {actionLoading?.startsWith("REJECTED") ? <Loader2 size={12} className="animate-spin" /> : <X size={12} />} Reject
                 </button>
               </div>
             )}
@@ -190,7 +214,7 @@ const AdminResignationDetails = () => {
               <h3 className="text-[11px] font-black text-slate-400 uppercase tracking-widest">Resignation Details</h3>
               {[
                 { icon: Calendar,     label: "Resignation Date", value: fmtDate(data.resignationDate) },
-                { icon: CalendarDays, label: "Requested Last Working Day", value: fmtDate(data.lastWorkingDay) || "Not Requested" },
+                { icon: CalendarDays, label: (data.status === 'APPROVED' || data.status === 'COMPLETED') ? "Approved Last Day" : "Requested Last Day",  value: fmtDate(data.lastWorkingDay) || "Not Requested" },
                 { icon: FileText,     label: "Reason",            value: data.reason || "—"            },
                 { icon: Clock,        label: "Submitted",         value: fmtDateTime(data.createdAt)   },
                 ...(data.reviewedOn ? [{ icon: Check, label: "Reviewed On", value: fmtDateTime(data.reviewedOn) }] : []),
@@ -235,7 +259,7 @@ const AdminResignationDetails = () => {
                 <div className="flex justify-between text-[10px] font-bold text-white/40">
                   <span>{fmtDate(data.resignationDate)}</span>
                   <span>{percentage}% elapsed</span>
-                  <span>{fmtDate(new Date(new Date(data.resignationDate).getTime() + 60 * 86400000))}</span>
+                  <span>{fmtDate(end)}</span>
                 </div>
               </div>
             </div>
@@ -278,7 +302,7 @@ const AdminResignationDetails = () => {
               </div>
               <div className="flex items-center gap-3 p-3 bg-rose-50 rounded-xl border border-rose-100">
                 <div className="w-8 h-8 rounded-lg bg-rose-400 flex items-center justify-center shrink-0"><CalendarDays size={14} className="text-white" /></div>
-                <div><p className="text-[9px] font-black text-rose-600 uppercase tracking-wider">60-Day Notice End</p><p className="text-[12px] font-black text-rose-800">{fmtDate(new Date(new Date(data.resignationDate).getTime() + 60 * 86400000))}</p></div>
+                <div><p className="text-[9px] font-black text-rose-600 uppercase tracking-wider">{(data.status === 'APPROVED' || data.status === 'COMPLETED') ? "Approved Notice End" : "60-Day Notice End"}</p><p className="text-[12px] font-black text-rose-800">{fmtDate(end)}</p></div>
               </div>
             </div>
           </div>
@@ -298,8 +322,8 @@ const AdminResignationDetails = () => {
                     <div 
                       key={i} 
                       onClick={() => handleChecklistUpdate(i, task.status)}
-                      className={`flex items-center gap-3 p-2.5 rounded-lg transition-colors border border-transparent ${data.status === "APPROVED" ? 'cursor-pointer hover:bg-slate-50 hover:border-slate-200' : 'opacity-75 cursor-not-allowed'}`}
-                      title={data.status === "APPROVED" ? "Click to toggle status" : "Approve resignation first to update checklist"}
+                      className={`flex items-center gap-3 p-2.5 rounded-lg transition-colors border border-transparent ${(data.status === "APPROVED" || data.status === "COMPLETED") ? 'cursor-pointer hover:bg-slate-50 hover:border-slate-200' : 'opacity-75 cursor-not-allowed'}`}
+                      title={(data.status === "APPROVED" || data.status === "COMPLETED") ? "Click to toggle status" : "Approve resignation first to update checklist"}
                     >
                       <div className={`w-5 h-5 rounded-full border-2 flex items-center justify-center shrink-0 transition-colors ${isCompleted ? 'bg-emerald-500 border-emerald-500' : 'border-slate-300'}`}>
                         {isCompleted && <Check size={10} className="text-white" />}
@@ -345,4 +369,5 @@ const AdminResignationDetails = () => {
 };
 
 export default AdminResignationDetails;
+
 

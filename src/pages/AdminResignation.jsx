@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback } from 'react';
+﻿import React, { useState, useEffect, useCallback } from 'react';
 import AdminLayout from '../layouts/AdminLayout';
 import { 
   FileText, 
@@ -31,17 +31,20 @@ const AdminResignation = () => {
   const [currentPage, setCurrentPage] = useState(1);
   const navigate = useNavigate();
 
+  const [dateFilter, setDateFilter] = useState('');
+
   const fetchResignations = useCallback(async () => {
     try {
       setLoading(true);
       const params = {};
       if (statusFilter !== 'All Status') params.status = statusFilter;
       if (searchTerm.trim()) params.search = searchTerm.trim();
+      if (dateFilter) params.date = dateFilter;
 
       const res = await api.get('/admin/resignations', { params });
       if (res.data.success) {
         setResignations(res.data.resignations || []);
-        setStats(res.data.stats || { total: 0, pending: 0, approved: 0, rejected: 0 });
+        setStats(res.data.stats || { total: 0, pending: 0, approved: 0, rejected: 0, completed: 0 });
         setCurrentPage(1);
       }
     } catch (err) {
@@ -49,7 +52,7 @@ const AdminResignation = () => {
     } finally {
       setLoading(false);
     }
-  }, [statusFilter, searchTerm]);
+  }, [statusFilter, searchTerm, dateFilter]);
 
   useEffect(() => {
     const debounce = setTimeout(() => {
@@ -71,7 +74,7 @@ const AdminResignation = () => {
   };
 
   const formatDate = (dateStr) => {
-    if (!dateStr) return '—';
+    if (!dateStr) return 'â€”';
     try {
       return new Date(dateStr).toLocaleDateString('en-GB', {
         day: '2-digit', month: 'short', year: 'numeric'
@@ -92,7 +95,7 @@ const AdminResignation = () => {
     >
       <div className="space-y-6">
         
-        {/* Top Controls: Filters, Search, Export */}
+        {/* Top Controls: Filters, Search */}
         <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
           <div className="flex items-center gap-3">
             <select 
@@ -104,6 +107,7 @@ const AdminResignation = () => {
               <option>PENDING</option>
               <option>APPROVED</option>
               <option>REJECTED</option>
+              <option>COMPLETED</option>
             </select>
           </div>
           
@@ -118,18 +122,23 @@ const AdminResignation = () => {
                 className="pl-10 pr-4 py-2.5 bg-white border border-slate-200 rounded-xl text-sm font-bold outline-none focus:border-blue-500 shadow-sm w-[240px]"
               />
             </div>
-            <button className="flex items-center gap-2 px-4 py-2.5 bg-white border border-slate-200 text-blue-600 rounded-xl text-sm font-bold hover:bg-slate-50 shadow-sm transition-all">
-              <Download size={16} />
-              Export
-            </button>
-            <button className="p-2.5 bg-white border border-slate-200 text-slate-500 rounded-xl hover:bg-slate-50 shadow-sm transition-all">
+            
+            <input 
+              type="date" 
+              value={dateFilter}
+              onChange={(e) => setDateFilter(e.target.value)}
+              className="px-4 py-2.5 bg-white border border-slate-200 rounded-xl text-sm font-bold text-slate-700 outline-none focus:border-blue-500 shadow-sm"
+              title="Filter by Resignation Date"
+            />
+            
+            <button className="p-2.5 border border-slate-200 rounded-xl hover:bg-slate-50 transition-colors text-slate-500">
               <Filter size={18} />
             </button>
           </div>
         </div>
 
         {/* Stats Cards */}
-        <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+        <div className="grid grid-cols-2 md:grid-cols-5 gap-4">
           <div className="bg-blue-50/50 p-4 rounded-2xl flex items-center gap-4">
             <div className="w-12 h-12 bg-white rounded-xl shadow-sm text-blue-600 flex items-center justify-center">
               <FileText size={24} />
@@ -167,6 +176,16 @@ const AdminResignation = () => {
             <div>
               <h4 className="text-xl font-black text-slate-800">{stats.rejected}</h4>
               <p className="text-[10px] font-bold text-slate-500">Rejected</p>
+            </div>
+          </div>
+
+          <div className="bg-indigo-50/50 p-4 rounded-2xl flex items-center gap-4">
+            <div className="w-12 h-12 bg-white rounded-xl shadow-sm text-indigo-500 flex items-center justify-center">
+              <CalendarCheck size={24} />
+            </div>
+            <div>
+              <h4 className="text-xl font-black text-slate-800">{stats.completed}</h4>
+              <p className="text-[10px] font-bold text-slate-500">Completed</p>
             </div>
           </div>
         </div>
@@ -215,7 +234,7 @@ const AdminResignation = () => {
                     const isRejecting = actionLoading === req._id + 'REJECTED';
 
                     return (
-                      <tr key={req._id} className="hover:bg-slate-50/50 transition-colors">
+                      <tr key={req._id} onClick={(e) => { e.stopPropagation(); navigate(`/admin/resignations/${req._id}`); }} className="hover:bg-slate-50/50 transition-colors cursor-pointer">
                         <td className="px-6 py-4">
                           <div className="flex items-center gap-3">
                             <img 
@@ -225,13 +244,13 @@ const AdminResignation = () => {
                               onError={(e) => { e.target.src = `https://ui-avatars.com/api/?name=${encodeURIComponent(emp?.fullName || 'E')}&background=6366f1&color=fff`; }}
                             />
                             <div>
-                              <p className="text-sm font-black text-slate-800">{emp?.fullName || '—'}</p>
-                              <p className="text-[11px] font-bold text-slate-500">{emp?.designation || emp?.empCode || '—'}</p>
+                              <p className="text-sm font-black text-slate-800">{emp?.fullName || 'â€”'}</p>
+                              <p className="text-[11px] font-bold text-slate-500">{emp?.designation || emp?.empCode || 'â€”'}</p>
                             </div>
                           </div>
                         </td>
                         <td className="px-6 py-4">
-                          <span className="text-sm font-bold text-slate-700">{emp?.department || '—'}</span>
+                          <span className="text-sm font-bold text-slate-700">{emp?.department || 'â€”'}</span>
                         </td>
                         <td className="px-6 py-4">
                           <span className="text-sm font-bold text-slate-800">{formatDate(req.resignationDate)}</span>
@@ -243,6 +262,7 @@ const AdminResignation = () => {
                           <span className={`px-3 py-1.5 rounded text-[10px] font-black uppercase tracking-wider ${
                             req.status === 'PENDING' ? 'text-orange-500 bg-orange-50' : 
                             req.status === 'APPROVED' ? 'text-emerald-500 bg-emerald-50' : 
+                            req.status === 'COMPLETED' ? 'text-indigo-500 bg-indigo-50' : 
                             'text-rose-500 bg-rose-50'
                           }`}>
                             {req.status}
@@ -251,7 +271,7 @@ const AdminResignation = () => {
                         <td className="px-6 py-4">
                           <div className="flex items-center justify-center gap-2">
                             <button 
-                              onClick={() => navigate(`/admin/resignations/${req._id}`)}
+                              onClick={(e) => { e.stopPropagation(); navigate(`/admin/resignations/${req._id}`); }}
                               className="w-8 h-8 rounded-lg bg-blue-50 text-blue-500 flex items-center justify-center hover:bg-blue-100 transition-colors"
                               title="View details"
                             >
@@ -260,7 +280,7 @@ const AdminResignation = () => {
                             {req.status === 'PENDING' ? (
                               <>
                                 <button 
-                                  onClick={() => handleStatusUpdate(req._id, 'APPROVED')}
+                                  onClick={(e) => { e.stopPropagation(); handleStatusUpdate(req._id, 'APPROVED'); }}
                                   disabled={isApproving || isRejecting}
                                   className="w-8 h-8 rounded-lg bg-emerald-50 text-emerald-500 flex items-center justify-center hover:bg-emerald-100 transition-colors disabled:opacity-50"
                                   title="Approve"
@@ -268,7 +288,7 @@ const AdminResignation = () => {
                                   {isApproving ? <Loader2 size={14} className="animate-spin" /> : <Check size={16} />}
                                 </button>
                                 <button 
-                                  onClick={() => handleStatusUpdate(req._id, 'REJECTED')}
+                                  onClick={(e) => { e.stopPropagation(); handleStatusUpdate(req._id, 'REJECTED'); }}
                                   disabled={isApproving || isRejecting}
                                   className="w-8 h-8 rounded-lg bg-rose-50 text-rose-500 flex items-center justify-center hover:bg-rose-100 transition-colors disabled:opacity-50"
                                   title="Reject"
@@ -278,7 +298,7 @@ const AdminResignation = () => {
                               </>
                             ) : (
                               <button 
-                                onClick={() => navigate(`/admin/resignations/${req._id}`)}
+                                onClick={(e) => { e.stopPropagation(); navigate(`/admin/resignations/${req._id}`); }}
                                 className="w-8 h-8 rounded-lg bg-slate-50 text-slate-400 flex items-center justify-center hover:bg-slate-100 transition-colors"
                                 title="View"
                               >
@@ -340,3 +360,4 @@ const AdminResignation = () => {
 };
 
 export default AdminResignation;
+
