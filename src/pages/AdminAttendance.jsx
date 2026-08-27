@@ -259,7 +259,7 @@ const AdminAttendance = () => {
     }
 
     const totalEmployees = statsRecords.length;
-    const presentToday = statsRecords.filter(r => r.calculatedStatus === 'Present' || r.calculatedStatus === 'Late').length;
+    const presentToday = statsRecords.filter(r => r.calculatedStatus === 'Present' || r.calculatedStatus === 'Late' || r.calculatedStatus === 'Site Visit').length;
     const halfDayToday = statsRecords.filter(r => r.calculatedStatus === 'Half Day').length;
     const lateToday = statsRecords.filter(r => r.calculatedStatus === 'Late').length;
     const leavesToday = statsRecords.filter(r => r.calculatedStatus === 'On Leave').length;
@@ -412,7 +412,7 @@ const AdminAttendance = () => {
               const filteredReports = data.reports.filter(report => {
                if (!selectedStatus) return true;
                const stat = report.calculatedStatus;
-               if (selectedStatus === 'Present') return stat === 'Present' || stat === 'Late';
+               if (selectedStatus === 'Present') return stat === 'Present' || stat === 'Late' || stat === 'Site Visit';
                if (selectedStatus === 'Absent') return stat === 'Absent';
                if (selectedStatus === 'Half Day') return stat === 'Half Day';
                if (selectedStatus === 'Late') return stat === 'Late';
@@ -496,6 +496,7 @@ const AdminAttendance = () => {
                              displayStatus === 'Present' ? 'bg-[#E8F8F0] text-[#00A86B]' : 
                              displayStatus === 'Late' ? 'bg-[#FFF3E0] text-[#FB8C00]' : 
                              displayStatus === 'Half Day' ? 'bg-[#FFF8E1] text-[#F59E0B]' :
+                             displayStatus === 'Site Visit' ? 'bg-[#E0F2FE] text-[#0284C7]' :
                              displayStatus === 'On Leave' ? 'bg-[#F3E8FF] text-[#8E44AD]' : 
                              displayStatus === 'Holiday' ? 'bg-[#EAF4FF] text-[#1E88E5]' : 
                              displayStatus === 'Weekend' ? 'bg-[#F2F2F2] text-[#616161]' : 
