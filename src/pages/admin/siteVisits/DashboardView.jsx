@@ -18,7 +18,7 @@ const DashboardView = () => {
   const [stats, setStats] = useState({
     totalVisits: 0,
     activeVisits: 0,
-    pending: 0,
+    rejected: 0,
     completed: 0
   });
   const [loading, setLoading] = useState(true);
@@ -40,7 +40,7 @@ const DashboardView = () => {
       setStats({
         totalVisits: visits.length,
         activeVisits: active.length,
-        pending: visits.filter(v => v.status === 'Pending').length,
+        rejected: visits.filter(v => v.status === 'Rejected').length,
         completed: visits.filter(v => v.status === 'Completed').length
       });
     } catch (error) {
@@ -69,16 +69,16 @@ const DashboardView = () => {
           color="bg-green-100" 
         />
         <StatCard 
-          title="Pending Approval" 
-          value={stats.pending} 
-          icon={<Clock3 className="text-amber-600" size={24} />} 
-          color="bg-amber-100" 
-        />
-        <StatCard 
           title="Completed" 
           value={stats.completed} 
           icon={<CheckCircle className="text-purple-600" size={24} />} 
           color="bg-purple-100" 
+        />
+        <StatCard 
+          title="Rejected" 
+          value={stats.rejected} 
+          icon={<Clock3 className="text-rose-600" size={24} />} 
+          color="bg-rose-100" 
         />
       </div>
     </div>

@@ -24,7 +24,7 @@ const AdminSiteVisits = () => {
 
   const tabs = [
     { id: 'dashboard', label: 'Dashboard', icon: <BarChart3 size={16} /> },
-    { id: 'requests', label: 'All Requests / Approval', icon: <CheckSquare size={16} /> },
+    { id: 'requests', label: 'All Site Visits', icon: <CheckSquare size={16} /> },
     { id: 'active', label: 'Ongoing & Completed Visits', icon: <MapPin size={16} /> }
   ];
 

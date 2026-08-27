@@ -69,9 +69,9 @@ const RequestsView = () => {
       
       {/* Filter Tabs */}
       <div className="flex flex-wrap items-center justify-between gap-4 bg-white p-4 rounded-2xl border border-slate-200 shadow-sm">
-        <h3 className="text-lg font-black text-slate-800 tracking-tight">Site Visit Requests & Approvals</h3>
+        <h3 className="text-lg font-black text-slate-800 tracking-tight">All Site Visits</h3>
         <div className="flex flex-wrap gap-2">
-          {['All', 'Pending', 'Approved', 'Active', 'Completed', 'Rejected'].map(status => (
+          {['All', 'Active', 'Completed', 'Rejected'].map(status => (
             <button
               key={status}
               onClick={() => setFilterStatus(status)}
@@ -159,26 +159,6 @@ const RequestsView = () => {
                     </td>
                     <td className="px-6 py-4 text-center" onClick={(e) => e.stopPropagation()}>
                       <div className="flex items-center justify-center gap-2">
-                        {visit.status === 'Pending' && (
-                          <>
-                            <button
-                              disabled={processingId === visit._id}
-                              onClick={(e) => handleAction(visit._id, 'approve', e)}
-                              className="px-3 py-1.5 bg-emerald-500 hover:bg-emerald-600 text-white rounded-xl text-xs font-bold transition-all shadow-sm flex items-center gap-1 disabled:opacity-50"
-                              title="Approve Request"
-                            >
-                              <Check size={14} /> Approve
-                            </button>
-                            <button
-                              disabled={processingId === visit._id}
-                              onClick={(e) => handleAction(visit._id, 'reject', e)}
-                              className="px-3 py-1.5 bg-rose-500 hover:bg-rose-600 text-white rounded-xl text-xs font-bold transition-all shadow-sm flex items-center gap-1 disabled:opacity-50"
-                              title="Reject Request"
-                            >
-                              <X size={14} /> Reject
-                            </button>
-                          </>
-                        )}
                         <button
                           onClick={() => setSelectedVisit(visit)}
                           className="p-1.5 text-slate-400 hover:text-blue-600 hover:bg-blue-50 rounded-lg transition-all"
