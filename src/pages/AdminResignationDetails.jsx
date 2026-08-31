@@ -175,6 +175,13 @@ const AdminResignationDetails = () => {
                 </button>
               </div>
             )}
+            {data.status === "APPROVED" && completedTasksCount === exitChecklist.length && remaining === 0 && (
+              <div className="flex items-center gap-2 flex-wrap justify-end">
+                <button onClick={() => handleStatusUpdate("COMPLETED", "NOW")} disabled={!!actionLoading} className="flex items-center gap-1.5 px-3 py-1.5 bg-indigo-500 hover:bg-indigo-600 text-white rounded-lg text-[11px] font-black transition-all disabled:opacity-50 shadow-sm shadow-indigo-200">
+                  {actionLoading === "COMPLETEDNOW" ? <Loader2 size={12} className="animate-spin" /> : <CheckCircle2 size={12} />} Mark as Completed
+                </button>
+              </div>
+            )}
           </div>
         </div>
 
