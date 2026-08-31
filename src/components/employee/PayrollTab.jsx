@@ -436,7 +436,7 @@ const PayrollTab = ({ employeeId, employee }) => {
               <InputField label="Loan"             value={loan}           onChange={setLoan}           disabled={isGenerated} />
               <InputField label="Penalty"          value={penalty}        onChange={setPenalty}        disabled={isGenerated} />
               <InputField label="Late Fine"        value={lateFine}       onChange={setLateFine}       disabled={isGenerated} />
-              <InputField label="Other Deductions" value={otherDeductions} onChange={setOtherDeductions} disabled={isGenerated} />
+              <InputField label="Notice Period Recovery" value={otherDeductions} onChange={setOtherDeductions} disabled={isGenerated} />
             </div>
 
             {/* Auto-calculated attendance deductions */}
