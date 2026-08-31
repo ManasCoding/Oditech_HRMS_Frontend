@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { AlertCircle } from 'lucide-react';
+import { AlertCircle, Eye, EyeOff } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { login } from '../services/api';
 
@@ -8,6 +8,7 @@ const LoginPage = ({ isAdmin = false }) => {
   const [employeeCode, setEmployeeCode] = useState('');
   const [employeeType, setEmployeeType] = useState('regular');
   const [password, setPassword] = useState('');
+  const [showPassword, setShowPassword] = useState(false);
   const [error, setError] = useState('');
   const navigate = useNavigate();
 
@@ -131,20 +132,29 @@ const LoginPage = ({ isAdmin = false }) => {
                 <button 
                   type="button" 
                   onClick={() => navigate(isAdmin ? '/admin/forgot-password' : '/forgot-password')} 
-                  className="text-[11px] font-black text-slate-400 hover:text-primary transition-colors tracking-wide"
+                  className="hidden text-[11px] font-black text-slate-400 hover:text-primary transition-colors tracking-wide"
                 >
                   Forgot Password?
                 </button>
               </div>
-              <input
-                type="password"
-                id="password"
-                value={password}
-                onChange={(e) => setPassword(e.target.value)}
-                className="w-full p-3.5 bg-background border border-border rounded-xl text-sm text-text-main transition-all duration-200 focus:outline-none focus:border-slate-400 focus:bg-surface focus:ring-4 focus:ring-slate-900/5"
-                placeholder="••••••••"
-                required
-              />
+              <div className="relative">
+                <input
+                  type={showPassword ? "text" : "password"}
+                  id="password"
+                  value={password}
+                  onChange={(e) => setPassword(e.target.value)}
+                  className="w-full p-3.5 pr-12 bg-background border border-border rounded-xl text-sm text-text-main transition-all duration-200 focus:outline-none focus:border-slate-400 focus:bg-surface focus:ring-4 focus:ring-slate-900/5"
+                  placeholder="••••••••"
+                  required
+                />
+                <button
+                  type="button"
+                  onClick={() => setShowPassword(!showPassword)}
+                  className="absolute right-4 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 transition-colors"
+                >
+                  {showPassword ? <EyeOff size={18} /> : <Eye size={18} />}
+                </button>
+              </div>
             </div>
 
             <button
