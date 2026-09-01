@@ -45,10 +45,10 @@ const EmployeeAttendance = () => {
   }, [user?.id, refreshKey]);
 
   const fmtTime = (dt) =>
-    dt ? new Date(dt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', hour12: true }) : '—';
+    dt ? new Date(dt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', hour12: true }) : '--';
 
   const fmtDate = (dateStr) => {
-    if (!dateStr) return '—';
+    if (!dateStr) return '--';
     const d = new Date(dateStr);
     return d.toLocaleDateString('en-IN', { day: '2-digit', month: 'short', year: 'numeric' });
   };
@@ -59,6 +59,7 @@ const EmployeeAttendance = () => {
 
   const statusColor = (s) => {
     switch (s) {
+      case 'NOT CHECKED IN': case 'Not Checked In': return 'bg-slate-100 text-slate-600';
       case 'Present': return 'bg-emerald-100 text-emerald-700';
       case 'Late': return 'bg-orange-100 text-orange-700';
       case 'Half Day': return 'bg-yellow-100 text-yellow-700';
@@ -74,6 +75,8 @@ const EmployeeAttendance = () => {
   const todayStatus = getDisplayStatus(todayAttendance);
   const approval = todayAttendance?.checkInApprovalStatus;
   const exType = todayAttendance?.exceptionType;
+  const isCheckedIn = !!todayAttendance?.checkIn;
+  const isCheckedOut = !!todayAttendance?.checkOut;
 
   return (
     <EmployeeLayout title="Attendance" subtitle="Check in and out for your shift.">
@@ -94,22 +97,24 @@ const EmployeeAttendance = () => {
               <div className="grid grid-cols-2 md:grid-cols-5 gap-4 bg-slate-50 rounded-2xl p-6 mb-6">
                 <div>
                   <p className="text-[9px] font-black text-slate-400 uppercase tracking-widest mb-1">Login Time</p>
-                  <p className="text-base font-black text-[#1e293b]">{fmtTime(todayAttendance?.checkIn)}</p>
+                  <p className="text-base font-black text-[#1e293b]">
+                    {isCheckedIn ? fmtTime(todayAttendance.checkIn) : '--'}
+                  </p>
                 </div>
                 <div>
                   <p className="text-[9px] font-black text-slate-400 uppercase tracking-widest mb-1">Logout Time</p>
                   <p className="text-base font-black text-[#1e293b]">
-                    {todayAttendance?.checkOut ? fmtTime(todayAttendance.checkOut) : (todayAttendance?.autoCheckedOut ? 'AUTO' : '—')}
+                    {isCheckedOut ? fmtTime(todayAttendance.checkOut) : '--'}
                   </p>
                 </div>
                 <div>
                   <p className="text-[9px] font-black text-slate-400 uppercase tracking-widest mb-1">Break Time</p>
-                  <p className="text-base font-black text-[#1e293b]">45 Min</p>
+                  <p className="text-base font-black text-[#1e293b]">{isCheckedIn ? '45 Min' : '00 Min'}</p>
                 </div>
                 <div>
                   <p className="text-[9px] font-black text-slate-400 uppercase tracking-widest mb-1">Working Time</p>
                   <p className="text-base font-black text-blue-600">
-                    {todayAttendance?.checkIn ? (
+                    {isCheckedIn ? (
                       todayAttendance.checkInApprovalStatus === 'Pending' ? '00h 00m' : timerState.workingFormatted
                     ) : '00h 00m'}
                   </p>
@@ -117,7 +122,7 @@ const EmployeeAttendance = () => {
                 <div>
                   <p className="text-[9px] font-black text-slate-400 uppercase tracking-widest mb-1">Overtime</p>
                   <p className="text-base font-black text-orange-500">
-                    {todayAttendance?.checkIn ? (
+                    {isCheckedIn ? (
                       todayAttendance.checkInApprovalStatus === 'Pending' ? '00h 00m' : timerState.overtimeFormatted
                     ) : '00h 00m'}
                   </p>
@@ -130,7 +135,7 @@ const EmployeeAttendance = () => {
                     {todayStatus}
                   </span>
                   
-                  {todayAttendance?.checkIn && todayAttendance.checkInApprovalStatus !== 'Pending' && (
+                  {isCheckedIn && todayAttendance.checkInApprovalStatus !== 'Pending' && (
                     <span className={`px-4 py-2 rounded-2xl text-sm font-black uppercase tracking-widest ${
                       timerState.isOnLunchBreak ? 'bg-amber-100 text-amber-700' :
                       timerState.statusText === 'Shift Completed' ? 'bg-emerald-100 text-emerald-700' :
@@ -181,12 +186,24 @@ const EmployeeAttendance = () => {
               </div>
 
               <div className="flex flex-col sm:flex-row gap-4">
-                <button onClick={() => navigate(`/employee/${slug}/check-in`)}
-                  className="flex-1 py-5 bg-[#1e293b] text-white rounded-[28px] font-black text-base uppercase tracking-widest hover:scale-[1.02] active:scale-95 transition-all shadow-2xl shadow-[#1e293b]/20">
+                <button 
+                  onClick={() => navigate(`/employee/${slug}/check-in`)}
+                  disabled={isCheckedIn}
+                  className={`flex-1 py-5 rounded-[28px] font-black text-base uppercase tracking-widest transition-all ${
+                    !isCheckedIn 
+                      ? 'bg-[#1e293b] text-white hover:scale-[1.02] active:scale-95 shadow-2xl shadow-[#1e293b]/20 cursor-pointer' 
+                      : 'bg-slate-100 text-slate-400 cursor-not-allowed shadow-none'
+                  }`}>
                   Check In Now
                 </button>
-                <button onClick={() => navigate(`/employee/${slug}/check-out`)}
-                  className="flex-1 py-5 bg-white text-[#1e293b] border-2 border-slate-100 rounded-[28px] font-black text-base uppercase tracking-widest hover:bg-slate-50 transition-all active:scale-95">
+                <button 
+                  onClick={() => navigate(`/employee/${slug}/check-out`)}
+                  disabled={!isCheckedIn || isCheckedOut || approval === 'Rejected'}
+                  className={`flex-1 py-5 rounded-[28px] font-black text-base uppercase tracking-widest transition-all ${
+                    isCheckedIn && !isCheckedOut && approval !== 'Rejected'
+                      ? 'bg-white text-[#1e293b] border-2 border-slate-100 hover:bg-slate-50 active:scale-95 shadow-md cursor-pointer' 
+                      : 'bg-slate-100 text-slate-400 border-2 border-slate-100 cursor-not-allowed shadow-none'
+                  }`}>
                   Check Out Now
                 </button>
               </div>

@@ -167,13 +167,15 @@ const EmployeeDashboard = () => {
           <div className="bg-white rounded-2xl shadow-[0_8px_30px_rgb(0,0,0,0.04)] border border-slate-100 p-6 lg:p-8 flex items-center justify-between min-w-[380px]">
             <div className="space-y-2">
               <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Today&apos;s Status</p>
-              {todayStatus ? (
+              {todayStatus && todayStatus.checkIn ? (
                 <>
                   <div className="flex items-center gap-2">
                     <h4 className="text-xl font-bold text-slate-800">
                       {todayStatus.checkInApprovalStatus === 'Pending'
                         ? 'Checked In — Approval Pending'
-                        : `Checked In at ${timerState.checkInTimeFormatted}`}
+                        : todayStatus.checkOut 
+                          ? `Checked Out at ${timerState.checkOutTimeFormatted}`
+                          : `Checked In at ${timerState.checkInTimeFormatted}`}
                     </h4>
                   </div>
 
@@ -215,10 +217,31 @@ const EmployeeDashboard = () => {
                   </div>
                 </>
               ) : (
-                <h4 className="text-xl font-bold text-slate-800">Not Checked In</h4>
+                <>
+                  <h4 className="text-xl font-bold text-slate-800">Not Checked In</h4>
+                  <div className="flex items-center gap-4 text-xs font-bold pt-1 text-slate-600">
+                    <div>
+                      <span className="text-[10px] text-slate-400 block uppercase">Working Time</span>
+                      <span className="text-sm font-black text-slate-400">00h 00m</span>
+                    </div>
+                    <div>
+                      <span className="text-[10px] text-slate-400 block uppercase">Break</span>
+                      <span className="text-sm font-black text-slate-400">00 Min</span>
+                    </div>
+                    <div>
+                      <span className="text-[10px] text-slate-400 block uppercase">Overtime</span>
+                      <span className="text-sm font-black text-slate-400">00h 00m</span>
+                    </div>
+                  </div>
+                  <div className="pt-1">
+                    <span className="inline-block text-[10px] font-black bg-slate-100 text-slate-600 px-3 py-1 rounded-full uppercase tracking-widest">
+                      NOT CHECKED IN
+                    </span>
+                  </div>
+                </>
               )}
             </div>
-            {!todayStatus ? (
+            {(!todayStatus || !todayStatus.checkIn) ? (
               <button
                 onClick={() => navigate(`/employee/${user.slug}/check-in`)}
                 className="px-6 py-3.5 bg-[#0B1426] text-white rounded-xl text-xs font-bold shadow-lg shadow-slate-200 hover:scale-105 transition-all"
