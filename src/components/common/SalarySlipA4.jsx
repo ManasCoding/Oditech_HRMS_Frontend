@@ -517,7 +517,7 @@ const SalarySlipA4 = ({ data, employee, containerId = 'salary-slip-print' }) => 
             <img
               src="/auth_signature.png"
               alt="Authorized Signature"
-              style={{ height: 36, maxWidth: '100%', objectFit: 'contain' }}
+              style={{ height: 36, maxWidth: '100%', objectFit: 'contain', mixBlendMode: 'multiply' }}
             />
           </div>
           <div style={{ fontSize: 10, fontWeight: 700, color: '#64748b' }}>Authorized Signatory</div>
