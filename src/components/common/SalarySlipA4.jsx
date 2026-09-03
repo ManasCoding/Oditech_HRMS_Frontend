@@ -265,7 +265,7 @@ const Header = ({ data, employee }) => {
           </IconCircle>
           <span style={{ color: '#EAF3FF', fontSize: 12, fontWeight: 600, flex: 1 }}>Generated:</span>
           <span style={{ color: '#3DDC84', fontSize: 12, fontWeight: 700, whiteSpace: 'nowrap' }}>
-            {generatedDate}
+            {new Date(data.year, data.month, 0).toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' })}
           </span>
         </div>
       </div>
@@ -535,7 +535,7 @@ const SalarySlipA4 = ({ data, employee, containerId = 'salary-slip-print' }) => 
 
       {/* ── BOTTOM NOTE ── */}
       <div style={{ textAlign: 'center', marginTop: 14, fontSize: 9, color: '#94a3b8', fontWeight: 600 }}>
-        This is a computer-generated salary slip. No physical signature is required. | Generated on {new Date(data.year, data.month - 1).toLocaleString('default', { month: 'long' })} {data.year}
+        This is a computer-generated salary slip. No physical signature is required. | Generated on {new Date(data.year, data.month, 0).toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' })}
       </div>
     </div>
   );
