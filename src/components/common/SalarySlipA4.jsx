@@ -535,7 +535,7 @@ const SalarySlipA4 = ({ data, employee, containerId = 'salary-slip-print' }) => 
 
       {/* ── BOTTOM NOTE ── */}
       <div style={{ textAlign: 'center', marginTop: 14, fontSize: 9, color: '#94a3b8', fontWeight: 600 }}>
-        This is a computer-generated salary slip. No physical signature is required. | Generated on {generatedDate}
+        This is a computer-generated salary slip. No physical signature is required. | Generated on {new Date(data.year, data.month - 1).toLocaleString('default', { month: 'long' })} {data.year}
       </div>
     </div>
   );
