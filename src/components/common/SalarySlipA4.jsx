@@ -496,18 +496,32 @@ const SalarySlipA4 = ({ data, employee, containerId = 'salary-slip-print' }) => 
 
       {/* ── FOOTER SIGNATURES ── */}
       <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: 18, marginTop: 16, paddingTop: 14, borderTop: '1px solid #e2e8f0' }}>
-        {[
-          ['Employee Signature', ''],
-          ['HR Manager', '[HR Signature]'],
-          ['Authorized Signatory', '[Company Seal]'],
-        ].map(([label, placeholder]) => (
-          <div key={label} style={{ textAlign: 'center' }}>
-            <div style={{ height: 38, borderBottom: '1px solid #cbd5e1', marginBottom: 5, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 10, color: '#94a3b8' }}>
-              {placeholder}
-            </div>
-            <div style={{ fontSize: 10, fontWeight: 700, color: '#64748b' }}>{label}</div>
+        {/* Employee Signature */}
+        <div style={{ textAlign: 'center' }}>
+          <div style={{ height: 38, borderBottom: '1px solid #cbd5e1', marginBottom: 5, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 10, color: '#94a3b8' }}>
           </div>
-        ))}
+          <div style={{ fontSize: 10, fontWeight: 700, color: '#64748b' }}>Employee Signature</div>
+        </div>
+
+        {/* HR Manager */}
+        <div style={{ textAlign: 'center' }}>
+          <div style={{ height: 38, borderBottom: '1px solid #cbd5e1', marginBottom: 5, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 10, color: '#94a3b8' }}>
+            [HR Signature]
+          </div>
+          <div style={{ fontSize: 10, fontWeight: 700, color: '#64748b' }}>HR Manager</div>
+        </div>
+
+        {/* Authorized Signatory — actual signature image */}
+        <div style={{ textAlign: 'center' }}>
+          <div style={{ height: 38, borderBottom: '1px solid #cbd5e1', marginBottom: 5, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+            <img
+              src="/auth_signature.png"
+              alt="Authorized Signature"
+              style={{ height: 36, maxWidth: '100%', objectFit: 'contain' }}
+            />
+          </div>
+          <div style={{ fontSize: 10, fontWeight: 700, color: '#64748b' }}>Authorized Signatory</div>
+        </div>
       </div>
 
       {/* ── BOTTOM NOTE ── */}
