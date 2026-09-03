@@ -498,26 +498,35 @@ const SalarySlipA4 = ({ data, employee, containerId = 'salary-slip-print' }) => 
       <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: 18, marginTop: 16, paddingTop: 14, borderTop: '1px solid #e2e8f0' }}>
         {/* Employee Signature */}
         <div style={{ textAlign: 'center' }}>
-          <div style={{ height: 38, borderBottom: '1px solid #cbd5e1', marginBottom: 5, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 10, color: '#94a3b8' }}>
+          <div style={{ height: 38, borderBottom: '1px solid #cbd5e1', marginBottom: 5, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+            <img
+              src="/emp_signature.png"
+              alt="Employee Signature"
+              style={{ height: 36, maxWidth: '100%', objectFit: 'contain' }}
+            />
           </div>
           <div style={{ fontSize: 10, fontWeight: 700, color: '#64748b' }}>Employee Signature</div>
         </div>
 
         {/* HR Manager */}
         <div style={{ textAlign: 'center' }}>
-          <div style={{ height: 38, borderBottom: '1px solid #cbd5e1', marginBottom: 5, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 10, color: '#94a3b8' }}>
-            [HR Signature]
+          <div style={{ height: 38, borderBottom: '1px solid #cbd5e1', marginBottom: 5, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+            <img
+              src="/hr_signature.png"
+              alt="HR Signature"
+              style={{ height: 36, maxWidth: '100%', objectFit: 'contain' }}
+            />
           </div>
           <div style={{ fontSize: 10, fontWeight: 700, color: '#64748b' }}>HR Manager</div>
         </div>
 
-        {/* Authorized Signatory — actual signature image */}
+        {/* Authorized Signatory */}
         <div style={{ textAlign: 'center' }}>
           <div style={{ height: 38, borderBottom: '1px solid #cbd5e1', marginBottom: 5, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
             <img
               src="/auth_signature.png"
               alt="Authorized Signature"
-              style={{ height: 36, maxWidth: '100%', objectFit: 'contain', mixBlendMode: 'multiply' }}
+              style={{ height: 36, maxWidth: '100%', objectFit: 'contain' }}
             />
           </div>
           <div style={{ fontSize: 10, fontWeight: 700, color: '#64748b' }}>Authorized Signatory</div>
