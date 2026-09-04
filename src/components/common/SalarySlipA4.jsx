@@ -19,60 +19,129 @@ const formatDate = (dateStr) => {
   return new Date(dateStr).toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' });
 };
 
-const Header = ({ data }) => {
+const Header = ({ data, employee }) => {
   const monthName = new Date(data.year, data.month - 1).toLocaleString('default', { month: 'long' });
   
   return (
-    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 20 }}>
-      {/* Left side: Logo + Company Info */}
-      <div style={{ display: 'flex', gap: 15, alignItems: 'flex-start' }}>
-        <div style={{ width: 90, height: 90, display: 'flex', justifyContent: 'center', alignItems: 'center' }}>
-          {/* Circular logo based on image */}
-          <img src="/logo.jpeg" alt="Oditech Logo" style={{ maxWidth: '100%', maxHeight: '100%', objectFit: 'contain', borderRadius: '50%' }} onError={(e) => { e.target.style.display = 'none'; }} />
-        </div>
-        <div style={{ paddingTop: 5 }}>
-          <div style={{ fontSize: 20, fontWeight: 800, color: '#000', marginBottom: 0, letterSpacing: 0.5, lineHeight: 1.2 }}>ODITECH GLOBAL</div>
-          <div style={{ fontSize: 16, fontWeight: 700, color: '#000', marginBottom: 10, lineHeight: 1.2 }}>Pvt. Ltd</div>
-          
-          <div style={{ display: 'flex', flexDirection: 'column', gap: 6, fontSize: 11, color: '#333', fontWeight: 500 }}>
-            <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-              <svg width="14" height="14" viewBox="0 0 24 24" fill="#555" stroke="none"><path d="M12 2C8.13 2 5 5.13 5 9c0 5.25 7 13 7 13s7-7.75 7-13c0-3.87-3.13-7-7-7zm0 9.5a2.5 2.5 0 110-5 2.5 2.5 0 010 5z"/></svg>
-              Bhubaneswar, Odisha, India
+    <div style={{ marginBottom: 20 }}>
+      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 20 }}>
+        {/* Left side: Logo + Divider + Company Info */}
+        <div style={{ display: 'flex', gap: 0, alignItems: 'center' }}>
+          {/* Logo - no circular crop */}
+          <div style={{ width: 120, height: 110, display: 'flex', justifyContent: 'center', alignItems: 'center', flexShrink: 0 }}>
+            <img src="/logo.jpeg" alt="Oditech Logo" style={{ maxWidth: '100%', maxHeight: '100%', objectFit: 'contain' }} onError={(e) => { e.target.style.display = 'none'; }} />
+          </div>
+
+          {/* Vertical divider */}
+          <div style={{ width: 1.5, height: 100, backgroundColor: '#ccc', margin: '0 18px', flexShrink: 0 }}></div>
+
+          {/* Company text info */}
+          <div>
+            <div style={{ fontSize: 22, fontWeight: 900, color: '#000', letterSpacing: 0.5, lineHeight: 1.1, marginBottom: 2 }}>ODITECH GLOBAL</div>
+            <div style={{ fontSize: 15, fontWeight: 600, color: '#333', marginBottom: 6, lineHeight: 1.2 }}>Pvt. Ltd</div>
+            {/* Decorative underline: blue + gold */}
+            <div style={{ display: 'flex', marginBottom: 12, height: 3, width: 140 }}>
+              <div style={{ flex: 2, background: '#1e3a8a', borderRadius: '2px 0 0 2px' }}></div>
+              <div style={{ flex: 1, background: '#ca8a04', borderRadius: '0 2px 2px 0' }}></div>
             </div>
-            <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-              <svg width="14" height="14" viewBox="0 0 24 24" fill="#555" stroke="none"><path d="M20 4H4c-1.1 0-1.99.9-1.99 2L2 18c0 1.1.9 2 2 2h16c1.1 0 2-.9 2-2V6c0-1.1-.9-2-2-2zm0 4l-8 5-8-5V6l8 5 8-5v2z"/></svg>
-              official@oditechglobal.com
-            </div>
-            <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-              <svg width="14" height="14" viewBox="0 0 24 24" fill="#555" stroke="none"><path d="M6.62 10.79c1.44 2.83 3.76 5.14 6.59 6.59l2.2-2.2c.27-.27.67-.36 1.02-.24 1.12.37 2.33.57 3.57.57.55 0 1 .45 1 1V20c0 .55-.45 1-1 1-9.39 0-17-7.61-17-17 0-.55.45-1 1-1h3.5c.55 0 1 .45 1 1 0 1.25.2 2.45.57 3.57.11.35.03.74-.25 1.02l-2.2 2.2z"/></svg>
-              9124670011
+
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 5, fontSize: 11, color: '#222', fontWeight: 500 }}>
+              {/* Location */}
+              <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                <div style={{ width: 22, height: 22, borderRadius: '50%', backgroundColor: '#1e3a8a', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+                  <svg width="12" height="12" viewBox="0 0 24 24" fill="white" stroke="none"><path d="M12 2C8.13 2 5 5.13 5 9c0 5.25 7 13 7 13s7-7.75 7-13c0-3.87-3.13-7-7-7zm0 9.5a2.5 2.5 0 110-5 2.5 2.5 0 010 5z"/></svg>
+                </div>
+                <div style={{ width: 1, height: 14, backgroundColor: '#ccc' }}></div>
+                Bhubaneswar, Odisha, India
+              </div>
+              {/* Email */}
+              <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                <div style={{ width: 22, height: 22, borderRadius: '50%', backgroundColor: '#ca8a04', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+                  <svg width="12" height="12" viewBox="0 0 24 24" fill="white" stroke="none"><path d="M20 4H4c-1.1 0-1.99.9-1.99 2L2 18c0 1.1.9 2 2 2h16c1.1 0 2-.9 2-2V6c0-1.1-.9-2-2-2zm0 4l-8 5-8-5V6l8 5 8-5v2z"/></svg>
+                </div>
+                <div style={{ width: 1, height: 14, backgroundColor: '#ccc' }}></div>
+                official@oditechglobal.com
+              </div>
+              {/* Phone */}
+              <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                <div style={{ width: 22, height: 22, borderRadius: '50%', backgroundColor: '#1e3a8a', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+                  <svg width="12" height="12" viewBox="0 0 24 24" fill="white" stroke="none"><path d="M6.62 10.79c1.44 2.83 3.76 5.14 6.59 6.59l2.2-2.2c.27-.27.67-.36 1.02-.24 1.12.37 2.33.57 3.57.57.55 0 1 .45 1 1V20c0 .55-.45 1-1 1-9.39 0-17-7.61-17-17 0-.55.45-1 1-1h3.5c.55 0 1 .45 1 1 0 1.25.2 2.45.57 3.57.11.35.03.74-.25 1.02l-2.2 2.2z"/></svg>
+                </div>
+                <div style={{ width: 1, height: 14, backgroundColor: '#ccc' }}></div>
+                9124670011
+              </div>
             </div>
           </div>
         </div>
+        
+        {/* Right side: Salary Slip Title & Details */}
+        <div style={{ textAlign: 'right', paddingTop: 10 }}>
+          <div style={{ fontSize: 20, fontWeight: 700, color: '#000', marginBottom: 20, letterSpacing: 0.5 }}>SALARY SLIP</div>
+          <table style={{ fontSize: 11, color: '#000', borderCollapse: 'collapse', float: 'right' }}>
+            <tbody>
+              <tr>
+                <td style={{ textAlign: 'left', paddingRight: 30, paddingBottom: 10, fontWeight: 500 }}>Payslip Month</td>
+                <td style={{ textAlign: 'center', paddingRight: 20, paddingBottom: 10 }}>:</td>
+                <td style={{ textAlign: 'right', paddingBottom: 10, fontWeight: 600 }}>{monthName} {data.year}</td>
+              </tr>
+              <tr>
+                <td style={{ textAlign: 'left', paddingRight: 30, paddingBottom: 10, fontWeight: 500 }}>Payroll Period</td>
+                <td style={{ textAlign: 'center', paddingRight: 20, paddingBottom: 10 }}>:</td>
+                <td style={{ textAlign: 'right', paddingBottom: 10, fontWeight: 600 }}>{formatDate(data.periodStart)} to {formatDate(data.periodEnd)}</td>
+              </tr>
+              <tr>
+                <td style={{ textAlign: 'left', paddingRight: 30, paddingBottom: 10, fontWeight: 500 }}>Generated On</td>
+                <td style={{ textAlign: 'center', paddingRight: 20, paddingBottom: 10 }}>:</td>
+                <td style={{ textAlign: 'right', paddingBottom: 10, fontWeight: 600 }}>{formatDate(data.generatedDate || data.createdAt)}</td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
       </div>
-      
-      {/* Right side: Salary Slip Title & Details */}
-      <div style={{ textAlign: 'right', paddingTop: 10 }}>
-        <div style={{ fontSize: 20, fontWeight: 700, color: '#000', marginBottom: 20, letterSpacing: 0.5 }}>SALARY SLIP</div>
-        <table style={{ fontSize: 11, color: '#000', borderCollapse: 'collapse', float: 'right' }}>
-          <tbody>
-            <tr>
-              <td style={{ textAlign: 'left', paddingRight: 30, paddingBottom: 10, fontWeight: 500 }}>Payslip Month</td>
-              <td style={{ textAlign: 'center', paddingRight: 20, paddingBottom: 10 }}>:</td>
-              <td style={{ textAlign: 'right', paddingBottom: 10, fontWeight: 600 }}>{monthName} {data.year}</td>
-            </tr>
-            <tr>
-              <td style={{ textAlign: 'left', paddingRight: 30, paddingBottom: 10, fontWeight: 500 }}>Payroll Period</td>
-              <td style={{ textAlign: 'center', paddingRight: 20, paddingBottom: 10 }}>:</td>
-              <td style={{ textAlign: 'right', paddingBottom: 10, fontWeight: 600 }}>{formatDate(data.periodStart)} to {formatDate(data.periodEnd)}</td>
-            </tr>
-            <tr>
-              <td style={{ textAlign: 'left', paddingRight: 30, paddingBottom: 10, fontWeight: 500 }}>Generated On</td>
-              <td style={{ textAlign: 'center', paddingRight: 20, paddingBottom: 10 }}>:</td>
-              <td style={{ textAlign: 'right', paddingBottom: 10, fontWeight: 600 }}>{formatDate(data.generatedDate || data.createdAt)}</td>
-            </tr>
-          </tbody>
-        </table>
+
+      {/* New GSTIN and UAN Block */}
+      <div style={{
+        display: 'flex',
+        alignItems: 'center',
+        border: '1px solid #999',
+        borderRadius: 8,
+        padding: '12px 20px',
+        fontSize: 12,
+        color: '#000',
+        fontWeight: 600,
+        justifyContent: 'space-between'
+      }}>
+        {/* GSTIN Side */}
+        <div style={{ display: 'flex', alignItems: 'center', gap: 15, flex: 1, paddingLeft: 10 }}>
+          <svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="#2563eb" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
+            <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path>
+            <polyline points="14 2 14 8 20 8"></polyline>
+            <text x="7" y="16.5" fontSize="6.5" fontWeight="bold" stroke="none" fill="#2563eb">GST</text>
+          </svg>
+          <div style={{ display: 'flex', gap: 15 }}>
+            <span>GSTIN</span>
+            <span>:</span>
+            <span>{data.gstin || employee?.gstin || '21ABCDE1234F1Z5'}</span>
+          </div>
+        </div>
+
+        {/* Vertical Divider */}
+        <div style={{ width: 1, height: 24, backgroundColor: '#999', margin: '0 20px' }}></div>
+
+        {/* UAN Side */}
+        <div style={{ display: 'flex', alignItems: 'center', gap: 15, flex: 1, justifyContent: 'flex-start' }}>
+          <svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="#2563eb" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
+            <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"></path>
+            <circle cx="9" cy="7" r="4"></circle>
+            <path d="M23 21v-2a4 4 0 0 0-3-3.87"></path>
+            <path d="M16 3.13a4 4 0 0 1 0 7.75"></path>
+          </svg>
+          <div style={{ display: 'flex', gap: 15 }}>
+            <span>UAN No.</span>
+            <span>:</span>
+            <span>{data.uanNumber || employee?.uan || '100012345678'}</span>
+          </div>
+        </div>
       </div>
     </div>
   );
