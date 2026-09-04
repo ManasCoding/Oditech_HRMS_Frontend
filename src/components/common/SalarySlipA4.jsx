@@ -156,37 +156,37 @@ const SalarySlipA4 = ({ data, employee, containerId = 'salary-slip-print' }) => 
           EMPLOYEE SUMMARY
         </div>
 
-        <table style={{ fontSize: 11, borderCollapse: 'collapse', lineHeight: 1.8 }}>
+        <table style={{ fontSize: 12, borderCollapse: 'collapse', lineHeight: 2.2 }}>
           <tbody>
             <tr>
-              <td style={{ width: 130 }}>Employee Name</td>
-              <td style={{ width: 20, textAlign: 'center' }}>:</td>
-              <td style={{ fontWeight: 600 }}>{data.employeeName || employee?.fullName}</td>
+              <td style={{ width: 150 }}>Employee Name</td>
+              <td style={{ width: 30, textAlign: 'center' }}>:</td>
+              <td style={{ fontWeight: 700 }}>{data.employeeName || employee?.fullName}</td>
             </tr>
             <tr>
               <td>Designation</td>
               <td style={{ textAlign: 'center' }}>:</td>
-              <td style={{ fontWeight: 600 }}>{data.designation || employee?.role}</td>
+              <td style={{ fontWeight: 700 }}>{data.designation || employee?.role}</td>
             </tr>
             <tr>
               <td>Employee ID</td>
               <td style={{ textAlign: 'center' }}>:</td>
-              <td style={{ fontWeight: 600 }}>{data.employeeCode || employee?.empCode}</td>
+              <td style={{ fontWeight: 700 }}>{data.employeeCode || employee?.empCode}</td>
             </tr>
             <tr>
               <td>Date of Joining</td>
               <td style={{ textAlign: 'center' }}>:</td>
-              <td style={{ fontWeight: 600 }}>{formatDate(data.joiningDate || employee?.joinDate)}</td>
+              <td style={{ fontWeight: 700 }}>{formatDate(data.joiningDate || employee?.joinDate)}</td>
             </tr>
             <tr>
-              <td>Pay Period</td>
+              <td>Paid Days</td>
               <td style={{ textAlign: 'center' }}>:</td>
-              <td style={{ fontWeight: 600 }}>{monthName} {data.year}</td>
+              <td style={{ fontWeight: 700 }}>{data.payableDays || data.presentDays || 0}</td>
             </tr>
             <tr>
-              <td>Pay Date</td>
+              <td>LOP Days</td>
               <td style={{ textAlign: 'center' }}>:</td>
-              <td style={{ fontWeight: 600 }}>{formatDate(data.generatedDate || data.createdAt)}</td>
+              <td style={{ fontWeight: 700 }}>{(data.absentDays || 0) + (data.unpaidLeaves || 0)}</td>
             </tr>
           </tbody>
         </table>
@@ -202,38 +202,72 @@ const SalarySlipA4 = ({ data, employee, containerId = 'salary-slip-print' }) => 
           <div style={{ fontSize: 24, fontWeight: 700, marginBottom: 5 }}>
             {fmt(data.netSalary)}
           </div>
-          <div style={{ fontSize: 12, fontWeight: 700, color: '#333', marginBottom: 15 }}>
+          <div style={{ fontSize: 12, fontWeight: 700, color: '#333' }}>
             NET PAY
           </div>
-          <div style={{ height: 1, background: '#ddd', marginBottom: 15, width: '80%', margin: '0 auto 15px auto' }} />
-          <table style={{ margin: '0 auto', fontSize: 11 }}>
-            <tbody>
-              <tr>
-                <td style={{ textAlign: 'left', paddingRight: 15 }}>Paid Days</td>
-                <td style={{ paddingRight: 10 }}>:</td>
-                <td style={{ fontWeight: 600, textAlign: 'left' }}>{data.payableDays || data.presentDays || 0}</td>
-              </tr>
-              <tr>
-                <td style={{ textAlign: 'left', paddingRight: 15 }}>LOP Days</td>
-                <td style={{ paddingRight: 10 }}>:</td>
-                <td style={{ fontWeight: 600, textAlign: 'left' }}>{(data.absentDays || 0) + (data.unpaidLeaves || 0)}</td>
-              </tr>
-            </tbody>
-          </table>
         </div>
       </div>
 
-      {/* ── PF & UAN ── */}
-      <div style={{ display: 'flex', justifyContent: 'space-between', padding: '0 20px', marginBottom: 20, fontSize: 11 }}>
-        <div>
-          <span style={{ display: 'inline-block', width: 110 }}>PF A/C Number</span>
-          <span style={{ marginRight: 15 }}>:</span>
-          <span style={{ fontWeight: 600 }}>{data.pfAccountNumber || employee?.pfAccount || '—'}</span>
+      {/* ── BANK & ID DETAILS ── */}
+      <div style={{
+        backgroundColor: '#f8fafc',
+        border: '1px solid #e2e8f0',
+        borderRadius: 8,
+        padding: '16px 20px',
+        marginBottom: 20,
+        position: 'relative',
+        overflow: 'hidden'
+      }}>
+        {/* Optional Watermark from the image */}
+        <div style={{
+          position: 'absolute',
+          right: 20,
+          bottom: -15,
+          fontSize: 60,
+          fontWeight: 900,
+          color: '#f1f5f9',
+          pointerEvents: 'none',
+          userSelect: 'none',
+          zIndex: 0
+        }}>
+          MS
         </div>
-        <div style={{ marginRight: 60 }}>
-          <span style={{ display: 'inline-block', width: 50 }}>UAN</span>
-          <span style={{ marginRight: 15 }}>:</span>
-          <span style={{ fontWeight: 600 }}>{data.uanNumber || employee?.uan || '—'}</span>
+
+        <div style={{
+          fontWeight: 800,
+          fontSize: 12,
+          color: '#64748b',
+          marginBottom: 16,
+          letterSpacing: 0.5,
+          position: 'relative',
+          zIndex: 1
+        }}>
+          BANK &amp; ID DETAILS
+        </div>
+        
+        <div style={{
+          display: 'grid',
+          gridTemplateColumns: '1fr 1fr',
+          gap: '12px 20px',
+          fontSize: 12,
+          position: 'relative',
+          zIndex: 1
+        }}>
+          {/* Left Column */}
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
+            <div><span style={{ color: '#94a3b8', fontWeight: 700, width: 45, display: 'inline-block' }}>PAN:</span> <span style={{ color: '#1e293b', fontWeight: 800 }}>{data.panNumber || employee?.pan || '—'}</span></div>
+            <div><span style={{ color: '#94a3b8', fontWeight: 700, width: 45, display: 'inline-block' }}>Bank:</span> <span style={{ color: '#1e293b', fontWeight: 800 }}>{data.bankName || employee?.bankName || '—'}</span></div>
+            <div><span style={{ color: '#94a3b8', fontWeight: 700, width: 45, display: 'inline-block' }}>IFSC:</span> <span style={{ color: '#1e293b', fontWeight: 800 }}>{data.ifscCode || employee?.ifsc || '—'}</span></div>
+            <div><span style={{ color: '#94a3b8', fontWeight: 700, width: 45, display: 'inline-block' }}>UPI:</span> <span style={{ color: '#1e293b', fontWeight: 800 }}>{data.upiId || employee?.upi || '—'}</span></div>
+            <div><span style={{ color: '#94a3b8', fontWeight: 700, width: 100, display: 'inline-block' }}>PF A/C Number:</span> <span style={{ color: '#1e293b', fontWeight: 800 }}>{data.pfAccountNumber || employee?.pfAccount || '—'}</span></div>
+          </div>
+          {/* Right Column */}
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
+            <div><span style={{ color: '#94a3b8', fontWeight: 700, width: 75, display: 'inline-block' }}>Aadhar:</span> <span style={{ color: '#1e293b', fontWeight: 800 }}>{data.aadharNumber || employee?.aadhar || '—'}</span></div>
+            <div><span style={{ color: '#94a3b8', fontWeight: 700, width: 75, display: 'inline-block' }}>Account No:</span> <span style={{ color: '#1e293b', fontWeight: 800 }}>{data.accountNumber || employee?.accountNo || '—'}</span></div>
+            <div><span style={{ color: '#94a3b8', fontWeight: 700, width: 75, display: 'inline-block' }}>Branch:</span> <span style={{ color: '#1e293b', fontWeight: 800 }}>{data.branchName || employee?.branch || '—'}</span></div>
+            <div><span style={{ color: '#94a3b8', fontWeight: 700, width: 75, display: 'inline-block' }}>UAN:</span> <span style={{ color: '#1e293b', fontWeight: 800 }}>{data.uanNumber || employee?.uan || '—'}</span></div>
+          </div>
         </div>
       </div>
 
