@@ -88,7 +88,8 @@ const AdminEmployeeDetails = () => {
     branchName: '',
     panNumber: '',
     aadharNumber: '',
-    upiId: ''
+    upiId: '',
+    pfAccount: ''
   });
   
   const [showBankDetailsModal, setShowBankDetailsModal] = useState(false);
@@ -152,7 +153,8 @@ const AdminEmployeeDetails = () => {
             branchName: found.branchName || '',
             panNumber: found.panNumber || '',
             aadharNumber: found.aadharNumber || '',
-            upiId: found.upiId || ''
+            upiId: found.upiId || '',
+            pfAccount: found.pfAccount || ''
           });
       } else {
         console.error('Profile fetch error: employee not found for id', id);
@@ -355,7 +357,8 @@ const AdminEmployeeDetails = () => {
         branchName: employee.branchName || '',
         panNumber: employee.panNumber || '',
         aadharNumber: employee.aadharNumber || '',
-        upiId: employee.upiId || ''
+        upiId: employee.upiId || '',
+        pfAccount: employee.pfAccount || ''
       });
     }
     setIsEditing(!isEditing);
@@ -2208,6 +2211,16 @@ const AdminEmployeeDetails = () => {
                     onChange={(e) => setEditForm({...editForm, aadharNumber: e.target.value})}
                     placeholder="E.g. 1234 5678 9012"
                     className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl text-sm font-medium text-slate-800 focus:outline-none focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500 transition-all"
+                  />
+                </div>
+                <div>
+                  <label className="block text-[11px] font-black text-slate-400 uppercase tracking-widest mb-2">PF Account Number</label>
+                  <input
+                    type="text"
+                    value={editForm.pfAccount || ''}
+                    onChange={(e) => setEditForm({...editForm, pfAccount: e.target.value})}
+                    placeholder="E.g. MH/12345/67890"
+                    className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl text-sm font-medium text-slate-800 focus:outline-none focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500 transition-all uppercase"
                   />
                 </div>
               </div>
