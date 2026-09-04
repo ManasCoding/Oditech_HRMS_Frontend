@@ -21,7 +21,10 @@ const formatDate = (dateStr) => {
 
 const Header = ({ data, employee }) => {
   const monthName = new Date(data.year, data.month - 1).toLocaleString('default', { month: 'long' });
-  
+  // Always show last date of the payslip month as "Generated On"
+  const lastDayOfMonth = new Date(data.year, data.month, 0); // day 0 of next month = last day of current month
+  const generatedOn = lastDayOfMonth.toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' });
+
   return (
     <div style={{ marginBottom: 20 }}>
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 20 }}>
@@ -92,7 +95,7 @@ const Header = ({ data, employee }) => {
               <tr>
                 <td style={{ textAlign: 'left', paddingRight: 30, paddingBottom: 10, fontWeight: 500 }}>Generated On</td>
                 <td style={{ textAlign: 'center', paddingRight: 20, paddingBottom: 10 }}>:</td>
-                <td style={{ textAlign: 'right', paddingBottom: 10, fontWeight: 600 }}>{formatDate(data.generatedDate || data.createdAt)}</td>
+                <td style={{ textAlign: 'right', paddingBottom: 10, fontWeight: 600 }}>{generatedOn}</td>
               </tr>
             </tbody>
           </table>
@@ -121,14 +124,14 @@ const Header = ({ data, employee }) => {
           <div style={{ display: 'flex', gap: 15 }}>
             <span>GSTIN</span>
             <span>:</span>
-            <span>{data.gstin || employee?.gstin || '21ABCDE1234F1Z5'}</span>
+            <span>21AAECO9745R1ZR</span>
           </div>
         </div>
 
         {/* Vertical Divider */}
         <div style={{ width: 1, height: 24, backgroundColor: '#999', margin: '0 20px' }}></div>
 
-        {/* UAN Side */}
+        {/* CIN Side */}
         <div style={{ display: 'flex', alignItems: 'center', gap: 15, flex: 1, justifyContent: 'flex-start' }}>
           <svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="#2563eb" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
             <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"></path>
@@ -137,9 +140,9 @@ const Header = ({ data, employee }) => {
             <path d="M16 3.13a4 4 0 0 1 0 7.75"></path>
           </svg>
           <div style={{ display: 'flex', gap: 15 }}>
-            <span>UAN No.</span>
+            <span>CIN</span>
             <span>:</span>
-            <span>{data.uanNumber || employee?.uan || '100012345678'}</span>
+            <span>U620990D2025PTC051691</span>
           </div>
         </div>
       </div>
@@ -355,7 +358,7 @@ const SalarySlipA4 = ({ data, employee, containerId = 'salary-slip-print' }) => 
             <div><span style={{ color: '#94a3b8', fontWeight: 700, width: 75, display: 'inline-block' }}>Aadhar:</span> <span style={{ color: '#1e293b', fontWeight: 800 }}>{data.aadharNumber || employee?.aadhar || '—'}</span></div>
             <div><span style={{ color: '#94a3b8', fontWeight: 700, width: 75, display: 'inline-block' }}>Account No:</span> <span style={{ color: '#1e293b', fontWeight: 800 }}>{data.accountNumber || employee?.accountNo || '—'}</span></div>
             <div><span style={{ color: '#94a3b8', fontWeight: 700, width: 75, display: 'inline-block' }}>Branch:</span> <span style={{ color: '#1e293b', fontWeight: 800 }}>{data.branchName || employee?.branch || '—'}</span></div>
-            <div><span style={{ color: '#94a3b8', fontWeight: 700, width: 75, display: 'inline-block' }}>UAN:</span> <span style={{ color: '#1e293b', fontWeight: 800 }}>{data.uanNumber || employee?.uan || '—'}</span></div>
+
           </div>
         </div>
       </div>
