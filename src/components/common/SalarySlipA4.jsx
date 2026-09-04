@@ -359,27 +359,7 @@ const SalarySlipA4 = ({ data, employee, containerId = 'salary-slip-print' }) => 
         </div>
       </div>
 
-      {/* ── NET PAYABLE SALARY ── */}
-      <div style={{
-        border: '1px solid #999',
-        borderRadius: 8,
-        padding: '15px 20px',
-        marginBottom: 40,
-        display: 'flex',
-        justifyContent: 'space-between',
-        alignItems: 'center'
-      }}>
-        <div>
-          <div style={{ fontSize: 11, fontWeight: 700, marginBottom: 5 }}>NET PAYABLE SALARY</div>
-          <div style={{ fontSize: 22, fontWeight: 700 }}>{fmt(data.netSalary)}</div>
-        </div>
-        <div style={{ textAlign: 'right' }}>
-          <div style={{ fontSize: 11, fontWeight: 700, marginBottom: 5 }}>AMOUNT IN WORDS</div>
-          <div style={{ fontSize: 11, fontWeight: 500 }}>
-            {data.amountInWords || '—'}
-          </div>
-        </div>
-      </div>
+
 
       {/* ── SIGNATURES ── */}
       <div style={{ display: 'flex', justifyContent: 'space-between', padding: '0 40px', marginTop: 80 }}>
