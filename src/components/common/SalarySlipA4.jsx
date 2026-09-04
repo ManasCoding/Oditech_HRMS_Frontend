@@ -191,21 +191,41 @@ const SalarySlipA4 = ({ data, employee, containerId = 'salary-slip-print' }) => 
           </tbody>
         </table>
 
-        {/* Right NET PAY Box */}
-        <div style={{
-          border: '1px solid #999',
-          borderRadius: 8,
-          width: 200,
-          textAlign: 'center',
-          padding: '15px 0'
-        }}>
-          <div style={{ fontSize: 24, fontWeight: 700, marginBottom: 5 }}>
-            {fmt(data.netSalary)}
-          </div>
-          <div style={{ fontSize: 12, fontWeight: 700, color: '#333' }}>
-            NET PAY
-          </div>
-        </div>
+        {/* Right Attendance Data */}
+        <table style={{ fontSize: 12, borderCollapse: 'collapse', lineHeight: 2.2, marginRight: 50 }}>
+          <tbody>
+            <tr>
+              <td style={{ width: 150 }}>Working Days</td>
+              <td style={{ width: 30, textAlign: 'center' }}>:</td>
+              <td style={{ fontWeight: 700 }}>{data.workingDays || 0}</td>
+            </tr>
+            <tr>
+              <td>Half Day</td>
+              <td style={{ textAlign: 'center' }}>:</td>
+              <td style={{ fontWeight: 700 }}>{data.halfDays || 0}</td>
+            </tr>
+            <tr>
+              <td>Paid Leave</td>
+              <td style={{ textAlign: 'center' }}>:</td>
+              <td style={{ fontWeight: 700 }}>{data.paidLeaves || 0}</td>
+            </tr>
+            <tr>
+              <td>Unpaid Leave</td>
+              <td style={{ textAlign: 'center' }}>:</td>
+              <td style={{ fontWeight: 700 }}>{data.unpaidLeaves || 0}</td>
+            </tr>
+            <tr>
+              <td>Holiday</td>
+              <td style={{ textAlign: 'center' }}>:</td>
+              <td style={{ fontWeight: 700 }}>{data.holidays || 0}</td>
+            </tr>
+            <tr>
+              <td>Week Off</td>
+              <td style={{ textAlign: 'center' }}>:</td>
+              <td style={{ fontWeight: 700 }}>{data.weeklyOffs || 0}</td>
+            </tr>
+          </tbody>
+        </table>
       </div>
 
       {/* ── BANK & ID DETAILS ── */}
@@ -327,39 +347,29 @@ const SalarySlipA4 = ({ data, employee, containerId = 'salary-slip-print' }) => 
         </div>
       </div>
 
-      {/* ── ATTENDANCE SUMMARY ── */}
-      <div style={{ marginBottom: 20 }}>
-        <div style={{ fontWeight: 700, fontSize: 12, marginBottom: 10 }}>
-          ATTENDANCE SUMMARY
+
+
+      {/* ── NET PAYABLE SALARY ── */}
+      <div style={{
+        border: '1px solid #999',
+        borderRadius: 8,
+        padding: '15px 20px',
+        marginBottom: 40,
+        display: 'flex',
+        justifyContent: 'space-between',
+        alignItems: 'center'
+      }}>
+        <div>
+          <div style={{ fontSize: 11, fontWeight: 700, marginBottom: 5 }}>NET PAYABLE SALARY</div>
+          <div style={{ fontSize: 22, fontWeight: 700 }}>{fmt(data.netSalary)}</div>
         </div>
-        <div style={{ display: 'flex', justifyContent: 'space-between', gap: 6 }}>
-          {[
-            { label: 'Working Days',  value: data.workingDays },
-            { label: 'Present',       value: data.presentDays },
-            { label: 'Absent',        value: data.absentDays },
-            { label: 'Half Day',      value: data.halfDays },
-            { label: 'Paid Leave',    value: data.paidLeaves },
-            { label: 'Unpaid Leave',  value: data.unpaidLeaves },
-            { label: 'Weekly Off',    value: data.weeklyOffs },
-            { label: 'Holiday',       value: data.holidays },
-            { label: 'Late Marks',    value: data.lateMarks || 0 },
-            { label: 'Payable Days',  value: data.payableDays || data.presentDays },
-          ].map(({ label, value }, i) => (
-            <div key={i} style={{ 
-              flex: 1, 
-              border: '1px solid #999', 
-              borderRadius: 6, 
-              padding: '8px 2px', 
-              textAlign: 'center' 
-            }}>
-              <div style={{ fontSize: 14, fontWeight: 700, marginBottom: 3 }}>{value ?? 0}</div>
-              <div style={{ fontSize: 9, lineHeight: 1.1 }}>{label}</div>
-            </div>
-          ))}
+        <div style={{ textAlign: 'right' }}>
+          <div style={{ fontSize: 11, fontWeight: 700, marginBottom: 5 }}>AMOUNT IN WORDS</div>
+          <div style={{ fontSize: 11, fontWeight: 500 }}>
+            {data.amountInWords || '—'}
+          </div>
         </div>
       </div>
-
-
 
       {/* ── SIGNATURES ── */}
       <div style={{ display: 'flex', justifyContent: 'space-between', padding: '0 40px', marginTop: 80 }}>
