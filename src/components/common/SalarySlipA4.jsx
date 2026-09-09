@@ -32,7 +32,7 @@ const Header = ({ data, employee }) => {
         <div style={{ display: 'flex', gap: 0, alignItems: 'center' }}>
           {/* Logo - no circular crop */}
           <div style={{ width: 120, height: 110, display: 'flex', justifyContent: 'center', alignItems: 'center', flexShrink: 0 }}>
-            <img src="/logo.jpeg" alt="Oditech Logo" style={{ maxWidth: '100%', maxHeight: '100%', objectFit: 'contain' }} onError={(e) => { e.target.style.display = 'none'; }} />
+            <img src="/logo.png" alt="Oditech Logo" style={{ maxWidth: '100%', maxHeight: '100%', objectFit: 'contain' }} onError={(e) => { e.target.style.display = 'none'; }} />
           </div>
 
           {/* Vertical divider */}
