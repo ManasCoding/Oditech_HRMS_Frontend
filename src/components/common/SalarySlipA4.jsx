@@ -347,17 +347,17 @@ const SalarySlipA4 = ({ data, employee, containerId = 'salary-slip-print' }) => 
         }}>
           {/* Left Column - 4 items */}
           <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
-            <div><span style={{ color: '#94a3b8', fontWeight: 700, width: 45, display: 'inline-block' }}>PAN:</span> <span style={{ color: '#1e293b', fontWeight: 800 }}>{data.panNumber || employee?.pan || '—'}</span></div>
-            <div><span style={{ color: '#94a3b8', fontWeight: 700, width: 45, display: 'inline-block' }}>Bank:</span> <span style={{ color: '#1e293b', fontWeight: 800 }}>{data.bankName || employee?.bankName || '—'}</span></div>
-            <div><span style={{ color: '#94a3b8', fontWeight: 700, width: 45, display: 'inline-block' }}>IFSC:</span> <span style={{ color: '#1e293b', fontWeight: 800 }}>{data.ifscCode || employee?.ifsc || '—'}</span></div>
-            <div><span style={{ color: '#94a3b8', fontWeight: 700, width: 45, display: 'inline-block' }}>UPI:</span> <span style={{ color: '#1e293b', fontWeight: 800 }}>{data.upiId || employee?.upi || '—'}</span></div>
+            <div><span style={{ color: '#94a3b8', fontWeight: 700, width: 45, display: 'inline-block' }}>PAN:</span> <span style={{ color: '#1e293b' }}>{data.panNumber || employee?.pan || '—'}</span></div>
+            <div><span style={{ color: '#94a3b8', fontWeight: 700, width: 45, display: 'inline-block' }}>Bank:</span> <span style={{ color: '#1e293b' }}>{data.bankName || employee?.bankName || '—'}</span></div>
+            <div><span style={{ color: '#94a3b8', fontWeight: 700, width: 45, display: 'inline-block' }}>IFSC:</span> <span style={{ color: '#1e293b' }}>{data.ifscCode || employee?.ifsc || '—'}</span></div>
+            <div><span style={{ color: '#94a3b8', fontWeight: 700, width: 45, display: 'inline-block' }}>UPI:</span> <span style={{ color: '#1e293b' }}>{data.upiId || employee?.upi || '—'}</span></div>
           </div>
           {/* Right Column - 4 items */}
           <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
-            <div><span style={{ color: '#94a3b8', fontWeight: 700, width: 90, display: 'inline-block' }}>Aadhar:</span> <span style={{ color: '#1e293b', fontWeight: 800 }}>{data.aadharNumber || employee?.aadhar || '—'}</span></div>
-            <div><span style={{ color: '#94a3b8', fontWeight: 700, width: 90, display: 'inline-block' }}>Account No:</span> <span style={{ color: '#1e293b', fontWeight: 800 }}>{data.accountNumber || employee?.accountNo || '—'}</span></div>
-            <div><span style={{ color: '#94a3b8', fontWeight: 700, width: 90, display: 'inline-block' }}>Branch:</span> <span style={{ color: '#1e293b', fontWeight: 800 }}>{data.branchName || employee?.branch || '—'}</span></div>
-            <div><span style={{ color: '#94a3b8', fontWeight: 700, width: 90, display: 'inline-block' }}>PF A/C No:</span> <span style={{ color: '#1e293b', fontWeight: 800 }}>{data.pfAccountNumber || employee?.pfAccount || '—'}</span></div>
+            <div><span style={{ color: '#94a3b8', fontWeight: 700, width: 90, display: 'inline-block' }}>Aadhar:</span> <span style={{ color: '#1e293b' }}>{data.aadharNumber || employee?.aadhar || '—'}</span></div>
+            <div><span style={{ color: '#94a3b8', fontWeight: 700, width: 90, display: 'inline-block' }}>Account No:</span> <span style={{ color: '#1e293b' }}>{data.accountNumber || employee?.accountNo || '—'}</span></div>
+            <div><span style={{ color: '#94a3b8', fontWeight: 700, width: 90, display: 'inline-block' }}>Branch:</span> <span style={{ color: '#1e293b' }}>{data.branchName || employee?.branch || '—'}</span></div>
+            <div><span style={{ color: '#94a3b8', fontWeight: 700, width: 90, display: 'inline-block' }}>PF A/C No:</span> <span style={{ color: '#1e293b' }}>{data.pfAccountNumber || employee?.pfAccount || '—'}</span></div>
           </div>
         </div>
       </div>
