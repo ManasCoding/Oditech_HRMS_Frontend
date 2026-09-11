@@ -1,8 +1,8 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback, useRef } from 'react';
 import AdminLayout from '../layouts/AdminLayout';
 import { 
   Users, Clock, Filter, Download, Search, 
-  Eye, Calendar, ChevronLeft, ChevronRight, 
+  Eye, Calendar,
   Briefcase, FileText, PieChart, TrendingUp, Star, Info, Send
 } from 'lucide-react';
 import { 
@@ -29,6 +29,12 @@ const StatCard = ({ icon, label, value, subValue, colorClass }) => (
 
 const AdminReports = () => {
   const [loading, setLoading] = useState(true);
+  const [isFetchingMore, setIsFetchingMore] = useState(false);
+  const [hasMore, setHasMore] = useState(true);
+  const [currentPage, setCurrentPage] = useState(1);
+  const [allReports, setAllReports] = useState([]);
+  const sentinelRef = useRef(null);
+  const PAGE_SIZE = 10;
   const [data, setData] = useState({
     stats: { totalEmployees: 0, totalHoursToday: '0h 0m', averageHours: '0h 0m', totalOvertimeToday: '0h 0m' },
     reports: [],
@@ -42,7 +48,6 @@ const AdminReports = () => {
     department: 'All Departments',
     employeeId: 'All Employees',
     status: 'Completed',
-    page: 1
   });
 
   const [search, setSearch] = useState('');
@@ -64,9 +69,8 @@ const AdminReports = () => {
   const [payrollExporting, setPayrollExporting] = useState(false);
   const [emailSending, setEmailSending] = useState(false);
   const currentDate = new Date();
-  const [payrollExportMonth, setPayrollExportMonth] = useState(currentDate.getMonth() + 1); // 1-12
+  const [payrollExportMonth, setPayrollExportMonth] = useState(currentDate.getMonth() + 1);
   const [payrollExportYear, setPayrollExportYear] = useState(currentDate.getFullYear());
-
   const fetchDepartments = async () => {
     try {
       const res = await api.get('/admin/employees');
@@ -81,17 +85,21 @@ const AdminReports = () => {
 
   const fetchReports = async () => {
     setLoading(true);
+    setCurrentPage(1);
+    setHasMore(true);
     try {
       const params = new URLSearchParams(filters);
       if (search) params.append('search', search);
       const res = await api.get(`/admin/reports/hourly?${params.toString()}`);
       if (res.data.success) {
-        // Filter out reports where employeeId is null or missing fullName (deleted employees)
         const validReports = res.data.reports.filter(r => r.employeeId && r.employeeId.fullName);
+        setAllReports(validReports);
+        const firstSlice = validReports.slice(0, PAGE_SIZE);
+        setHasMore(validReports.length > PAGE_SIZE);
         setData({
           ...res.data,
-          reports: validReports,
-          totalEntries: validReports.length // Optional: adjust total entries if needed, or rely on backend
+          reports: firstSlice,
+          totalEntries: validReports.length
         });
       }
     } catch (err) {
@@ -100,6 +108,20 @@ const AdminReports = () => {
       setLoading(false);
     }
   };
+
+  const loadMoreReports = useCallback(() => {
+    if (isFetchingMore || !hasMore) return;
+    setIsFetchingMore(true);
+    setTimeout(() => {
+      const nextPage = currentPage + 1;
+      const nextSlice = allReports.slice(0, nextPage * PAGE_SIZE);
+      const stillHasMore = nextSlice.length < allReports.length;
+      setCurrentPage(nextPage);
+      setHasMore(stillHasMore);
+      setData(prev => ({ ...prev, reports: nextSlice }));
+      setIsFetchingMore(false);
+    }, 400);
+  }, [isFetchingMore, hasMore, currentPage, allReports]);
 
   const fetchEmployeeTasks = async (employeeId, date, workStatus) => {
     setModalLoading(true);
@@ -158,12 +180,22 @@ const AdminReports = () => {
 
   useEffect(() => {
     fetchReports();
-  }, [filters.date, filters.department, filters.employeeId, filters.status, filters.page, search]);
+  }, [filters.date, filters.department, filters.employeeId, filters.status, search]);
 
-
+  // IntersectionObserver for infinite scroll
+  useEffect(() => {
+    const sentinel = sentinelRef.current;
+    if (!sentinel) return;
+    const observer = new IntersectionObserver(
+      (entries) => { if (entries[0].isIntersecting) loadMoreReports(); },
+      { threshold: 0.1 }
+    );
+    observer.observe(sentinel);
+    return () => observer.disconnect();
+  }, [loadMoreReports]);
 
   const handleFilterChange = (e) => {
-    setFilters({ ...filters, [e.target.name]: e.target.value, page: 1 });
+    setFilters({ ...filters, [e.target.name]: e.target.value });
   };
 
   const resetFilters = () => {
@@ -655,7 +687,7 @@ const AdminReports = () => {
                     <input 
                       type="date" 
                       value={filters.date || ''}
-                      onChange={(e) => setFilters({ ...filters, date: e.target.value, page: 1 })}
+                      onChange={(e) => setFilters({ ...filters, date: e.target.value })}
                       className="px-4 py-3 bg-slate-50 border border-slate-100 rounded-xl text-xs font-bold text-slate-500 focus:outline-none focus:ring-4 focus:ring-blue-500/5 transition-all cursor-pointer hover:bg-slate-100" 
                     />
                   </div>
@@ -666,7 +698,7 @@ const AdminReports = () => {
                     {showFilterPanel && (
                       <div className="absolute top-full right-0 mt-2 w-48 bg-white border border-slate-200 rounded-md shadow-lg z-10">
                         {departments.map(dept => (
-                          <button key={dept} className="block w-full text-left px-4 py-2 text-sm text-slate-700 hover:bg-slate-100" onClick={() => { setFilters({ ...filters, department: dept, page: 1 }); setShowFilterPanel(false); }}>{dept}</button>
+                          <button key={dept} className="block w-full text-left px-4 py-2 text-sm text-slate-700 hover:bg-slate-100" onClick={() => { setFilters({ ...filters, department: dept }); setShowFilterPanel(false); }}>{dept}</button>
                         ))}
                       </div>
                     )}
@@ -711,7 +743,7 @@ const AdminReports = () => {
                     ) : (
                       data.reports.map((report, idx) => (
                         <tr key={report._id} className="hover:bg-slate-50/50 transition-all group">
-                           <td className="px-8 py-5 text-xs font-bold text-slate-400">{(filters.page - 1) * 8 + idx + 1}</td>
+                           <td className="px-8 py-5 text-xs font-bold text-slate-400">{idx + 1}</td>
                            <td className="px-8 py-5">
                               <div className="flex items-center gap-4">
                                  <div className="w-10 h-10 rounded-2xl bg-slate-100 flex items-center justify-center font-black text-[11px] text-slate-600 border-2 border-white shadow-sm overflow-hidden group-hover:scale-110 transition-transform">
@@ -756,33 +788,29 @@ const AdminReports = () => {
                     )}
                  </tbody>
               </table>
+
+               {/* Infinite scroll sentinel */}
+               {!loading && (
+                 <div ref={sentinelRef} className="flex items-center justify-center py-6">
+                   {isFetchingMore && (
+                     <div className="flex items-center gap-3 text-slate-400">
+                       <div className="w-5 h-5 border-2 border-slate-200 border-t-blue-400 rounded-full animate-spin" />
+                       <span className="text-[10px] font-black uppercase tracking-widest">Loading more...</span>
+                     </div>
+                   )}
+                   {!hasMore && data.reports.length > 0 && (
+                     <p className="text-[10px] font-black text-slate-300 uppercase tracking-widest">All {data.totalEntries} entries loaded</p>
+                   )}
+                 </div>
+               )}
            </div>
 
-           {/* Pagination */}
-           <div className="p-8 bg-slate-50/30 border-t border-slate-50 flex items-center justify-between">
-              <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest">
-                Showing 1 to {data.reports.length} of {data.totalEntries} entries
-              </p>
-              <div className="flex items-center gap-2">
-                 <button className="p-2.5 text-slate-400 hover:bg-white hover:text-[#1e293b] rounded-xl transition-all border border-transparent hover:border-slate-200">
-                   <ChevronLeft size={20} />
-                 </button>
-                 {[1, 2, 3].map(p => (
-                   <button 
-                     key={p} 
-                     onClick={() => setFilters({...filters, page: p})}
-                     className={`w-10 h-10 rounded-xl text-xs font-black transition-all ${
-                       filters.page === p ? 'bg-[#3b82f6] text-white shadow-xl shadow-blue-200' : 'text-slate-400 hover:bg-white hover:border-slate-200 border border-transparent'
-                     }`}
-                   >
-                     {p}
-                   </button>
-                 ))}
-                 <button className="p-2.5 text-slate-400 hover:bg-white hover:text-[#1e293b] rounded-xl transition-all border border-transparent hover:border-slate-200">
-                   <ChevronRight size={20} />
-                 </button>
-              </div>
-           </div>
+            {/* Entry count footer */}
+            <div className="px-8 py-4 bg-slate-50/30 border-t border-slate-50">
+               <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest">
+                 Showing {data.reports.length} of {data.totalEntries} entries
+               </p>
+            </div>
         </div>
 
         {/* Task Details Modal */}
