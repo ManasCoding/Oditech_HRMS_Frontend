@@ -3,7 +3,7 @@ import AdminLayout from '../layouts/AdminLayout';
 import { 
   Users, Clock, Filter, Download, Search, 
   Eye, Calendar, ChevronLeft, ChevronRight, 
-  Briefcase, FileText, PieChart, TrendingUp, Star, Info
+  Briefcase, FileText, PieChart, TrendingUp, Star, Info, Send
 } from 'lucide-react';
 import { 
   PieChart as RePieChart, Pie, Cell, ResponsiveContainer, Tooltip 
@@ -62,6 +62,7 @@ const AdminReports = () => {
   // Payroll Excel Export Modal
   const [isPayrollModalOpen, setIsPayrollModalOpen] = useState(false);
   const [payrollExporting, setPayrollExporting] = useState(false);
+  const [emailSending, setEmailSending] = useState(false);
   const currentDate = new Date();
   const [payrollExportMonth, setPayrollExportMonth] = useState(currentDate.getMonth() + 1); // 1-12
   const [payrollExportYear, setPayrollExportYear] = useState(currentDate.getFullYear());
@@ -209,6 +210,26 @@ const AdminReports = () => {
     document.body.appendChild(link);
     link.click();
     document.body.removeChild(link);
+  };
+
+  const handleEmailExcel = async () => {
+    setEmailSending(true);
+    try {
+      const params = new URLSearchParams(filters);
+      if (search) params.append('search', search);
+      
+      const res = await api.get(`/admin/reports/hourly/email/excel?${params.toString()}`);
+      if (res.data.success) {
+        alert('Excel report sent to email successfully!');
+      } else {
+        alert(res.data.message || 'Failed to send email.');
+      }
+    } catch (err) {
+      console.error('Email excel error:', err);
+      alert('Error sending email. Please try again.');
+    } finally {
+      setEmailSending(false);
+    }
   };
 
   const MONTH_NAMES = [
@@ -588,6 +609,12 @@ const AdminReports = () => {
                        <Download size={16} />
                     </div>
                     <span className="text-xs font-black uppercase tracking-widest">Download Full Excel</span>
+                 </button>
+                 <button onClick={handleEmailExcel} disabled={emailSending} className="w-full flex items-center gap-3 p-3 bg-white/10 hover:bg-white/20 border border-white/10 rounded-2xl transition-all disabled:opacity-50">
+                    <div className="w-8 h-8 bg-purple-500/20 text-purple-400 rounded-lg flex items-center justify-center">
+                       <Send size={16} />
+                    </div>
+                    <span className="text-xs font-black uppercase tracking-widest">{emailSending ? 'Sending...' : 'Send Excel to Mail'}</span>
                  </button>
                     {/* Debounced search effect */}
                     {(() => {

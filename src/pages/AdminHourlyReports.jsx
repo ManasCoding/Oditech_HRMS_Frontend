@@ -1,8 +1,8 @@
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect, useCallback, useRef } from 'react';
 import AdminLayout from '../layouts/AdminLayout';
 import { 
   Users, Clock, Filter, Download, Search, 
-  Eye, Calendar, ChevronLeft, ChevronRight, 
+  Eye, Calendar,
   Briefcase, FileText, PieChart, TrendingUp,
   X, MessageSquare, CheckCircle2, AlertCircle, Loader2
 } from 'lucide-react';
@@ -44,8 +44,15 @@ const StatCard = ({ icon, label, value, subValue, colorClass }) => (
 );
 
 /* ── Main Page ───────────────────────────────────────────────────────────────── */
+const PAGE_SIZE = 10;
+
 const AdminHourlyReports = () => {
   const [loading, setLoading] = useState(true);
+  const [isFetchingMore, setIsFetchingMore] = useState(false);
+  const [hasMore, setHasMore] = useState(true);
+  const [currentPage, setCurrentPage] = useState(1);
+  const sentinelRef = useRef(null);
+
   const [data, setData] = useState({
     stats: { totalEmployees: 0, totalHoursToday: '0h 0m', averageHours: '0h 0m', totalOvertimeToday: '0h 0m' },
     reports: [],
@@ -59,7 +66,6 @@ const AdminHourlyReports = () => {
     department: 'All Departments',
     employeeId: 'All Employees',
     status: 'All Status',
-    page: 1
   });
 
   const [search, setSearch] = useState('');
@@ -80,6 +86,15 @@ const AdminHourlyReports = () => {
     }
   };
 
+  const parseMin = (str) => {
+    if (!str) return 0;
+    const h = str.match(/(\d+)h/);
+    const m = str.match(/(\d+)m/);
+    return (h ? parseInt(h[1]) * 60 : 0) + (m ? parseInt(m[1]) : 0);
+  };
+  const fmtMin = (min) => `${Math.floor(min / 60)}h ${Math.floor(min % 60)}m`;
+
+  // Fetches all data once, resets report list (used when filters change)
   const fetchReports = useCallback(async (showLoader = true) => {
     if (showLoader) setLoading(true);
     try {
@@ -93,29 +108,24 @@ const AdminHourlyReports = () => {
       if (res.data.success) {
         const ts = res.data.timesheets;
 
-        const parseMin = (str) => {
-          if (!str) return 0;
-          const h = str.match(/(\d+)h/);
-          const m = str.match(/(\d+)m/);
-          return (h ? parseInt(h[1]) * 60 : 0) + (m ? parseInt(m[1]) : 0);
-        };
-        const fmtMin = (min) => `${Math.floor(min / 60)}h ${Math.floor(min % 60)}m`;
-
         const totalMins = ts.reduce((a, r) => a + parseMin(r.totalHours), 0);
         const totalOTMins = ts.reduce((a, r) => a + parseMin(r.overtime), 0);
         const avgMins = ts.length > 0 ? Math.round(totalMins / ts.length) : 0;
         const completed = ts.filter(r => r.status === 'Completed').length;
         const submitted = ts.filter(r => r.status === 'Submitted').length;
 
-        // Build pie chart summary by department
         const deptMap = {};
         ts.forEach(r => {
           const dept = r.department || 'General';
           deptMap[dept] = (deptMap[dept] || 0) + parseMin(r.totalHours);
         });
         const summary = Object.entries(deptMap).map(([name, minutes]) => ({ name, minutes, hours: fmtMin(minutes) }));
-
         const uniqueEmployees = [...new Set(ts.map(r => String(r.employeeId?._id || r.employeeId)))].length;
+
+        // Store ALL records; show first page slice
+        const firstSlice = ts.slice(0, PAGE_SIZE);
+        setCurrentPage(1);
+        setHasMore(ts.length > PAGE_SIZE);
 
         setData({
           stats: {
@@ -124,7 +134,8 @@ const AdminHourlyReports = () => {
             averageHours: fmtMin(avgMins),
             totalOvertimeToday: fmtMin(totalOTMins),
           },
-          reports: ts,
+          reports: firstSlice,
+          allReports: ts,          // keep full list for client-side paging
           totalEntries: ts.length,
           summary,
           statusCounts: {
@@ -141,11 +152,27 @@ const AdminHourlyReports = () => {
     }
   }, [filters, search]);
 
+  // Appends next page of already-fetched records
+  const loadMoreReports = useCallback(() => {
+    if (isFetchingMore || !hasMore) return;
+    setIsFetchingMore(true);
+    setTimeout(() => {  // small delay so spinner is visible
+      setData(prev => {
+        const all = prev.allReports || [];
+        const nextPage = currentPage + 1;
+        const nextSlice = all.slice(0, nextPage * PAGE_SIZE);
+        const stillHasMore = nextSlice.length < all.length;
+        setCurrentPage(nextPage);
+        setHasMore(stillHasMore);
+        setIsFetchingMore(false);
+        return { ...prev, reports: nextSlice };
+      });
+    }, 400);
+  }, [isFetchingMore, hasMore, currentPage]);
+
   useEffect(() => {
     fetchDepartments();
   }, []);
-
-
 
   useEffect(() => {
     fetchReports();
@@ -158,8 +185,22 @@ const AdminHourlyReports = () => {
     return () => socket.disconnect();
   }, [fetchReports]);
 
+  // Infinite scroll — watch sentinel element
+  useEffect(() => {
+    const sentinel = sentinelRef.current;
+    if (!sentinel) return;
+    const observer = new IntersectionObserver(
+      (entries) => {
+        if (entries[0].isIntersecting) loadMoreReports();
+      },
+      { threshold: 0.1 }
+    );
+    observer.observe(sentinel);
+    return () => observer.disconnect();
+  }, [loadMoreReports]);
+
   const handleFilterChange = (e) => {
-    setFilters({ ...filters, [e.target.name]: e.target.value, page: 1 });
+    setFilters({ ...filters, [e.target.name]: e.target.value });
   };
 
   const resetFilters = () => {
@@ -168,7 +209,6 @@ const AdminHourlyReports = () => {
       department: 'All Departments',
       employeeId: 'All Employees',
       status: 'All Status',
-      page: 1
     });
     setSearch('');
   };
@@ -344,7 +384,7 @@ const AdminHourlyReports = () => {
                          ) : (
                            data.reports.map((report, idx) => (
                              <tr key={report._id} className="hover:bg-slate-50/50 transition-all group">
-                                <td className="px-6 py-5 text-xs font-bold text-slate-400">{(filters.page - 1) * 8 + idx + 1}</td>
+                                <td className="px-6 py-5 text-xs font-bold text-slate-400">{idx + 1}</td>
                                 <td className="px-6 py-5">
                                    <div className="flex items-center gap-3">
                                       <div className="w-9 h-9 rounded-full bg-slate-100 flex items-center justify-center font-black text-[10px] text-slate-600 border-2 border-white shadow-sm overflow-hidden">
@@ -389,33 +429,29 @@ const AdminHourlyReports = () => {
                          )}
                       </tbody>
                    </table>
+
+                    {/* Infinite scroll sentinel */}
+                    {!loading && (
+                      <div ref={sentinelRef} className="flex items-center justify-center py-6">
+                        {isFetchingMore && (
+                          <div className="flex items-center gap-3 text-slate-400">
+                            <div className="w-5 h-5 border-2 border-slate-200 border-t-blue-400 rounded-full animate-spin" />
+                            <span className="text-[10px] font-black uppercase tracking-widest">Loading more...</span>
+                          </div>
+                        )}
+                        {!hasMore && data.reports.length > 0 && (
+                          <p className="text-[10px] font-black text-slate-300 uppercase tracking-widest">All {data.totalEntries} entries loaded</p>
+                        )}
+                      </div>
+                    )}
                 </div>
 
-                {/* Pagination */}
-                <div className="p-8 bg-slate-50/30 border-t border-slate-50 flex items-center justify-between">
-                   <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest">
-                     Showing 1 to {data.reports.length} of {data.totalEntries} entries
-                   </p>
-                   <div className="flex items-center gap-2">
-                      <button className="p-2 text-slate-400 hover:bg-white hover:text-[#1e293b] rounded-lg transition-all border border-transparent hover:border-slate-200">
-                        <ChevronLeft size={18} />
-                      </button>
-                      {[1, 2, 3].map(p => (
-                        <button 
-                          key={p} 
-                          onClick={() => setFilters({...filters, page: p})}
-                          className={`w-8 h-8 rounded-lg text-xs font-black transition-all ${
-                            filters.page === p ? 'bg-[#3b82f6] text-white shadow-lg shadow-blue-200' : 'text-slate-400 hover:bg-white hover:border-slate-200 border border-transparent'
-                          }`}
-                        >
-                          {p}
-                        </button>
-                      ))}
-                      <button className="p-2 text-slate-400 hover:bg-white hover:text-[#1e293b] rounded-lg transition-all border border-transparent hover:border-slate-200">
-                        <ChevronRight size={18} />
-                      </button>
-                   </div>
-                </div>
+                 {/* Entry count footer */}
+                 <div className="px-8 py-4 bg-slate-50/30 border-t border-slate-50">
+                    <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest">
+                      Showing {data.reports.length} of {data.totalEntries} entries
+                    </p>
+                 </div>
              </div>
           </div>
 
