@@ -1,6 +1,19 @@
 import React, { useState, useEffect } from 'react';
 import AdminLayout from '../layouts/AdminLayout';
-import { BookOpen, Shield, Clock, Laptop, Heart, Upload, ChevronRight, Edit3, X, Check, AlertCircle, Download } from 'lucide-react';
+import {
+  BookOpen,
+  Shield,
+  Clock,
+  Laptop,
+  Heart,
+  Upload,
+  ChevronRight,
+  Edit3,
+  X,
+  Check,
+  AlertCircle,
+  Download
+} from 'lucide-react';
 import api from '../services/api';
 
 const defaultPolicyContent = `OFFICE ORDER
@@ -129,21 +142,36 @@ const parseAndRenderContent = (text) => {
   });
 };
 
-const PolicyCard = ({ title, icon: Icon, updatedDate, bgClass, textClass, onClick, onEdit, pdfUrl }) => (
-  <div 
+const PolicyCard = ({
+  title,
+  icon: Icon,
+  updatedDate,
+  bgClass,
+  textClass,
+  onClick,
+  onEdit,
+  pdfUrl
+}) => (
+  <div
     onClick={onClick}
     className="bg-white rounded-[24px] p-6 border border-slate-100 shadow-[0_8px_30px_rgb(0,0,0,0.04)] hover:-translate-y-1 transition-transform duration-300 group cursor-pointer"
   >
-    <div className="flex items-start justify-between mb-6">
-      <div className={`w-14 h-14 rounded-2xl flex items-center justify-center ${bgClass} ${textClass}`}>
+    <div className="flex items-center justify-between mb-5">
+
+      <div
+        className={`w-14 h-14 rounded-2xl flex items-center justify-center ${bgClass} ${textClass}`}
+      >
         <Icon size={26} strokeWidth={2.5} />
       </div>
+
       <div className="flex items-center gap-2">
+
         {pdfUrl && (
           <a
             href={pdfUrl}
             target="_blank"
             rel="noopener noreferrer"
+            download
             onClick={(e) => e.stopPropagation()}
             className="w-8 h-8 rounded-full bg-slate-50 flex items-center justify-center text-slate-400 hover:bg-slate-100 hover:text-blue-600 transition-colors"
             title="Download PDF"
@@ -151,20 +179,31 @@ const PolicyCard = ({ title, icon: Icon, updatedDate, bgClass, textClass, onClic
             <Download size={14} />
           </a>
         )}
-        <button 
-          onClick={(e) => { e.stopPropagation(); onEdit(); }}
+
+        <button
+          onClick={(e) => {
+            e.stopPropagation();
+            onEdit();
+          }}
           className="w-8 h-8 rounded-full bg-slate-50 flex items-center justify-center text-slate-400 hover:bg-slate-100 hover:text-blue-600 transition-colors"
+          title="Edit Policy"
         >
           <Edit3 size={14} />
         </button>
+
       </div>
     </div>
+
     <div>
-      <h3 className="text-lg font-bold text-slate-800 mb-2">{title}</h3>
-      <div className="flex items-center justify-between mt-4">
-        <p className="text-xs font-bold text-slate-400 uppercase tracking-wider">Updated: {updatedDate}</p>
-        <ChevronRight size={16} className="text-slate-300 group-hover:text-blue-600 transition-colors group-hover:translate-x-1" />
-      </div>
+      <h3 className="text-lg font-bold text-slate-800 mb-2">
+        {title}
+      </h3>
+
+      {updatedDate && (
+        <p className="text-sm text-slate-400">
+          Last updated: {updatedDate}
+        </p>
+      )}
     </div>
   </div>
 );
