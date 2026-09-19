@@ -2,7 +2,6 @@ import React, { useState } from 'react';
 import { AlertCircle, Eye, EyeOff } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { login } from '../services/api';
-
 const LoginPage = ({ isAdmin = false }) => {
   const [loginId, setLoginId] = useState('');
   const [employeeCode, setEmployeeCode] = useState('');
