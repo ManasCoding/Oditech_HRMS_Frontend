@@ -195,15 +195,11 @@ const PolicyCard = ({
     </div>
 
     <div>
-      <h3 className="text-lg font-bold text-slate-800 mb-2">
-        {title}
-      </h3>
-
-      {updatedDate && (
-        <p className="text-sm text-slate-400">
-          Last updated: {updatedDate}
-        </p>
-      )}
+      <h3 className="text-lg font-bold text-slate-800 mb-2">{title}</h3>
+      <div className="flex items-center justify-between mt-4">
+        <p className="text-xs font-bold text-slate-400 uppercase tracking-wider">Updated: {updatedDate}</p>
+        <ChevronRight size={16} className="text-slate-300 group-hover:text-blue-600 transition-colors group-hover:translate-x-1" />
+      </div>
     </div>
   </div>
 );
