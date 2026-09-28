@@ -175,13 +175,17 @@ const PolicyCard = ({ title, icon: Icon, updatedDate, bgClass, textClass, descri
       <div className={`w-14 h-14 rounded-2xl flex items-center justify-center ${bgClass} ${textClass}`}>
         <Icon size={26} strokeWidth={2.5} />
       </div>
-      <button 
-        onClick={(e) => { e.stopPropagation(); onDownload && onDownload(); }}
-        className="w-10 h-10 rounded-full bg-slate-50 flex items-center justify-center text-slate-400 hover:bg-slate-100 hover:text-blue-600 transition-colors" 
-        title="Download Policy"
+      <a
+        href="/Office_Order.pdf"
+        target="_blank"
+        rel="noopener noreferrer"
+        download
+        onClick={(e) => e.stopPropagation()}
+        className="w-10 h-10 rounded-full bg-slate-50 flex items-center justify-center text-slate-400 hover:bg-slate-100 hover:text-blue-600 transition-colors"
+        title="Download Office Order PDF"
       >
         <Download size={18} />
-      </button>
+      </a>
     </div>
     <div className="flex-1">
       <h3 className="text-lg font-bold text-slate-800 mb-2">{title}</h3>
