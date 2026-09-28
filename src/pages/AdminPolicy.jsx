@@ -323,77 +323,82 @@ const AdminPolicy = () => {
           </button>
         </div> */}
 
-        {/* Policy Grid */}
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-          {/* <PolicyCard 
-            title="Code of Conduct" 
-            icon={Shield} 
-            updatedDate="Jan 15, 2026"
-            bgClass="bg-blue-50"
-            textClass="text-blue-600"
-            onClick={() => {}}
-            onEdit={() => {}}
-          /> */}
-          <PolicyCard 
-            title="Office Order" 
-            icon={Clock} 
-            updatedDate={policyData.updatedAt}
-            bgClass="bg-emerald-50"
-            textClass="text-emerald-600"
-            pdfUrl="/Office_Order.pdf"
-            onClick={() => handleOpenView("Office Order")}
-            onEdit={() => handleOpenEdit("Office Order")}
-          />
-          {/* <PolicyCard 
-            title="IT & Security Policy" 
-            icon={Laptop} 
-            updatedDate="Feb 20, 2026"
-            bgClass="bg-violet-50"
-            textClass="text-violet-600"
-            onClick={() => {}}
-            onEdit={() => {}}
-          />
-          <PolicyCard 
-            title="Health & Safety" 
-            icon={Heart} 
-            updatedDate="Nov 10, 2025"
-            bgClass="bg-rose-50"
-            textClass="text-rose-600"
-            onClick={() => {}}
-            onEdit={() => {}}
-          /> */}
-          {/* <PolicyCard 
-            title="Remote Work Guidelines" 
-            icon={BookOpen} 
-            updatedDate="Apr 05, 2026"
-            bgClass="bg-orange-50"
-            textClass="text-orange-600"
-            onClick={() => {}}
-            onEdit={() => {}}
-          /> */}
-        </div>
+        {/* Main Content: Two-column layout */}
+        <div className="flex flex-col lg:flex-row gap-6 items-start">
 
-        {/* Audit Log / Recent Changes */}
-        <div className="bg-white rounded-[32px] border border-slate-100 shadow-[0_20px_40px_rgb(0,0,0,0.04)] p-8 mt-8">
-           <h3 className="text-xl font-black text-slate-800 tracking-tight mb-6">Recent Policy Updates</h3>
-           <div className="space-y-6">
-              {[
-                { name: 'Remote Work Guidelines updated to Version 2.1', date: 'Apr 05, 2026', author: 'Super Admin' },
-                { name: 'Attendance & Leave Policy modified (Section 3.B)', date: 'Mar 02, 2026', author: 'HR Manager' },
-              ].map((log, idx) => (
-                <div key={idx} className="flex items-start gap-4 pb-6 border-b border-slate-50 last:border-0 last:pb-0">
-                  <div className="w-10 h-10 rounded-full bg-slate-50 flex items-center justify-center shrink-0 border border-slate-100">
-                     <Edit3 size={16} className="text-slate-400" />
+          {/* LEFT: Policy Cards + Recent Updates */}
+          <div className="flex flex-col gap-6 w-full lg:w-auto lg:min-w-[320px]">
+            {/* Policy Grid */}
+            <div className="flex flex-col gap-4">
+              <PolicyCard 
+                title="Office Order" 
+                icon={Clock} 
+                updatedDate={policyData.updatedAt}
+                bgClass="bg-emerald-50"
+                textClass="text-emerald-600"
+                pdfUrl="/Office_Order.pdf"
+                onClick={() => handleOpenView("Office Order")}
+                onEdit={() => handleOpenEdit("Office Order")}
+              />
+            </div>
+
+            {/* Audit Log / Recent Changes */}
+            <div className="bg-white rounded-[32px] border border-slate-100 shadow-[0_20px_40px_rgb(0,0,0,0.04)] p-8">
+               <h3 className="text-xl font-black text-slate-800 tracking-tight mb-6">Recent Policy Updates</h3>
+               <div className="space-y-6">
+                  {[
+                    { name: 'Remote Work Guidelines updated to Version 2.1', date: 'Apr 05, 2026', author: 'Super Admin' },
+                    { name: 'Attendance & Leave Policy modified (Section 3.B)', date: 'Mar 02, 2026', author: 'HR Manager' },
+                  ].map((log, idx) => (
+                    <div key={idx} className="flex items-start gap-4 pb-6 border-b border-slate-50 last:border-0 last:pb-0">
+                      <div className="w-10 h-10 rounded-full bg-slate-50 flex items-center justify-center shrink-0 border border-slate-100">
+                         <Edit3 size={16} className="text-slate-400" />
+                      </div>
+                      <div>
+                        <p className="font-bold text-slate-700 text-sm">{log.name}</p>
+                        <p className="text-xs text-slate-500 font-medium mt-1">
+                          By <span className="font-bold">{log.author}</span> on {log.date}
+                        </p>
+                      </div>
+                    </div>
+                  ))}
+               </div>
+            </div>
+          </div>
+
+          {/* RIGHT: PDF Preview */}
+          <div className="flex-1 w-full">
+            <div className="bg-white rounded-[32px] border border-slate-100 shadow-[0_20px_40px_rgb(0,0,0,0.04)] overflow-hidden">
+              <div className="px-6 py-4 border-b border-slate-100 flex items-center justify-between">
+                <div className="flex items-center gap-3">
+                  <div className="w-8 h-8 rounded-lg bg-emerald-50 flex items-center justify-center">
+                    <Clock size={16} className="text-emerald-600" />
                   </div>
                   <div>
-                    <p className="font-bold text-slate-700 text-sm">{log.name}</p>
-                    <p className="text-xs text-slate-500 font-medium mt-1">
-                      By <span className="font-bold">{log.author}</span> on {log.date}
-                    </p>
+                    <p className="font-bold text-slate-800 text-sm">Office Order</p>
+                    <p className="text-xs text-slate-400">ODITECH GLOBAL Pvt. Ltd.</p>
                   </div>
                 </div>
-              ))}
-           </div>
+                <a
+                  href="/Office_Order.pdf"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  download
+                  className="flex items-center gap-2 px-4 py-2 bg-emerald-50 hover:bg-emerald-100 text-emerald-600 rounded-xl text-xs font-bold transition-colors"
+                >
+                  <Download size={14} />
+                  Download PDF
+                </a>
+              </div>
+              <iframe
+                src="/Office_Order.pdf"
+                title="Office Order PDF"
+                className="w-full"
+                style={{ height: '800px', border: 'none' }}
+              />
+            </div>
+          </div>
+
         </div>
 
       </div>
