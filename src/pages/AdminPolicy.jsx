@@ -366,36 +366,42 @@ const AdminPolicy = () => {
             </div>
           </div>
 
-          {/* RIGHT: PDF Preview */}
+          {/* RIGHT: PDF Attachment Card */}
           <div className="flex-1 w-full">
-            <div className="bg-white rounded-[32px] border border-slate-100 shadow-[0_20px_40px_rgb(0,0,0,0.04)] overflow-hidden">
-              <div className="px-6 py-4 border-b border-slate-100 flex items-center justify-between">
-                <div className="flex items-center gap-3">
-                  <div className="w-8 h-8 rounded-lg bg-emerald-50 flex items-center justify-center">
-                    <Clock size={16} className="text-emerald-600" />
-                  </div>
-                  <div>
-                    <p className="font-bold text-slate-800 text-sm">Office Order</p>
-                    <p className="text-xs text-slate-400">ODITECH GLOBAL Pvt. Ltd.</p>
-                  </div>
+            <div className="bg-white rounded-[32px] border border-slate-100 shadow-[0_20px_40px_rgb(0,0,0,0.04)] p-8">
+              <h3 className="text-xl font-black text-slate-800 tracking-tight mb-6">Attachments</h3>
+
+              <a
+                href="/Office_Order.pdf"
+                target="_blank"
+                rel="noopener noreferrer"
+                download
+                className="flex items-center gap-4 p-5 rounded-2xl border border-slate-100 hover:border-emerald-200 hover:bg-emerald-50/40 transition-all group cursor-pointer"
+              >
+                {/* PDF Icon */}
+                <div className="w-14 h-14 rounded-2xl bg-red-50 flex items-center justify-center shrink-0 group-hover:bg-red-100 transition-colors">
+                  <svg width="28" height="28" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                    <path d="M14 2H6C5.46957 2 4.96086 2.21071 4.58579 2.58579C4.21071 2.96086 4 3.46957 4 4V20C4 20.5304 4.21071 21.0391 4.58579 21.4142C4.96086 21.7893 5.46957 22 6 22H18C18.5304 22 19.0391 21.7893 19.4142 21.4142C19.7893 21.0391 20 20.5304 20 20V8L14 2Z" stroke="#ef4444" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+                    <path d="M14 2V8H20" stroke="#ef4444" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+                    <path d="M9 15H15" stroke="#ef4444" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+                    <path d="M9 11H15" stroke="#ef4444" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+                    <path d="M9 19H12" stroke="#ef4444" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+                  </svg>
                 </div>
-                <a
-                  href="/Office_Order.pdf"
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  download
-                  className="flex items-center gap-2 px-4 py-2 bg-emerald-50 hover:bg-emerald-100 text-emerald-600 rounded-xl text-xs font-bold transition-colors"
-                >
-                  <Download size={14} />
-                  Download PDF
-                </a>
-              </div>
-              <iframe
-                src="/Office_Order.pdf"
-                title="Office Order PDF"
-                className="w-full"
-                style={{ height: '800px', border: 'none' }}
-              />
+
+                {/* File Info */}
+                <div className="flex-1 min-w-0">
+                  <p className="font-bold text-slate-800 text-sm truncate">Office_Order.pdf</p>
+                  <p className="text-xs text-slate-400 mt-1">ODITECH GLOBAL Pvt. Ltd. · PDF Document</p>
+                  <p className="text-xs text-emerald-600 font-semibold mt-1">Issued: 19 Sep 2026</p>
+                </div>
+
+                {/* Download Arrow */}
+                <div className="w-9 h-9 rounded-full bg-slate-50 group-hover:bg-emerald-100 flex items-center justify-center shrink-0 transition-colors">
+                  <Download size={16} className="text-slate-400 group-hover:text-emerald-600 transition-colors" />
+                </div>
+              </a>
+
             </div>
           </div>
 
