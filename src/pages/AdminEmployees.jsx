@@ -1,7 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import AdminLayout from '../layouts/AdminLayout';
-import { UserPlus, X, Edit2, Trash2, CheckCircle2, Users, TrendingUp } from 'lucide-react';
+import { UserPlus, X, Edit2, Trash2, CheckCircle2, Users, TrendingUp, Mail } from 'lucide-react';
 import api from '../services/api';
 import SearchHeader from '../components/SearchHeader';
 
@@ -146,6 +146,13 @@ const AdminEmployees = () => {
   return (
     <AdminLayout title="Employee Management" subtitle="Add, edit, or deactivate employee profiles.">
       <div className="mb-6 flex justify-end gap-3">
+        <button 
+          onClick={() => navigate('/admin/employee-mails')}
+          className="flex items-center gap-2 px-6 py-3 bg-indigo-50 text-indigo-700 border border-indigo-200 rounded-2xl text-sm font-bold hover:bg-indigo-100 transition-all shadow-sm"
+        >
+          <Mail size={18} />
+          Mails
+        </button>
         <button 
           onClick={() => navigate('/admin/employees/ex')}
           className="flex items-center gap-2 px-6 py-3 bg-slate-100 text-slate-700 rounded-2xl text-sm font-bold hover:bg-slate-200 transition-all shadow-sm"
