@@ -1,8 +1,28 @@
-import React from 'react';
-import { X, Calendar, Clock, MapPin, Building2, User, Phone, FileText, CheckCircle2, AlertCircle } from 'lucide-react';
+import React, { useState } from 'react';
+import { X, Calendar, Clock, MapPin, Building2, User, Phone, FileText, CheckCircle2, StopCircle } from 'lucide-react';
+import api from '../../../services/api';
 
-const SiteVisitDetailModal = ({ visit, onClose }) => {
+const SiteVisitDetailModal = ({ visit, onClose, onVisitStopped }) => {
   if (!visit) return null;
+
+  const [stopping, setStopping] = useState(false);
+  const [showConfirm, setShowConfirm] = useState(false);
+
+  const handleStopVisit = async () => {
+    setStopping(true);
+    try {
+      const res = await api.post(`/site-visits/${visit._id}/admin-stop`, { reason: 'Stopped by Admin' });
+      if (res.data.success) {
+        setShowConfirm(false);
+        if (onVisitStopped) onVisitStopped(res.data.siteVisit);
+        onClose();
+      }
+    } catch (err) {
+      alert(err.response?.data?.message || 'Failed to stop visit');
+    } finally {
+      setStopping(false);
+    }
+  };
 
   const empName = visit.employeeId?.fullName || `${visit.employeeId?.firstName || ''} ${visit.employeeId?.lastName || ''}`.trim() || visit.employeeName || 'Employee';
   const empCode = visit.employeeId?.empCode || visit.employeeId?.employeeId || '—';
@@ -164,7 +184,41 @@ const SiteVisitDetailModal = ({ visit, onClose }) => {
         </div>
 
         {/* Footer */}
-        <div className="p-5 bg-slate-50 border-t border-slate-100 flex justify-end shrink-0">
+        <div className="p-5 bg-slate-50 border-t border-slate-100 flex items-center justify-between shrink-0 gap-3">
+          
+          {/* Stop Visit — only for Active visits */}
+          {visit.status === 'Active' && !showConfirm && (
+            <button
+              onClick={() => setShowConfirm(true)}
+              className="flex items-center gap-2 px-5 py-2.5 bg-rose-500 hover:bg-rose-600 text-white rounded-xl text-xs font-bold uppercase tracking-wider transition-all shadow-md"
+            >
+              <StopCircle size={15} />
+              Stop Visit
+            </button>
+          )}
+
+          {/* Inline confirmation */}
+          {visit.status === 'Active' && showConfirm && (
+            <div className="flex items-center gap-3 bg-rose-50 border border-rose-200 rounded-xl px-4 py-2.5">
+              <span className="text-xs font-bold text-rose-700">Confirm stop this visit?</span>
+              <button
+                onClick={handleStopVisit}
+                disabled={stopping}
+                className="px-4 py-1.5 bg-rose-600 hover:bg-rose-700 text-white rounded-lg text-xs font-bold transition-all disabled:opacity-60"
+              >
+                {stopping ? 'Stopping...' : 'Yes, Stop'}
+              </button>
+              <button
+                onClick={() => setShowConfirm(false)}
+                className="px-4 py-1.5 bg-white border border-slate-200 text-slate-700 rounded-lg text-xs font-bold hover:bg-slate-100 transition-all"
+              >
+                Cancel
+              </button>
+            </div>
+          )}
+
+          {visit.status !== 'Active' && <div />}
+
           <button
             onClick={onClose}
             className="px-6 py-2.5 bg-slate-900 hover:bg-slate-800 text-white rounded-xl text-xs font-bold uppercase tracking-wider transition-all shadow-md"
