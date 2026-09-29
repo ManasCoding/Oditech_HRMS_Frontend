@@ -11,7 +11,7 @@ const SiteVisitDetailModal = ({ visit, onClose, onVisitStopped }) => {
   const handleStopVisit = async () => {
     setStopping(true);
     try {
-      const res = await api.post(`/site-visits/${visit._id}/admin-stop`, { reason: 'Stopped by Admin' });
+      const res = await api.post(`/site-visits/${visit._id}/check-out`, { workSummary: 'Stopped by Admin' });
       if (res.data.success) {
         setShowConfirm(false);
         if (onVisitStopped) onVisitStopped(res.data.siteVisit);
