@@ -31,7 +31,7 @@ const MailsTable = ({ employees, editingId, editForm, setEditForm, onEditClick, 
                   placeholder="Employee Email"
                 />
               ) : (
-                emp.email || '-'
+                emp.gmailCredential || <span className="text-slate-300 italic text-xs">Not set</span>
               )}
             </td>
             <td className="px-6 py-4 text-sm text-slate-600">
@@ -44,7 +44,7 @@ const MailsTable = ({ employees, editingId, editForm, setEditForm, onEditClick, 
                   placeholder="Password"
                 />
               ) : (
-                emp.password || 'Not Set'
+                emp.credentialPassword || <span className="text-slate-300 italic text-xs">Not set</span>
               )}
             </td>
             <td className="px-6 py-4 text-right">
@@ -104,7 +104,10 @@ const AdminEmployeeMails = () => {
 
   const handleEditClick = (emp) => {
     setEditingId(emp._id);
-    setEditForm({ email: emp.email || '', password: emp.password || '' });
+    setEditForm({
+      email: emp.gmailCredential || emp.email || '',
+      password: emp.credentialPassword || ''
+    });
   };
 
   const handleCancel = () => {
@@ -114,9 +117,16 @@ const AdminEmployeeMails = () => {
 
   const handleSave = async (id) => {
     try {
-      const response = await api.put(`/admin/employees/${id}`, editForm);
+      const response = await api.patch(`/admin/employees/${id}/credentials`, {
+        gmailCredential: editForm.email,
+        credentialPassword: editForm.password
+      });
       if (response.data.success) {
-        const updater = list => list.map(emp => emp._id === id ? { ...emp, ...editForm } : emp);
+        const updater = list => list.map(emp =>
+          emp._id === id
+            ? { ...emp, gmailCredential: editForm.email, credentialPassword: editForm.password }
+            : emp
+        );
         setEmployees(updater);
         setExEmployees(updater);
         setEditingId(null);
