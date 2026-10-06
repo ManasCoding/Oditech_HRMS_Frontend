@@ -3,6 +3,7 @@ import { Edit3, Check, X, Loader2 } from 'lucide-react';
 import toast from 'react-hot-toast';
 import api from '../../services/api';
 import { useAttendance } from '../../context/AttendanceContext';
+import AttendanceEditHistoryModal from './AttendanceEditHistoryModal';
 
 const STATUS_OPTIONS = [
   'Present',
@@ -31,9 +32,11 @@ const InlineAttendanceStatusEditor = ({ record, employeeId, onUpdateSuccess }) =
   const { triggerRefresh } = useAttendance();
   const [isOpen, setIsOpen] = useState(false);
   const [showConfirm, setShowConfirm] = useState(false);
+  const [showHistory, setShowHistory] = useState(false);
   const [selectedStatus, setSelectedStatus] = useState('');
   const [loading, setLoading] = useState(false);
   const [currentStatus, setCurrentStatus] = useState(record.status || 'Absent');
+  const [hasAdminEdit, setHasAdminEdit] = useState(record.hasAdminEdit || false);
 
   const dropdownRef = useRef(null);
   const confirmRef = useRef(null);
@@ -41,7 +44,8 @@ const InlineAttendanceStatusEditor = ({ record, employeeId, onUpdateSuccess }) =
   // Sync state if record prop changes externally
   useEffect(() => {
     setCurrentStatus(record.status || 'Absent');
-  }, [record.status]);
+    setHasAdminEdit(record.hasAdminEdit || false);
+  }, [record.status, record.hasAdminEdit]);
 
   // Handle outside clicks to close popovers
   useEffect(() => {
@@ -111,6 +115,7 @@ const InlineAttendanceStatusEditor = ({ record, employeeId, onUpdateSuccess }) =
   const displayDate = new Date(record.date).toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' });
 
   return (
+    <>
     <div className="relative inline-block text-left">
       <div 
         className={`group relative flex items-center gap-2 px-3 py-1.5 rounded-lg border cursor-pointer transition-all duration-200 hover:shadow-md ${badgeColor} ${loading ? 'opacity-70 pointer-events-none' : ''}`}
@@ -132,6 +137,29 @@ const InlineAttendanceStatusEditor = ({ record, employeeId, onUpdateSuccess }) =
           <Loader2 size={12} className="animate-spin opacity-70" />
         ) : (
           <Edit3 size={12} className="opacity-0 group-hover:opacity-100 transition-opacity duration-200" />
+        )}
+
+        {/* Red dot — 3×3px, absolute, zero layout impact */}
+        {hasAdminEdit && (
+          <span
+            style={{
+              position: 'absolute',
+              width: '5px',
+              height: '5px',
+              borderRadius: '50%',
+              background: '#ef4444',
+              right: '4px',
+              bottom: '3px',
+              zIndex: 10,
+              pointerEvents: 'auto',
+              cursor: 'pointer',
+            }}
+            title="View edit history"
+            onClick={(e) => {
+              e.stopPropagation();
+              setShowHistory(true);
+            }}
+          />
         )}
       </div>
 
@@ -204,6 +232,15 @@ const InlineAttendanceStatusEditor = ({ record, employeeId, onUpdateSuccess }) =
         </div>
       )}
     </div>
+
+    {/* History Modal — rendered outside the relative wrapper to avoid z-index clipping */}
+    {showHistory && record._id && (
+      <AttendanceEditHistoryModal
+        attendanceId={record._id}
+        onClose={() => setShowHistory(false)}
+      />
+    )}
+  </>
   );
 };
 
