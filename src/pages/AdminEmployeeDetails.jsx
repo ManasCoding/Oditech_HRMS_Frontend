@@ -144,7 +144,7 @@ const AdminEmployeeDetails = () => {
             phone: found.phone || '',
             department: found.department || '',
             role: found.role || '',
-            password: '',
+            password: found.password || '',
             status: found.status || 'Active',
             accountHolderName: found.accountHolderName || '',
             bankName: found.bankName || '',
@@ -858,7 +858,7 @@ const AdminEmployeeDetails = () => {
                 <div className="w-10 h-10 bg-violet-50 text-violet-500 rounded-xl flex items-center justify-center shadow-sm border border-violet-100"><Lock size={18} /></div>
                 <div className="flex-1">
                   <p className="text-[10px] font-black text-violet-600 uppercase tracking-widest">Login Password</p>
-                  <input type="text" value={editForm.password} onChange={(e) => setEditForm({...editForm, password: e.target.value})} className="w-full bg-white border border-violet-200 rounded-lg px-3 py-2 text-sm font-bold focus:outline-none focus:border-violet-500 focus:ring-4 focus:ring-violet-500/5 transition-all" placeholder="Update password" />
+                  <input type="text" value={editForm.password} onChange={(e) => setEditForm({...editForm, password: e.target.value})} className="w-full bg-white border border-violet-200 rounded-lg px-3 py-2 text-sm font-bold focus:outline-none focus:border-violet-500 focus:ring-4 focus:ring-violet-500/5 transition-all" placeholder="Enter new password" />
                 </div>
               </div>
             )}
