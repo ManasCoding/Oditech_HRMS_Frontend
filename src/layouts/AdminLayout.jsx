@@ -64,7 +64,7 @@ const AdminLayout = ({ children, title, subtitle, hideHeader = false }) => {
 
       {/* Sidebar - Fixed on both desktop and mobile */}
       <aside className={`
-        fixed inset-y-0 left-0 z-40 w-64 bg-[#0f172a] text-white p-6 flex flex-col transition-transform duration-300 ease-in-out overflow-y-auto
+        fixed inset-y-0 left-0 z-40 w-64 bg-[#0f172a] text-white p-6 flex flex-col transition-transform duration-300 ease-in-out
         ${isSidebarOpen ? 'translate-x-0' : '-translate-x-full'}
         md:translate-x-0
       `}>
