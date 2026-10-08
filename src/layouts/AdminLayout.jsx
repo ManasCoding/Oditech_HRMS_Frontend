@@ -62,11 +62,11 @@ const AdminLayout = ({ children, title, subtitle, hideHeader = false }) => {
         </button>
       </div>
 
-      {/* Sidebar - Desktop and Mobile Drawer */}
+      {/* Sidebar - Fixed on both desktop and mobile */}
       <aside className={`
-        fixed inset-y-0 left-0 z-40 w-64 bg-[#0f172a] text-white p-6 flex flex-col transition-transform duration-300 ease-in-out
-        md:relative md:translate-x-0
+        fixed inset-y-0 left-0 z-40 w-64 bg-[#0f172a] text-white p-6 flex flex-col transition-transform duration-300 ease-in-out overflow-y-auto
         ${isSidebarOpen ? 'translate-x-0' : '-translate-x-full'}
+        md:translate-x-0
       `}>
         <div className="hidden md:flex flex-col items-center gap-4 mb-10 px-2 text-center mt-2">
           <div className="w-20 h-20 bg-black rounded-[1.25rem] flex items-center justify-center overflow-hidden shadow-lg shadow-black/20">
@@ -126,8 +126,8 @@ const AdminLayout = ({ children, title, subtitle, hideHeader = false }) => {
         ></div>
       )}
 
-      {/* Main Content */}
-      <main className={`flex-1 h-screen overflow-y-auto bg-[#f8fafc] ${hideHeader ? 'p-4 md:p-6 lg:p-6 pt-20 md:pt-4' : 'p-4 md:p-8 lg:p-10 pt-20 md:pt-8 lg:pt-10'}`}>
+      {/* Main Content — offset by sidebar width on desktop */}
+      <main className={`flex-1 h-screen overflow-y-auto bg-[#f8fafc] md:ml-64 ${hideHeader ? 'p-4 md:p-6 lg:p-6 pt-20 md:pt-4' : 'p-4 md:p-8 lg:p-10 pt-20 md:pt-8 lg:pt-10'}`}>
         {!hideHeader && (
           <header className="flex flex-col sm:flex-row sm:items-center justify-between mb-8 md:mb-10 gap-6">
             <div>
