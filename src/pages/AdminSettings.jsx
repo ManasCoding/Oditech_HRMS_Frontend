@@ -14,7 +14,9 @@ import {
   UserPlus,
   Mail,
   Lock,
-  User
+  User,
+  FileSpreadsheet,
+  ExternalLink
 } from 'lucide-react';
 
 import api from '../services/api';
@@ -424,6 +426,61 @@ const AdminSettings = () => {
               <SettingCard label="Office Latitude" name="office_lat" value={settings.office_lat} onChange={handleChange} type="number" colorClass="bg-[#1e293b]" />
               <SettingCard label="Office Longitude" name="office_lng" value={settings.office_lng} onChange={handleChange} type="number" colorClass="bg-[#1e293b]" />
               <SettingCard label="Verification Radius" name="geofence_radius" value={settings.geofence_radius} onChange={handleChange} suffix="METERS" type="number" colorClass="bg-emerald-500" />
+            </div>
+          </section>
+
+          {/* Department Work Reports Section */}
+          <section>
+            <div className="flex items-center gap-3 mb-6 px-4">
+              <div className="w-10 h-10 bg-emerald-50 text-emerald-600 rounded-xl flex items-center justify-center">
+                <FileSpreadsheet size={20} />
+              </div>
+              <div>
+                <h4 className="text-lg font-black text-[#1e293b] uppercase tracking-widest">Department Work Report Sheets</h4>
+                <p className="text-xs text-slate-400 font-medium">Link Google Sheet work reports per department. Employees in the same department (like the Developer team) can see the team's total report and all employee tabs.</p>
+              </div>
+            </div>
+
+            <div className="bg-white rounded-[32px] border border-slate-100 p-6 md:p-8 shadow-sm space-y-5">
+              {[
+                { key: 'sheet_url_Engineering', name: 'Engineering / Developer Team', desc: 'Developers (Manas, Debraj, Anmol, Shreya, etc.) will see this sheet with all developer tabs', defaultVal: 'https://docs.google.com/spreadsheets/d/1sIlWWsipPxOrCQENj2E_EHI7XW2HD9S2n8xfaPVuzNs/edit?pli=1&gid=577942890#gid=577942890' },
+                { key: 'sheet_url_Design', name: 'Design Team', desc: 'Designers will see their department work report', defaultVal: '' },
+                { key: 'sheet_url_Sales', name: 'Sales Team', desc: 'Sales team members will see their department work report', defaultVal: '' },
+                { key: 'sheet_url_Marketing', name: 'Marketing Team', desc: 'Marketing team members will see their department work report', defaultVal: '' },
+                { key: 'sheet_url_Human Resources', name: 'Human Resources Team', desc: 'HR members will see their department work report', defaultVal: '' },
+                { key: 'sheet_url_Management', name: 'Management Team', desc: 'Management members will see their department work report', defaultVal: '' }
+              ].map((dept) => {
+                const curVal = settings[dept.key] !== undefined ? settings[dept.key] : dept.defaultVal;
+                return (
+                  <div key={dept.key} className="flex flex-col lg:flex-row lg:items-center justify-between gap-3 p-4 rounded-2xl bg-slate-50/60 border border-slate-100 hover:border-slate-200 transition-all">
+                    <div className="lg:w-1/3">
+                      <p className="text-xs font-black text-slate-800 uppercase tracking-wider">{dept.name}</p>
+                      <p className="text-[11px] text-slate-400 font-medium mt-0.5">{dept.desc}</p>
+                    </div>
+                    <div className="flex-1 flex items-center gap-2">
+                      <input
+                        type="url"
+                        name={dept.key}
+                        value={curVal}
+                        onChange={handleChange}
+                        placeholder="https://docs.google.com/spreadsheets/d/.../edit"
+                        className="w-full bg-white border border-slate-200 rounded-xl px-4 py-2.5 text-xs font-medium text-slate-700 outline-none focus:border-emerald-500 focus:ring-4 focus:ring-emerald-500/5 transition-all"
+                      />
+                      {curVal && (
+                        <a
+                          href={curVal}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="px-3 py-2.5 bg-white border border-slate-200 text-slate-600 hover:text-emerald-600 hover:border-emerald-300 rounded-xl text-xs font-bold transition-all shadow-sm flex items-center gap-1 shrink-0"
+                          title="Open Sheet in new tab"
+                        >
+                          <ExternalLink size={14} />
+                        </a>
+                      )}
+                    </div>
+                  </div>
+                );
+              })}
             </div>
           </section>
         </div>

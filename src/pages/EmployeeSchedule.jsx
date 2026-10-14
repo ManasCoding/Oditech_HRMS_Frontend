@@ -28,6 +28,68 @@ const EmployeeSchedule = ({ embedded = false, onBack }) => {
   const [isAutoSaving, setIsAutoSaving] = useState(false);
   const [timesheets, setTimesheets] = useState([]);
   const [toast, setToast] = useState(null);
+  const [employeeProfile, setEmployeeProfile] = useState(null);
+  const [systemSettings, setSystemSettings] = useState({});
+
+  useEffect(() => {
+    const fetchContext = async () => {
+      try {
+        if (user.id) {
+          const profileRes = await api.get(`/employee/profile/${user.id}`);
+          if (profileRes.data?.success) {
+            setEmployeeProfile(profileRes.data.employee);
+          }
+        }
+        const settingsRes = await api.get('/settings');
+        if (settingsRes.data?.success) {
+          setSystemSettings(settingsRes.data.settings || {});
+        }
+      } catch (err) {
+        console.error('Error fetching context:', err);
+      }
+    };
+    fetchContext();
+  }, [user.id]);
+
+  const getDepartmentSheet = () => {
+    const dept = employeeProfile?.department || user.department || 'Engineering';
+    const isDev = ['engineering', 'developer', 'development', 'software', 'tech'].some(k => dept.toLowerCase().includes(k));
+
+    const settingKey = `sheet_url_${dept}`;
+    let sheetUrl = systemSettings[settingKey]?.trim();
+
+    // Default sheet specifically for Developer / Engineering Team (allows viewing total report across team tabs)
+    if (!sheetUrl && isDev) {
+      sheetUrl = systemSettings['sheet_url_Engineering']?.trim() || 
+        'https://docs.google.com/spreadsheets/d/1sIlWWsipPxOrCQENj2E_EHI7XW2HD9S2n8xfaPVuzNs/edit?pli=1&gid=577942890#gid=577942890';
+    }
+
+    if (!sheetUrl) {
+      return {
+        departmentName: isDev ? 'Developer Team' : dept,
+        hasSheet: false,
+        url: null,
+        embedUrl: null
+      };
+    }
+
+    let embedUrl = sheetUrl;
+    if (sheetUrl.includes('docs.google.com/spreadsheets')) {
+      embedUrl = sheetUrl.replace('/edit', '/edit?rm=minimal');
+      if (!embedUrl.includes('rm=minimal')) {
+        embedUrl += embedUrl.includes('?') ? '&rm=minimal' : '?rm=minimal';
+      }
+    }
+
+    return {
+      departmentName: isDev ? 'Developer Team' : `${dept} Team`,
+      hasSheet: true,
+      url: sheetUrl,
+      embedUrl
+    };
+  };
+
+  const deptSheet = getDepartmentSheet();
 
   const showToast = (msg, type = 'success') => {
     setToast({ msg, type });
@@ -462,15 +524,17 @@ const EmployeeSchedule = ({ embedded = false, onBack }) => {
           Excel Report
         </button>
 
-        <a
-          href="https://docs.google.com/spreadsheets/d/1sIlWWsipPxOrCQENj2E_EHI7XW2HD9S2n8xfaPVuzNs/edit?pli=1&gid=577942890#gid=577942890"
-          target="_blank"
-          rel="noopener noreferrer"
-          className="flex items-center gap-2 px-4 py-3 bg-white text-slate-500 border border-slate-200/80 rounded-2xl text-xs font-bold hover:text-emerald-600 hover:border-emerald-300 transition-all shadow-sm"
-          title="Open Google Sheet in new tab"
-        >
-          <ExternalLink size={15} />
-        </a>
+        {deptSheet.hasSheet && (
+          <a
+            href={deptSheet.url}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="flex items-center gap-2 px-4 py-3 bg-white text-slate-500 border border-slate-200/80 rounded-2xl text-xs font-bold hover:text-emerald-600 hover:border-emerald-300 transition-all shadow-sm"
+            title={`Open ${deptSheet.departmentName} Sheet in new tab`}
+          >
+            <ExternalLink size={15} />
+          </a>
+        )}
       </div>
 
       {activeReportTab === 'hrms' ? (
@@ -638,28 +702,48 @@ const EmployeeSchedule = ({ embedded = false, onBack }) => {
                 <FileSpreadsheet size={24} />
               </div>
               <div>
-                <h3 className="text-base font-black text-slate-800 tracking-tight">Work Report — Google Sheet</h3>
-                <p className="text-xs font-semibold text-slate-400 mt-0.5">Live timesheet & work report spreadsheet</p>
+                <h3 className="text-base font-black text-slate-800 tracking-tight">
+                  {deptSheet.departmentName} — Work Report
+                </h3>
+                <p className="text-xs font-semibold text-slate-400 mt-0.5">
+                  {deptSheet.hasSheet ? 'Total team work report & timesheets' : 'Work report sheet status'}
+                </p>
               </div>
             </div>
-            <a
-              href="https://docs.google.com/spreadsheets/d/1sIlWWsipPxOrCQENj2E_EHI7XW2HD9S2n8xfaPVuzNs/edit?pli=1&gid=577942890#gid=577942890"
-              target="_blank"
-              rel="noopener noreferrer"
-              className="flex items-center gap-2 px-6 py-3 bg-emerald-600 hover:bg-emerald-700 text-white rounded-2xl text-xs font-black uppercase tracking-wider transition-all shadow-lg shadow-emerald-200 active:scale-95"
-            >
-              <ExternalLink size={15} /> Open in Google Sheets
-            </a>
+            {deptSheet.hasSheet && (
+              <a
+                href={deptSheet.url}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="flex items-center gap-2 px-6 py-3 bg-emerald-600 hover:bg-emerald-700 text-white rounded-2xl text-xs font-black uppercase tracking-wider transition-all shadow-lg shadow-emerald-200 active:scale-95"
+              >
+                <ExternalLink size={15} /> Open in Google Sheets
+              </a>
+            )}
           </div>
 
-          <div className="w-full h-[750px] bg-slate-50 relative">
-            <iframe
-              src="https://docs.google.com/spreadsheets/d/1sIlWWsipPxOrCQENj2E_EHI7XW2HD9S2n8xfaPVuzNs/edit?pli=1&gid=577942890&rm=minimal#gid=577942890"
-              title="Work Report Google Sheet"
-              className="w-full h-full border-0"
-              allowFullScreen
-            />
-          </div>
+          {deptSheet.hasSheet ? (
+            <div className="w-full h-[750px] bg-slate-50 relative">
+              <iframe
+                src={deptSheet.embedUrl}
+                title={`${deptSheet.departmentName} Work Report Google Sheet`}
+                className="w-full h-full border-0"
+                allowFullScreen
+              />
+            </div>
+          ) : (
+            <div className="p-16 text-center flex flex-col items-center justify-center gap-4 bg-slate-50/40">
+              <div className="w-14 h-14 rounded-2xl bg-amber-50 border border-amber-100 text-amber-500 flex items-center justify-center font-bold shadow-sm">
+                <AlertCircle size={28} />
+              </div>
+              <div>
+                <h4 className="text-base font-black text-slate-800">No Work Report Sheet Assigned</h4>
+                <p className="text-xs text-slate-400 max-w-md mt-1 font-medium">
+                  No Google Sheet has been assigned for the <span className="font-bold text-slate-700">{deptSheet.departmentName}</span> yet. Please ask your administrator to configure your department sheet in System Settings.
+                </p>
+              </div>
+            </div>
+          )}
         </div>
       )}
       
