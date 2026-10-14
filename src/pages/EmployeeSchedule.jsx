@@ -5,7 +5,7 @@ import {
   Send, Calendar, Download, FileSpreadsheet, 
   Trash2, Plus, CheckCircle2, AlertCircle, Loader2,
   ChevronLeft, ChevronRight, Eraser, Printer, Clock, Lock, PieChart, CheckCircle, XCircle, ExternalLink,
-  RefreshCw, UploadCloud, Check, X
+  RefreshCw, UploadCloud, Check, X, Sparkles
 } from 'lucide-react';
 import api from '../services/api';
 import { io } from 'socket.io-client';
@@ -33,6 +33,9 @@ const EmployeeSchedule = ({ embedded = false, onBack }) => {
   const [systemSettings, setSystemSettings] = useState({});
   const [showSyncModal, setShowSyncModal] = useState(false);
   const [syncingSheet, setSyncingSheet] = useState(false);
+  const [pullingSheet, setPullingSheet] = useState(false);
+  const [pulledTasksPreview, setPulledTasksPreview] = useState([]);
+  const [sheetRestricted, setSheetRestricted] = useState(false);
   const [syncDate, setSyncDate] = useState(new Date().toISOString().split('T')[0]);
   const [syncText, setSyncText] = useState('');
   const [syncRemarks, setSyncRemarks] = useState('');
@@ -288,6 +291,53 @@ const EmployeeSchedule = ({ embedded = false, onBack }) => {
     };
   }, [user.id, employeeProfile?._id, weekDates]);
 
+  const handleAutoPullFromSheet = async (targetDateToPull = syncDate, autoSave = true) => {
+    setPullingSheet(true);
+    setSheetRestricted(false);
+    try {
+      const payload = {
+        employeeId: user.id || employeeProfile?._id,
+        empCode: employeeProfile?.empCode || employeeSlug || user.slug,
+        employeeName: employeeProfile?.fullName || user.name,
+        email: employeeProfile?.email || user.email,
+        sheetUrl: deptSheet.url,
+        date: targetDateToPull,
+        autoSave
+      };
+
+      const res = await api.post('/timesheets/pull-sheet', payload);
+      if (res.data?.success) {
+        if (res.data.count > 0) {
+          setPulledTasksPreview(res.data.tasks || []);
+          showToast(`⚡ Pulled & saved ${res.data.count} work update(s) from Google Sheet as Draft! (Not submitted to admin)`, 'success');
+          const foundRemark = res.data.tasks.find(t => t.remarks)?.remarks;
+          if (foundRemark) setSyncRemarks(foundRemark);
+          await fetchWeeklyTasks();
+        } else {
+          showToast(res.data.message || `No entries found for date ${targetDateToPull}`, 'error');
+        }
+      } else {
+        if (res.data?.isRestricted) {
+          setSheetRestricted(true);
+          showToast('Google Sheet is restricted (401). Set sharing to "Anyone with the link can view".', 'error');
+        } else {
+          showToast(res.data?.message || 'Failed to sync from Google Sheet', 'error');
+        }
+      }
+    } catch (err) {
+      console.error('Error auto-pulling sheet:', err);
+      const isRestr = err.response?.data?.isRestricted || err.response?.status === 403 || err.response?.status === 401;
+      if (isRestr) {
+        setSheetRestricted(true);
+        showToast('Google Sheet is restricted. Set sharing to "Anyone with the link can view".', 'error');
+      } else {
+        showToast(err.response?.data?.message || 'Failed to pull from Google Sheet', 'error');
+      }
+    } finally {
+      setPullingSheet(false);
+    }
+  };
+
   const handleSyncFromSheet = async () => {
     if (!syncText.trim()) {
       showToast('Please enter your work update or task notes to sync', 'error');
@@ -320,7 +370,7 @@ const EmployeeSchedule = ({ embedded = false, onBack }) => {
 
       const payload = {
         employeeId: user.id || employeeProfile?._id,
-        empCode: employeeProfile?.empCode,
+        empCode: employeeProfile?.empCode || employeeSlug || user.slug,
         employeeName: employeeProfile?.fullName || user.name,
         email: employeeProfile?.email || user.email,
         date: syncDate,
@@ -833,17 +883,39 @@ const EmployeeSchedule = ({ embedded = false, onBack }) => {
             <div className="flex flex-wrap items-center gap-3">
               <button
                 type="button"
-                onClick={() => setShowSyncModal(true)}
-                className="flex items-center gap-2 px-5 py-3 bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 text-white rounded-2xl text-xs font-black uppercase tracking-wider transition-all shadow-lg shadow-blue-200 active:scale-95 cursor-pointer"
+                disabled={pullingSheet}
+                onClick={() => handleAutoPullFromSheet(selectedDate.toISOString().split('T')[0], true)}
+                className="flex items-center gap-2 px-5 py-3 bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-700 hover:to-teal-700 text-white rounded-2xl text-xs font-black uppercase tracking-wider transition-all shadow-lg shadow-emerald-200 active:scale-95 disabled:opacity-50 cursor-pointer"
               >
-                <RefreshCw size={15} /> Sync Sheet Work to HRMS
+                {pullingSheet ? (
+                  <>
+                    <Loader2 size={15} className="animate-spin" />
+                    <span>Pulling from Sheet...</span>
+                  </>
+                ) : (
+                  <>
+                    <RefreshCw size={15} />
+                    <span>⚡ 1-Click Sync from Sheet</span>
+                  </>
+                )}
+              </button>
+              <button
+                type="button"
+                onClick={() => {
+                  setShowSyncModal(true);
+                  handleAutoPullFromSheet(syncDate, false);
+                }}
+                className="flex items-center gap-2 px-4 py-3 bg-white border border-slate-200 hover:bg-slate-50 text-slate-700 rounded-2xl text-xs font-black uppercase tracking-wider transition-all shadow-sm active:scale-95 cursor-pointer"
+              >
+                <UploadCloud size={15} className="text-blue-600" />
+                <span>Sync Options / Preview</span>
               </button>
               {deptSheet.hasSheet && (
                 <a
                   href={deptSheet.url}
                   target="_blank"
                   rel="noopener noreferrer"
-                  className="flex items-center gap-2 px-6 py-3 bg-emerald-600 hover:bg-emerald-700 text-white rounded-2xl text-xs font-black uppercase tracking-wider transition-all shadow-lg shadow-emerald-200 active:scale-95"
+                  className="flex items-center gap-2 px-5 py-3 bg-slate-800 hover:bg-slate-900 text-white rounded-2xl text-xs font-black uppercase tracking-wider transition-all shadow-md active:scale-95"
                 >
                   <ExternalLink size={15} /> Open in Google Sheets
                 </a>
@@ -883,8 +955,8 @@ const EmployeeSchedule = ({ embedded = false, onBack }) => {
             {/* Modal Header */}
             <div className="flex items-start justify-between gap-4 pb-5 border-b border-slate-100">
               <div className="flex items-center gap-3">
-                <div className="w-11 h-11 rounded-2xl bg-blue-50 text-blue-600 border border-blue-100 flex items-center justify-center font-bold shadow-sm">
-                  <UploadCloud size={22} />
+                <div className="w-11 h-11 rounded-2xl bg-emerald-50 text-emerald-600 border border-emerald-100 flex items-center justify-center font-bold shadow-sm">
+                  <RefreshCw size={22} />
                 </div>
                 <div>
                   <div className="flex items-center gap-2">
@@ -894,7 +966,7 @@ const EmployeeSchedule = ({ embedded = false, onBack }) => {
                     </span>
                   </div>
                   <p className="text-xs font-semibold text-slate-400 mt-0.5">
-                    Save your spreadsheet work entries directly into your database schedule
+                    Save spreadsheet work updates directly to your database schedule as a Draft
                   </p>
                 </div>
               </div>
@@ -911,9 +983,68 @@ const EmployeeSchedule = ({ embedded = false, onBack }) => {
             <div className="mt-5 p-4 rounded-2xl bg-blue-50/70 border border-blue-100 flex items-start gap-3">
               <AlertCircle size={18} className="text-blue-600 shrink-0 mt-0.5" />
               <div className="text-xs text-blue-900 leading-relaxed">
-                <span className="font-bold">Database Draft Guarantee:</span> Work updates synced from your sheet are stored in MongoDB as a <span className="font-bold underline">Draft (Pending)</span>. It will <span className="font-bold text-rose-600">NOT</span> send or submit to admin until you are ready and click &quot;Submit Report&quot; on your HRMS timesheet.
+                <span className="font-bold">Database Draft Guarantee:</span> Work updates are stored in MongoDB as a <span className="font-bold underline">Draft (Pending)</span>. It will <span className="font-bold text-rose-600">NOT</span> submit or notify admin until you are ready and click &quot;Submit Report&quot; on your HRMS timesheet tab.
               </div>
             </div>
+
+            {/* Auto-Pull Banner */}
+            <div className="mt-5 flex flex-col sm:flex-row sm:items-center justify-between gap-3 p-4 bg-emerald-50/80 rounded-2xl border border-emerald-200">
+              <div className="flex items-center gap-2.5">
+                <Sparkles size={18} className="text-emerald-600 shrink-0" />
+                <div>
+                  <p className="text-xs font-black text-emerald-950 uppercase tracking-tight">Auto-Pull from Live Sheet</p>
+                  <p className="text-[11px] text-emerald-700 font-medium">Read entries for the selected date straight from your Google Sheet</p>
+                </div>
+              </div>
+              <button
+                type="button"
+                disabled={pullingSheet}
+                onClick={() => handleAutoPullFromSheet(syncDate, true)}
+                className="flex items-center justify-center gap-2 px-5 py-2.5 bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl text-xs font-black uppercase tracking-wider transition-all shadow-sm disabled:opacity-50 cursor-pointer"
+              >
+                {pullingSheet ? <Loader2 size={14} className="animate-spin" /> : <RefreshCw size={14} />}
+                <span>{pullingSheet ? 'Syncing...' : '⚡ Auto-Sync Now'}</span>
+              </button>
+            </div>
+
+            {/* Restricted warning banner if sheet returns 401 */}
+            {sheetRestricted && (
+              <div className="mt-4 p-4 rounded-2xl bg-amber-50 border border-amber-200 text-xs text-amber-900 space-y-1">
+                <div className="flex items-center gap-2 font-bold text-amber-800">
+                  <AlertCircle size={16} /> Google Sheet is Currently Restricted (401)
+                </div>
+                <p className="text-[11px] leading-relaxed">
+                  To allow HRMS to auto-read your entries with 1 click, open your Google Sheet, click <strong>Share</strong> (top-right), and change <strong>General access</strong> to <strong>&quot;Anyone with the link can view&quot;</strong>.
+                </p>
+                <p className="text-[11px] font-semibold text-amber-700">
+                  You can also paste your work entries directly in the text box below to save them immediately!
+                </p>
+              </div>
+            )}
+
+            {/* Live Pulled Tasks Preview */}
+            {pulledTasksPreview.length > 0 && (
+              <div className="mt-4 p-4 rounded-2xl bg-slate-50 border border-slate-200 space-y-2.5">
+                <div className="flex items-center justify-between">
+                  <p className="text-xs font-black text-slate-800 uppercase tracking-wider">
+                    Tasks Detected in Google Sheet ({pulledTasksPreview.length})
+                  </p>
+                  <span className="text-[10px] font-bold px-2.5 py-0.5 rounded-full bg-emerald-100 text-emerald-800">
+                    Saved in Database as Draft
+                  </span>
+                </div>
+                <div className="max-h-48 overflow-y-auto space-y-2 pr-1">
+                  {pulledTasksPreview.map((t, idx) => (
+                    <div key={idx} className="flex items-start gap-2.5 p-2.5 rounded-xl bg-white border border-slate-200 text-xs">
+                      <span className="px-2 py-0.5 bg-blue-50 text-blue-700 rounded-md font-mono font-bold text-[10px] shrink-0">
+                        {t.slotKey}
+                      </span>
+                      <span className="text-slate-800 font-medium leading-tight">{t.title}</span>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
 
             {/* Modal Body */}
             <div className="mt-6 space-y-5">
@@ -925,7 +1056,10 @@ const EmployeeSchedule = ({ embedded = false, onBack }) => {
                   <input
                     type="date"
                     value={syncDate}
-                    onChange={(e) => setSyncDate(e.target.value)}
+                    onChange={(e) => {
+                      setSyncDate(e.target.value);
+                      handleAutoPullFromSheet(e.target.value, false);
+                    }}
                     className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-2xl text-xs font-bold text-slate-700 focus:outline-none focus:border-blue-500 focus:bg-white transition-all"
                   />
                 </div>
@@ -934,17 +1068,17 @@ const EmployeeSchedule = ({ embedded = false, onBack }) => {
               <div>
                 <div className="flex items-center justify-between mb-2">
                   <label className="block text-xs font-bold text-slate-700 uppercase tracking-wider">
-                    Work Update / Tasks
+                    Manual Work Update / Tasks (Fallback)
                   </label>
                   <span className="text-[11px] font-semibold text-slate-400">
                     One task per line or &quot;TimeSlot: Task&quot;
                   </span>
                 </div>
                 <textarea
-                  rows={6}
+                  rows={5}
                   value={syncText}
                   onChange={(e) => setSyncText(e.target.value)}
-                  placeholder={`Paste your work entries here, e.g.:\n09:30 - 10:30: Daily standup & client discussion\n10:30 - 11:30: Designed frontend timesheet sync modal\n11:30 - 12:30: Backend API routes integration\n\nOr simply write tasks line-by-line:`}
+                  placeholder={`Paste work entries here if preferred:\n09:30 - 10:30: Daily client coordination & standup\n10:30 - 11:30: Meeting with project lead\n11:30 - 12:30: Updated candidate records & review`}
                   className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-2xl text-xs font-medium text-slate-800 placeholder:text-slate-400 focus:outline-none focus:border-blue-500 focus:bg-white transition-all resize-y font-mono"
                 />
               </div>
@@ -965,7 +1099,7 @@ const EmployeeSchedule = ({ embedded = false, onBack }) => {
               {/* Collapsible Info for Automated Google Apps Script Webhook */}
               <details className="p-3.5 bg-slate-50 rounded-2xl border border-slate-200 text-xs text-slate-600">
                 <summary className="font-bold text-slate-700 cursor-pointer select-none">
-                  ⚡ Want 100% Automatic Sync on Excel / Google Sheet Edit?
+                  ⚡ Want Instant Push on Every Cell Edit in Google Sheets?
                 </summary>
                 <div className="mt-3 text-[11px] leading-relaxed text-slate-600 space-y-2">
                   <p>
@@ -992,9 +1126,6 @@ const EmployeeSchedule = ({ embedded = false, onBack }) => {
   });
 }`}
                   </pre>
-                  <p className="text-slate-500 italic">
-                    The backend endpoint <code className="bg-slate-200 px-1 py-0.5 rounded text-slate-700">/api/timesheets/sync-sheet</code> handles active employee lookup, saves the tasks, and drafts the timesheet without notifying admin.
-                  </p>
                 </div>
               </details>
             </div>
@@ -1006,26 +1137,28 @@ const EmployeeSchedule = ({ embedded = false, onBack }) => {
                 onClick={() => setShowSyncModal(false)}
                 className="px-6 py-3 rounded-2xl text-xs font-bold text-slate-500 hover:bg-slate-100 transition-colors"
               >
-                Cancel
+                Close
               </button>
-              <button
-                type="button"
-                disabled={syncingSheet}
-                onClick={handleSyncFromSheet}
-                className="flex items-center gap-2 px-7 py-3 bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 text-white rounded-2xl text-xs font-black uppercase tracking-wider transition-all shadow-lg shadow-blue-200 active:scale-95 disabled:opacity-50 cursor-pointer"
-              >
-                {syncingSheet ? (
-                  <>
-                    <Loader2 size={16} className="animate-spin" />
-                    <span>Saving to Database...</span>
-                  </>
-                ) : (
-                  <>
-                    <Check size={16} />
-                    <span>Save to Database (Draft)</span>
-                  </>
-                )}
-              </button>
+              {syncText.trim() && (
+                <button
+                  type="button"
+                  disabled={syncingSheet}
+                  onClick={handleSyncFromSheet}
+                  className="flex items-center gap-2 px-7 py-3 bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 text-white rounded-2xl text-xs font-black uppercase tracking-wider transition-all shadow-lg shadow-blue-200 active:scale-95 disabled:opacity-50 cursor-pointer"
+                >
+                  {syncingSheet ? (
+                    <>
+                      <Loader2 size={16} className="animate-spin" />
+                      <span>Saving to Database...</span>
+                    </>
+                  ) : (
+                    <>
+                      <Check size={16} />
+                      <span>Save Manual Tasks (Draft)</span>
+                    </>
+                  )}
+                </button>
+              )}
             </div>
           </div>
         </div>
