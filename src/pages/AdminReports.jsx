@@ -3,7 +3,8 @@ import AdminLayout from '../layouts/AdminLayout';
 import { 
   Users, Clock, Filter, Download, Search, 
   Eye, Calendar,
-  Briefcase, FileText, PieChart, TrendingUp, Star, Info, Send
+  Briefcase, FileText, PieChart, TrendingUp, Star, Info, Send,
+  FileSpreadsheet, ExternalLink, AlertCircle
 } from 'lucide-react';
 import { 
   PieChart as RePieChart, Pie, Cell, ResponsiveContainer, Tooltip 
@@ -27,7 +28,55 @@ const StatCard = ({ icon, label, value, subValue, colorClass }) => (
   </div>
 );
 
+const DEPARTMENTS_WORK_SHEETS = [
+  { 
+    id: 'Engineering', 
+    name: 'Developer Team (Engineering)', 
+    members: 'Manas, Debraj, Anmol, Shreya...', 
+    defaultUrl: 'https://docs.google.com/spreadsheets/d/1sIlWWsipPxOrCQENj2E_EHI7XW2HD9S2n8xfaPVuzNs/edit?pli=1&gid=577942890#gid=577942890',
+    icon: '🛠️'
+  },
+  { 
+    id: 'Marketing', 
+    name: 'Marketing Team', 
+    members: 'Smruti, Amit, Sanghamitra...', 
+    defaultUrl: 'https://docs.google.com/spreadsheets/d/1PF386DYQWbUHKuIeIixclNnG1hil4TzO/edit?gid=2082445647#gid=2082445647',
+    icon: '📢'
+  },
+  { 
+    id: 'Design', 
+    name: 'Design Team', 
+    members: 'UI/UX & Graphics Team', 
+    defaultUrl: '',
+    icon: '🎨'
+  },
+  { 
+    id: 'Sales', 
+    name: 'Sales Team', 
+    members: 'Business Development Team', 
+    defaultUrl: '',
+    icon: '💼'
+  },
+  { 
+    id: 'Human Resources', 
+    name: 'Human Resources', 
+    members: 'Operations & People Team', 
+    defaultUrl: '',
+    icon: '👥'
+  },
+  { 
+    id: 'Management', 
+    name: 'Management Team', 
+    members: 'Executive Leadership Team', 
+    defaultUrl: '',
+    icon: '⚙️'
+  }
+];
+
 const AdminReports = () => {
+  const [activeViewTab, setActiveViewTab] = useState('hourly'); // 'hourly' | 'sheets'
+  const [selectedDept, setSelectedDept] = useState('Engineering');
+  const [departmentSheets, setDepartmentSheets] = useState({});
   const [loading, setLoading] = useState(true);
   const [isFetchingMore, setIsFetchingMore] = useState(false);
   const [hasMore, setHasMore] = useState(true);
@@ -174,9 +223,44 @@ const AdminReports = () => {
     }
   };
 
+  const fetchSettings = async () => {
+    try {
+      const res = await api.get('/settings');
+      if (res.data?.success) {
+        setDepartmentSheets(res.data.settings || {});
+      }
+    } catch (err) {
+      console.error('Error fetching settings for sheets:', err);
+    }
+  };
+
   useEffect(() => {
     fetchDepartments();
+    fetchSettings();
   }, []);
+
+  const getSelectedSheet = () => {
+    const deptInfo = DEPARTMENTS_WORK_SHEETS.find(d => d.id === selectedDept) || DEPARTMENTS_WORK_SHEETS[0];
+    const key = `sheet_url_${deptInfo.id}`;
+    const url = departmentSheets[key]?.trim() || deptInfo.defaultUrl;
+
+    let embedUrl = url;
+    if (url && url.includes('docs.google.com/spreadsheets')) {
+      embedUrl = url.replace('/edit', '/edit?rm=minimal');
+      if (!embedUrl.includes('rm=minimal')) {
+        embedUrl += embedUrl.includes('?') ? '&rm=minimal' : '?rm=minimal';
+      }
+    }
+
+    return {
+      ...deptInfo,
+      url,
+      embedUrl,
+      hasSheet: !!url
+    };
+  };
+
+  const activeSheet = getSelectedSheet();
 
   useEffect(() => {
     fetchReports();
@@ -464,8 +548,64 @@ const AdminReports = () => {
         
 
 
-        {/* Stats Grid */}
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+        {/* Navigation Switcher: Hourly Reports vs Department Work Sheets (Excel View) */}
+        <div className="flex flex-wrap items-center justify-between gap-4 border-b border-slate-200/80 pb-4">
+          <div className="flex items-center gap-3">
+            <button
+              type="button"
+              onClick={() => setActiveViewTab('hourly')}
+              className={`flex items-center gap-2.5 px-6 py-3 rounded-2xl text-xs font-black uppercase tracking-wider transition-all duration-200 ${
+                activeViewTab === 'hourly'
+                  ? 'bg-[#0f172a] text-white shadow-xl shadow-slate-900/20 scale-[1.02]'
+                  : 'bg-white text-slate-600 border border-slate-200/80 hover:bg-slate-50'
+              }`}
+            >
+              <Clock size={16} className={activeViewTab === 'hourly' ? 'text-blue-400' : 'text-slate-400'} />
+              Hourly Log Reports
+            </button>
+
+            <button
+              type="button"
+              onClick={() => setActiveViewTab('sheets')}
+              className={`flex items-center gap-2.5 px-6 py-3 rounded-2xl text-xs font-black uppercase tracking-wider transition-all duration-200 ${
+                activeViewTab === 'sheets'
+                  ? 'bg-emerald-600 text-white shadow-xl shadow-emerald-600/25 scale-[1.02]'
+                  : 'bg-white text-emerald-700 border border-emerald-200 hover:bg-emerald-50'
+              }`}
+            >
+              <FileSpreadsheet size={16} className={activeViewTab === 'sheets' ? 'text-emerald-100' : 'text-emerald-500'} />
+              Department Work Sheets (Excel View)
+            </button>
+          </div>
+
+          <div className="flex items-center gap-3">
+            {activeViewTab === 'hourly' ? (
+              <button
+                type="button"
+                onClick={() => setIsPayrollModalOpen(true)}
+                className="flex items-center gap-2 px-6 py-3 bg-emerald-50 border border-emerald-200 text-emerald-700 rounded-2xl text-xs font-bold hover:bg-emerald-100 transition-all shadow-sm"
+              >
+                <Download size={15} /> Export Payroll Excel
+              </button>
+            ) : (
+              activeSheet.hasSheet && (
+                <a
+                  href={activeSheet.url}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="flex items-center gap-2 px-6 py-3 bg-emerald-600 hover:bg-emerald-700 text-white rounded-2xl text-xs font-black uppercase tracking-wider transition-all shadow-lg shadow-emerald-200 active:scale-95"
+                >
+                  <ExternalLink size={15} /> Open in Google Sheets
+                </a>
+              )
+            )}
+          </div>
+        </div>
+
+        {activeViewTab === 'hourly' ? (
+          <>
+            {/* Stats Grid */}
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
           <StatCard 
             icon={<Users size={24} className="text-blue-600" />} 
             label="Total Employees" 
@@ -812,6 +952,123 @@ const AdminReports = () => {
                </p>
             </div>
         </div>
+          </>
+        ) : (
+          /* Department Work Sheets (Excel View) */
+          <div className="space-y-6 animate-in fade-in duration-300">
+            {/* Department Selector Cards */}
+            <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-3">
+              {DEPARTMENTS_WORK_SHEETS.map((dept) => {
+                const isSelected = selectedDept === dept.id;
+                const hasUrl = !!(departmentSheets[`sheet_url_${dept.id}`]?.trim() || dept.defaultUrl);
+
+                return (
+                  <button
+                    key={dept.id}
+                    type="button"
+                    onClick={() => setSelectedDept(dept.id)}
+                    className={`p-4 rounded-2xl text-left border transition-all flex flex-col justify-between relative group ${
+                      isSelected
+                        ? 'bg-emerald-600 text-white border-emerald-600 shadow-lg shadow-emerald-600/20 scale-[1.02]'
+                        : 'bg-white text-slate-700 border-slate-200/80 hover:border-emerald-300 hover:bg-slate-50'
+                    }`}
+                  >
+                    <div>
+                      <span className="text-xl mb-1 block">{dept.icon}</span>
+                      <p className={`text-xs font-black uppercase tracking-wide truncate ${isSelected ? 'text-white' : 'text-slate-800'}`}>
+                        {dept.id}
+                      </p>
+                      <p className={`text-[10px] truncate mt-0.5 ${isSelected ? 'text-emerald-100' : 'text-slate-400'}`}>
+                        {dept.members}
+                      </p>
+                    </div>
+                    <div className="mt-3 flex items-center justify-between">
+                      <span className={`text-[9px] font-bold px-2 py-0.5 rounded-full uppercase tracking-wider ${
+                        isSelected
+                          ? 'bg-emerald-700 text-white'
+                          : (hasUrl ? 'bg-emerald-50 text-emerald-600' : 'bg-slate-100 text-slate-400')
+                      }`}>
+                        {hasUrl ? 'Connected' : 'No Link'}
+                      </span>
+                    </div>
+                  </button>
+                );
+              })}
+            </div>
+
+            {/* Department Sheet Viewer Card */}
+            <div className="bg-white rounded-[40px] border border-slate-100 shadow-xl shadow-slate-200/40 overflow-hidden">
+              <div className="p-6 md:p-8 bg-slate-50/70 border-b border-slate-100 flex flex-col sm:flex-row items-center justify-between gap-4">
+                <div className="flex items-center gap-4">
+                  <div className="w-12 h-12 rounded-2xl bg-emerald-50 border border-emerald-100 text-emerald-600 flex items-center justify-center font-bold shadow-sm text-2xl">
+                    {activeSheet.icon}
+                  </div>
+                  <div>
+                    <div className="flex items-center gap-2">
+                      <h3 className="text-base font-black text-slate-800 tracking-tight">
+                        {activeSheet.name} — Work Report
+                      </h3>
+                      <span className="px-2.5 py-0.5 rounded-full text-[10px] font-black uppercase tracking-widest bg-emerald-100 text-emerald-700">
+                        Total Report
+                      </span>
+                    </div>
+                    <p className="text-xs font-semibold text-slate-400 mt-0.5">
+                      {activeSheet.members} • Full team view with all employee tabs
+                    </p>
+                  </div>
+                </div>
+
+                <div className="flex items-center gap-3">
+                  <a
+                    href="/admin/settings"
+                    className="px-4 py-2.5 bg-white border border-slate-200 text-slate-600 hover:text-slate-900 rounded-xl text-xs font-bold transition-all shadow-sm"
+                  >
+                    Configure in Settings
+                  </a>
+                  {activeSheet.hasSheet && (
+                    <a
+                      href={activeSheet.url}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="flex items-center gap-2 px-6 py-2.5 bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl text-xs font-black uppercase tracking-wider transition-all shadow-lg shadow-emerald-200 active:scale-95"
+                    >
+                      <ExternalLink size={14} /> Open in Google Sheets
+                    </a>
+                  )}
+                </div>
+              </div>
+
+              {activeSheet.hasSheet ? (
+                <div className="w-full h-[800px] bg-slate-50 relative">
+                  <iframe
+                    src={activeSheet.embedUrl}
+                    title={`${activeSheet.name} Google Sheet`}
+                    className="w-full h-full border-0"
+                    allowFullScreen
+                  />
+                </div>
+              ) : (
+                <div className="p-20 text-center flex flex-col items-center justify-center gap-4 bg-slate-50/30">
+                  <div className="w-16 h-16 rounded-3xl bg-amber-50 border border-amber-100 text-amber-500 flex items-center justify-center font-bold shadow-sm">
+                    <AlertCircle size={32} />
+                  </div>
+                  <div>
+                    <h4 className="text-lg font-black text-slate-800">No Google Sheet Linked for {activeSheet.name}</h4>
+                    <p className="text-xs text-slate-400 max-w-md mt-1 font-medium">
+                      Please enter the Google Sheet URL for this department in System Settings so the team report can be viewed here.
+                    </p>
+                  </div>
+                  <a
+                    href="/admin/settings"
+                    className="mt-2 px-6 py-3 bg-emerald-600 text-white rounded-2xl text-xs font-black uppercase tracking-wider hover:bg-emerald-700 transition-all shadow-md shadow-emerald-200"
+                  >
+                    Go to System Settings
+                  </a>
+                </div>
+              )}
+            </div>
+          </div>
+        )}
 
         {/* Task Details Modal */}
         {isModalOpen && (() => {
