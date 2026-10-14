@@ -4,7 +4,8 @@ import { useParams, useNavigate, useLocation } from 'react-router-dom';
 import { 
   Send, Calendar, Download, FileSpreadsheet, 
   Trash2, Plus, CheckCircle2, AlertCircle, Loader2,
-  ChevronLeft, ChevronRight, Eraser, Printer, Clock, Lock, PieChart, CheckCircle, XCircle, ExternalLink
+  ChevronLeft, ChevronRight, Eraser, Printer, Clock, Lock, PieChart, CheckCircle, XCircle, ExternalLink,
+  RefreshCw, UploadCloud, Check, X
 } from 'lucide-react';
 import api from '../services/api';
 import { io } from 'socket.io-client';
@@ -30,6 +31,11 @@ const EmployeeSchedule = ({ embedded = false, onBack }) => {
   const [toast, setToast] = useState(null);
   const [employeeProfile, setEmployeeProfile] = useState(null);
   const [systemSettings, setSystemSettings] = useState({});
+  const [showSyncModal, setShowSyncModal] = useState(false);
+  const [syncingSheet, setSyncingSheet] = useState(false);
+  const [syncDate, setSyncDate] = useState(new Date().toISOString().split('T')[0]);
+  const [syncText, setSyncText] = useState('');
+  const [syncRemarks, setSyncRemarks] = useState('');
 
   useEffect(() => {
     const fetchContext = async () => {
@@ -255,6 +261,82 @@ const EmployeeSchedule = ({ embedded = false, onBack }) => {
       fetchWeeklyTasks();
     }
   }, [weekDates]);
+
+  // Real-time socket listener for sheet updates
+  useEffect(() => {
+    let socket;
+    try {
+      socket = io(SOCKET_URL);
+      socket.on('timesheetUpdated', (data) => {
+        if (!data?.employeeId || data.employeeId === user.id || data.employeeId === employeeProfile?._id) {
+          fetchWeeklyTasks();
+        }
+      });
+    } catch (err) {
+      console.error('Socket connection error:', err);
+    }
+    return () => {
+      if (socket) socket.disconnect();
+    };
+  }, [user.id, employeeProfile?._id, weekDates]);
+
+  const handleSyncFromSheet = async () => {
+    if (!syncText.trim()) {
+      showToast('Please enter your work update or task notes to sync', 'error');
+      return;
+    }
+    setSyncingSheet(true);
+    try {
+      const lines = syncText
+        .split('\n')
+        .map(l => l.trim())
+        .filter(Boolean);
+
+      const parsedTasks = [];
+
+      lines.forEach((line, idx) => {
+        const slotMatch = line.match(/^(\d{1,2}:\d{2}\s*(?:-\s*\d{1,2}:\d{2})?(?:\s*[AaPp][Mm])?|Slot\s*\d+)\s*[:-]\s*(.*)$/i);
+        if (slotMatch) {
+          parsedTasks.push({
+            slotKey: slotMatch[1].trim(),
+            title: slotMatch[2].trim()
+          });
+        } else {
+          const fallbackSlot = timeSlots[idx] || `Slot ${idx + 1}`;
+          parsedTasks.push({
+            slotKey: fallbackSlot,
+            title: line
+          });
+        }
+      });
+
+      const payload = {
+        employeeId: user.id || employeeProfile?._id,
+        empCode: employeeProfile?.empCode,
+        employeeName: employeeProfile?.fullName || user.name,
+        email: employeeProfile?.email || user.email,
+        date: syncDate,
+        tasks: parsedTasks,
+        dailyRemarks: syncRemarks
+      };
+
+      const res = await api.post('/timesheets/sync-sheet', payload);
+      if (res.data?.success) {
+        showToast('Work updates saved to database as Draft! (Not submitted to admin)', 'success');
+        setShowSyncModal(false);
+        setSyncText('');
+        setSyncRemarks('');
+        await fetchWeeklyTasks();
+      } else {
+        showToast(res.data?.message || 'Sync failed', 'error');
+      }
+    } catch (err) {
+      console.error('Error syncing sheet update:', err);
+      showToast(err.response?.data?.message || 'Failed to sync update to HRMS', 'error');
+    } finally {
+      setSyncingSheet(false);
+    }
+  };
 
   const handleInputChange = (date, slot, value) => {
     setWeekTasks(prev => ({
@@ -740,16 +822,25 @@ const EmployeeSchedule = ({ embedded = false, onBack }) => {
                 </p>
               </div>
             </div>
-            {deptSheet.hasSheet && (
-              <a
-                href={deptSheet.url}
-                target="_blank"
-                rel="noopener noreferrer"
-                className="flex items-center gap-2 px-6 py-3 bg-emerald-600 hover:bg-emerald-700 text-white rounded-2xl text-xs font-black uppercase tracking-wider transition-all shadow-lg shadow-emerald-200 active:scale-95"
+            <div className="flex flex-wrap items-center gap-3">
+              <button
+                type="button"
+                onClick={() => setShowSyncModal(true)}
+                className="flex items-center gap-2 px-5 py-3 bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 text-white rounded-2xl text-xs font-black uppercase tracking-wider transition-all shadow-lg shadow-blue-200 active:scale-95 cursor-pointer"
               >
-                <ExternalLink size={15} /> Open in Google Sheets
-              </a>
-            )}
+                <RefreshCw size={15} /> Sync Sheet Work to HRMS
+              </button>
+              {deptSheet.hasSheet && (
+                <a
+                  href={deptSheet.url}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="flex items-center gap-2 px-6 py-3 bg-emerald-600 hover:bg-emerald-700 text-white rounded-2xl text-xs font-black uppercase tracking-wider transition-all shadow-lg shadow-emerald-200 active:scale-95"
+                >
+                  <ExternalLink size={15} /> Open in Google Sheets
+                </a>
+              )}
+            </div>
           </div>
 
           {deptSheet.hasSheet ? (
@@ -774,6 +865,161 @@ const EmployeeSchedule = ({ embedded = false, onBack }) => {
               </div>
             </div>
           )}
+        </div>
+      )}
+
+      {/* Sync Sheet Work Modal */}
+      {showSyncModal && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-sm animate-in fade-in duration-200">
+          <div className="bg-white rounded-3xl shadow-2xl border border-slate-100 max-w-2xl w-full max-h-[90vh] overflow-y-auto p-6 md:p-8 animate-in zoom-in-95 duration-200">
+            {/* Modal Header */}
+            <div className="flex items-start justify-between gap-4 pb-5 border-b border-slate-100">
+              <div className="flex items-center gap-3">
+                <div className="w-11 h-11 rounded-2xl bg-blue-50 text-blue-600 border border-blue-100 flex items-center justify-center font-bold shadow-sm">
+                  <UploadCloud size={22} />
+                </div>
+                <div>
+                  <div className="flex items-center gap-2">
+                    <h3 className="text-lg font-black text-slate-800 tracking-tight">Sync Sheet Work to HRMS</h3>
+                    <span className="px-2.5 py-0.5 rounded-full text-[10px] font-bold bg-amber-50 text-amber-700 border border-amber-200 uppercase tracking-wider">
+                      Draft Mode
+                    </span>
+                  </div>
+                  <p className="text-xs font-semibold text-slate-400 mt-0.5">
+                    Save your spreadsheet work entries directly into your database schedule
+                  </p>
+                </div>
+              </div>
+              <button
+                type="button"
+                onClick={() => setShowSyncModal(false)}
+                className="w-8 h-8 rounded-full bg-slate-100 text-slate-500 hover:bg-slate-200 flex items-center justify-center transition-colors"
+              >
+                <X size={18} />
+              </button>
+            </div>
+
+            {/* Notice / Draft status banner */}
+            <div className="mt-5 p-4 rounded-2xl bg-blue-50/70 border border-blue-100 flex items-start gap-3">
+              <AlertCircle size={18} className="text-blue-600 shrink-0 mt-0.5" />
+              <div className="text-xs text-blue-900 leading-relaxed">
+                <span className="font-bold">Database Draft Guarantee:</span> Work updates synced from your sheet are stored in MongoDB as a <span className="font-bold underline">Draft (Pending)</span>. It will <span className="font-bold text-rose-600">NOT</span> send or submit to admin until you are ready and click &quot;Submit Report&quot; on your HRMS timesheet.
+              </div>
+            </div>
+
+            {/* Modal Body */}
+            <div className="mt-6 space-y-5">
+              <div>
+                <label className="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-2">
+                  Work Date
+                </label>
+                <div className="relative">
+                  <input
+                    type="date"
+                    value={syncDate}
+                    onChange={(e) => setSyncDate(e.target.value)}
+                    className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-2xl text-xs font-bold text-slate-700 focus:outline-none focus:border-blue-500 focus:bg-white transition-all"
+                  />
+                </div>
+              </div>
+
+              <div>
+                <div className="flex items-center justify-between mb-2">
+                  <label className="block text-xs font-bold text-slate-700 uppercase tracking-wider">
+                    Work Update / Tasks
+                  </label>
+                  <span className="text-[11px] font-semibold text-slate-400">
+                    One task per line or &quot;TimeSlot: Task&quot;
+                  </span>
+                </div>
+                <textarea
+                  rows={6}
+                  value={syncText}
+                  onChange={(e) => setSyncText(e.target.value)}
+                  placeholder={`Paste your work entries here, e.g.:\n09:30 - 10:30: Daily standup & client discussion\n10:30 - 11:30: Designed frontend timesheet sync modal\n11:30 - 12:30: Backend API routes integration\n\nOr simply write tasks line-by-line:`}
+                  className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-2xl text-xs font-medium text-slate-800 placeholder:text-slate-400 focus:outline-none focus:border-blue-500 focus:bg-white transition-all resize-y font-mono"
+                />
+              </div>
+
+              <div>
+                <label className="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-2">
+                  Daily Remarks (Optional)
+                </label>
+                <input
+                  type="text"
+                  value={syncRemarks}
+                  onChange={(e) => setSyncRemarks(e.target.value)}
+                  placeholder="e.g. All sprint objectives completed on time without blockers"
+                  className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-2xl text-xs font-medium text-slate-700 focus:outline-none focus:border-blue-500 focus:bg-white transition-all"
+                />
+              </div>
+
+              {/* Collapsible Info for Automated Google Apps Script Webhook */}
+              <details className="p-3.5 bg-slate-50 rounded-2xl border border-slate-200 text-xs text-slate-600">
+                <summary className="font-bold text-slate-700 cursor-pointer select-none">
+                  ⚡ Want 100% Automatic Sync on Excel / Google Sheet Edit?
+                </summary>
+                <div className="mt-3 text-[11px] leading-relaxed text-slate-600 space-y-2">
+                  <p>
+                    You can install a simple Apps Script in your Google Sheet under <strong>Extensions &gt; Apps Script</strong> to automatically send every work cell update straight to this HRMS database:
+                  </p>
+                  <pre className="p-3 bg-slate-900 text-emerald-400 rounded-xl overflow-x-auto text-[10px] font-mono leading-relaxed">
+{`function onEdit(e) {
+  var sheet = e.source.getActiveSheet();
+  var row = e.range.getRow();
+  if (row <= 1) return; // skip header
+  
+  var payload = {
+    employeeName: sheet.getName(), // or active employee name
+    date: Utilities.formatDate(new Date(), "GMT+5:30", "yyyy-MM-dd"),
+    title: e.value,
+    slotKey: sheet.getRange(row, 1).getValue() || "General"
+  };
+  
+  UrlFetchApp.fetch("https://oditech-hrms-backend-2.onrender.com/api/timesheets/sync-sheet", {
+    method: "post",
+    contentType: "application/json",
+    payload: JSON.stringify(payload),
+    muteHttpExceptions: true
+  });
+}`}
+                  </pre>
+                  <p className="text-slate-500 italic">
+                    The backend endpoint <code className="bg-slate-200 px-1 py-0.5 rounded text-slate-700">/api/timesheets/sync-sheet</code> handles active employee lookup, saves the tasks, and drafts the timesheet without notifying admin.
+                  </p>
+                </div>
+              </details>
+            </div>
+
+            {/* Modal Actions */}
+            <div className="mt-8 pt-5 border-t border-slate-100 flex items-center justify-end gap-3">
+              <button
+                type="button"
+                onClick={() => setShowSyncModal(false)}
+                className="px-6 py-3 rounded-2xl text-xs font-bold text-slate-500 hover:bg-slate-100 transition-colors"
+              >
+                Cancel
+              </button>
+              <button
+                type="button"
+                disabled={syncingSheet}
+                onClick={handleSyncFromSheet}
+                className="flex items-center gap-2 px-7 py-3 bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 text-white rounded-2xl text-xs font-black uppercase tracking-wider transition-all shadow-lg shadow-blue-200 active:scale-95 disabled:opacity-50 cursor-pointer"
+              >
+                {syncingSheet ? (
+                  <>
+                    <Loader2 size={16} className="animate-spin" />
+                    <span>Saving to Database...</span>
+                  </>
+                ) : (
+                  <>
+                    <Check size={16} />
+                    <span>Save to Database (Draft)</span>
+                  </>
+                )}
+              </button>
+            </div>
+          </div>
         </div>
       )}
       
