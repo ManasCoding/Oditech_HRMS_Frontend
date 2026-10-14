@@ -444,7 +444,7 @@ const AdminSettings = () => {
             <div className="bg-white rounded-[32px] border border-slate-100 p-6 md:p-8 shadow-sm space-y-5">
               {[
                 { key: 'sheet_url_Engineering', name: 'Engineering / Developer Team', desc: 'Developers (Manas, Debraj, Anmol, Shreya, etc.) will see this sheet with all developer tabs', defaultVal: 'https://docs.google.com/spreadsheets/d/1sIlWWsipPxOrCQENj2E_EHI7XW2HD9S2n8xfaPVuzNs/edit?pli=1&gid=577942890#gid=577942890' },
-                { key: 'sheet_url_Design', name: 'Design Team', desc: 'Designers will see their department work report', defaultVal: '' },
+                { key: 'sheet_url_Design', name: 'Design Team', desc: 'Designers (Debashish, Rashmi, Subas, Mrinal, etc.) will see this sheet with their team tabs', defaultVal: 'https://docs.google.com/spreadsheets/d/1Hz-gYswAHVRhXEhQbJrJdC4Fo9xE8P0TCNNLsW_IZK4/edit?gid=0#gid=0' },
                 { key: 'sheet_url_Sales', name: 'Sales Team', desc: 'Sales team members will see their department work report', defaultVal: '' },
                 { key: 'sheet_url_Marketing', name: 'Marketing Team', desc: 'Marketing team members (Smruti, Amit, etc.) will see this sheet with their team tabs', defaultVal: 'https://docs.google.com/spreadsheets/d/1PF386DYQWbUHKuIeIixclNnG1hil4TzO/edit?gid=2082445647#gid=2082445647' },
                 { key: 'sheet_url_Human Resources', name: 'Human Resources Team', desc: 'HR members will see their department work report', defaultVal: '' },

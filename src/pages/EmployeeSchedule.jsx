@@ -58,9 +58,18 @@ const EmployeeSchedule = ({ embedded = false, onBack }) => {
       /smruti|amit/i.test(employeeProfile?.fullName || '') ||
       /smruti|amit/i.test(user.name || '') ||
       /smruti|amit/i.test(user.email || '');
+    const isDesign = dept.toLowerCase().includes('design') ||
+      /debashish|rashmi|mrinal|subas|suchismita/i.test(employeeProfile?.fullName || '') ||
+      /debashish|rashmi|mrinal|subas|suchismita/i.test(user.name || '');
 
     const settingKey = `sheet_url_${dept}`;
     let sheetUrl = systemSettings[settingKey]?.trim();
+
+    // Default sheet specifically for Design Team (Debashish, Rashmi, Subas, Mrinal, etc.)
+    if (!sheetUrl && isDesign) {
+      sheetUrl = systemSettings['sheet_url_Design']?.trim() || 
+        'https://docs.google.com/spreadsheets/d/1Hz-gYswAHVRhXEhQbJrJdC4Fo9xE8P0TCNNLsW_IZK4/edit?gid=0#gid=0';
+    }
 
     // Default sheet specifically for Marketing Team (Smruti, Amit, Sanghamitra, etc.)
     if (!sheetUrl && isMarketing) {
@@ -74,9 +83,11 @@ const EmployeeSchedule = ({ embedded = false, onBack }) => {
         'https://docs.google.com/spreadsheets/d/1sIlWWsipPxOrCQENj2E_EHI7XW2HD9S2n8xfaPVuzNs/edit?pli=1&gid=577942890#gid=577942890';
     }
 
+    const deptDisplayName = isMarketing ? 'Marketing Team' : (isDev ? 'Developer Team' : (isDesign ? 'Design Team' : `${dept} Team`));
+
     if (!sheetUrl) {
       return {
-        departmentName: isMarketing ? 'Marketing Team' : (isDev ? 'Developer Team' : dept),
+        departmentName: deptDisplayName,
         hasSheet: false,
         url: null,
         embedUrl: null
@@ -92,7 +103,7 @@ const EmployeeSchedule = ({ embedded = false, onBack }) => {
     }
 
     return {
-      departmentName: isMarketing ? 'Marketing Team' : (isDev ? 'Developer Team' : `${dept} Team`),
+      departmentName: deptDisplayName,
       hasSheet: true,
       url: sheetUrl,
       embedUrl

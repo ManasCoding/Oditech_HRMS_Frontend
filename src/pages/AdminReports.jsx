@@ -46,8 +46,8 @@ const DEPARTMENTS_WORK_SHEETS = [
   { 
     id: 'Design', 
     name: 'Design Team', 
-    members: 'UI/UX & Graphics Team', 
-    defaultUrl: '',
+    members: 'Debashish, Rashmi, Subas, Mrinal...', 
+    defaultUrl: 'https://docs.google.com/spreadsheets/d/1Hz-gYswAHVRhXEhQbJrJdC4Fo9xE8P0TCNNLsW_IZK4/edit?gid=0#gid=0',
     icon: '🎨'
   },
   { 
