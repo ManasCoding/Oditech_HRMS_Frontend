@@ -67,8 +67,8 @@ const DEPARTMENTS_WORK_SHEETS = [
   { 
     id: 'Management', 
     name: 'Management Team', 
-    members: 'Executive Leadership Team', 
-    defaultUrl: '',
+    members: 'Jasmin Jena & Leadership...', 
+    defaultUrl: 'https://docs.google.com/spreadsheets/d/1aOw1-8I2b99X3ILj_1rOrqFf1ntFOL7U19BZ3m-KVTI/edit?gid=882523443#gid=882523443',
     icon: '⚙️'
   }
 ];
