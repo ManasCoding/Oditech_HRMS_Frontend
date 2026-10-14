@@ -29,8 +29,7 @@ import {
   Eye,
   Trash2,
   Search,
-  Filter,
-  FileSpreadsheet
+  Filter
 } from 'lucide-react';
 import { PieChart, Pie, Cell, ResponsiveContainer } from 'recharts';
 import AdminWeeklyTimesheet from '../components/AdminWeeklyTimesheet';
@@ -90,8 +89,7 @@ const AdminEmployeeDetails = () => {
     panNumber: '',
     aadharNumber: '',
     upiId: '',
-    pfAccount: '',
-    workReportSheetUrl: ''
+    pfAccount: ''
   });
   
   const [showBankDetailsModal, setShowBankDetailsModal] = useState(false);
@@ -156,8 +154,7 @@ const AdminEmployeeDetails = () => {
             panNumber: found.panNumber || '',
             aadharNumber: found.aadharNumber || '',
             upiId: found.upiId || '',
-            pfAccount: found.pfAccount || '',
-            workReportSheetUrl: found.workReportSheetUrl || ''
+            pfAccount: found.pfAccount || ''
           });
       } else {
         console.error('Profile fetch error: employee not found for id', id);
@@ -361,8 +358,7 @@ const AdminEmployeeDetails = () => {
         panNumber: employee.panNumber || '',
         aadharNumber: employee.aadharNumber || '',
         upiId: employee.upiId || '',
-        pfAccount: employee.pfAccount || '',
-        workReportSheetUrl: employee.workReportSheetUrl || ''
+        pfAccount: employee.pfAccount || ''
       });
     }
     setIsEditing(!isEditing);
@@ -858,30 +854,13 @@ const AdminEmployeeDetails = () => {
               </div>
             </div>
             {isEditing && (
-              <>
-                <div className="flex items-center gap-4 col-span-2 mt-2 pt-4 border-t border-slate-100 animate-in slide-in-from-top-2">
-                  <div className="w-10 h-10 bg-violet-50 text-violet-500 rounded-xl flex items-center justify-center shadow-sm border border-violet-100"><Lock size={18} /></div>
-                  <div className="flex-1">
-                    <p className="text-[10px] font-black text-violet-600 uppercase tracking-widest">Login Password</p>
-                    <input type="text" value={editForm.password} onChange={(e) => setEditForm({...editForm, password: e.target.value})} className="w-full bg-white border border-violet-200 rounded-lg px-3 py-2 text-sm font-bold focus:outline-none focus:border-violet-500 focus:ring-4 focus:ring-violet-500/5 transition-all" placeholder="Enter new password" />
-                  </div>
+              <div className="flex items-center gap-4 col-span-2 mt-2 pt-4 border-t border-slate-100 animate-in slide-in-from-top-2">
+                <div className="w-10 h-10 bg-violet-50 text-violet-500 rounded-xl flex items-center justify-center shadow-sm border border-violet-100"><Lock size={18} /></div>
+                <div className="flex-1">
+                  <p className="text-[10px] font-black text-violet-600 uppercase tracking-widest">Login Password</p>
+                  <input type="text" value={editForm.password} onChange={(e) => setEditForm({...editForm, password: e.target.value})} className="w-full bg-white border border-violet-200 rounded-lg px-3 py-2 text-sm font-bold focus:outline-none focus:border-violet-500 focus:ring-4 focus:ring-violet-500/5 transition-all" placeholder="Enter new password" />
                 </div>
-
-                <div className="flex items-center gap-4 col-span-2 mt-2 pt-4 border-t border-slate-100 animate-in slide-in-from-top-2">
-                  <div className="w-10 h-10 bg-emerald-50 text-emerald-600 rounded-xl flex items-center justify-center shadow-sm border border-emerald-100"><FileSpreadsheet size={18} /></div>
-                  <div className="flex-1">
-                    <p className="text-[10px] font-black text-emerald-600 uppercase tracking-widest">Work Report (Google Sheets / Tab Link)</p>
-                    <input 
-                      type="url" 
-                      value={editForm.workReportSheetUrl || ''} 
-                      onChange={(e) => setEditForm({...editForm, workReportSheetUrl: e.target.value})} 
-                      className="w-full bg-white border border-emerald-200 rounded-lg px-3 py-2 text-sm font-bold focus:outline-none focus:border-emerald-500 focus:ring-4 focus:ring-emerald-500/5 transition-all" 
-                      placeholder="e.g. https://docs.google.com/spreadsheets/d/.../edit?gid=577942890" 
-                    />
-                    <p className="text-[10px] text-slate-400 mt-1 font-medium">Assign this employee's dedicated sheet or tab link so they can only view their own work report.</p>
-                  </div>
-                </div>
-              </>
+              </div>
             )}
           </div>
         </div>
