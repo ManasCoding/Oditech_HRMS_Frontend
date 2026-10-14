@@ -447,7 +447,7 @@ const AdminSettings = () => {
                 { key: 'sheet_url_Design', name: 'Design Team', desc: 'Designers (Debashish, Rashmi, Subas, Mrinal, etc.) will see this sheet with their team tabs', defaultVal: 'https://docs.google.com/spreadsheets/d/1Hz-gYswAHVRhXEhQbJrJdC4Fo9xE8P0TCNNLsW_IZK4/edit?gid=0#gid=0' },
                 { key: 'sheet_url_Sales', name: 'Sales Team', desc: 'Sales team members will see their department work report', defaultVal: '' },
                 { key: 'sheet_url_Marketing', name: 'Marketing Team', desc: 'Marketing team members (Smruti, Amit, etc.) will see this sheet with their team tabs', defaultVal: 'https://docs.google.com/spreadsheets/d/1PF386DYQWbUHKuIeIixclNnG1hil4TzO/edit?gid=2082445647#gid=2082445647' },
-                { key: 'sheet_url_Human Resources', name: 'Human Resources Team', desc: 'HR members will see their department work report', defaultVal: '' },
+                { key: 'sheet_url_Human Resources', name: 'Human Resources Team', desc: 'HR members will see their department work report', defaultVal: 'https://docs.google.com/spreadsheets/d/1t8ERkUfun8dzpoaaoh4vbmYt9-zDO1Ib0gA_DNvTXxA/edit?gid=0#gid=0' },
                 { key: 'sheet_url_Management', name: 'Management Team', desc: 'Management & leadership team members will see this sheet with their team tabs', defaultVal: 'https://docs.google.com/spreadsheets/d/1aOw1-8I2b99X3ILj_1rOrqFf1ntFOL7U19BZ3m-KVTI/edit?gid=882523443#gid=882523443' }
               ].map((dept) => {
                 const curVal = settings[dept.key] !== undefined ? settings[dept.key] : dept.defaultVal;

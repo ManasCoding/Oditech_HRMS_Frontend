@@ -70,9 +70,17 @@ const EmployeeSchedule = ({ embedded = false, onBack }) => {
     const isManagement = dept.toLowerCase().includes('manage') ||
       /jasmin/i.test(employeeProfile?.fullName || '') ||
       /jasmin/i.test(user.name || '');
+    const isHR = /human\s*resource|hr\b/i.test(dept);
 
     const settingKey = `sheet_url_${dept}`;
     let sheetUrl = systemSettings[settingKey]?.trim();
+
+    // Default sheet specifically for Human Resources Team
+    if (!sheetUrl && isHR) {
+      sheetUrl = systemSettings['sheet_url_Human Resources']?.trim() || 
+        systemSettings['sheet_url_HR']?.trim() ||
+        'https://docs.google.com/spreadsheets/d/1t8ERkUfun8dzpoaaoh4vbmYt9-zDO1Ib0gA_DNvTXxA/edit?gid=0#gid=0';
+    }
 
     // Default sheet specifically for Management Team (Jasmin Jena & Leadership)
     if (!sheetUrl && isManagement) {
@@ -98,7 +106,7 @@ const EmployeeSchedule = ({ embedded = false, onBack }) => {
         'https://docs.google.com/spreadsheets/d/1sIlWWsipPxOrCQENj2E_EHI7XW2HD9S2n8xfaPVuzNs/edit?pli=1&gid=577942890#gid=577942890';
     }
 
-    const deptDisplayName = isMarketing ? 'Marketing Team' : (isDev ? 'Developer Team' : (isDesign ? 'Design Team' : (isManagement ? 'Management Team' : `${dept} Team`)));
+    const deptDisplayName = isMarketing ? 'Marketing Team' : (isDev ? 'Developer Team' : (isDesign ? 'Design Team' : (isManagement ? 'Management Team' : (isHR ? 'Human Resources Team' : `${dept} Team`))));
 
     if (!sheetUrl) {
       return {

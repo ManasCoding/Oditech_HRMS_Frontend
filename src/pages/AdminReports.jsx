@@ -61,7 +61,7 @@ const DEPARTMENTS_WORK_SHEETS = [
     id: 'Human Resources', 
     name: 'Human Resources', 
     members: 'Operations & People Team', 
-    defaultUrl: '',
+    defaultUrl: 'https://docs.google.com/spreadsheets/d/1t8ERkUfun8dzpoaaoh4vbmYt9-zDO1Ib0gA_DNvTXxA/edit?gid=0#gid=0',
     icon: '👥'
   },
   { 
