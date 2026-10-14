@@ -4,7 +4,7 @@ import {
   Users, Clock, Filter, Download, Search, 
   Eye, Calendar,
   Briefcase, FileText, PieChart, TrendingUp, Star, Info, Send,
-  FileSpreadsheet, ExternalLink, AlertCircle
+  FileSpreadsheet, ExternalLink, AlertCircle, RefreshCw, CheckCircle2, LayoutGrid, Layers
 } from 'lucide-react';
 import { 
   PieChart as RePieChart, Pie, Cell, ResponsiveContainer, Tooltip 
@@ -112,6 +112,118 @@ const AdminReports = () => {
   const [ratingLoading, setRatingLoading] = useState(false);
   const [departments, setDepartments] = useState(['All Departments', 'Digital Marketing', 'Web Development', 'SEO', 'HR', 'Others']);
   const [showFilterPanel, setShowFilterPanel] = useState(false);
+
+  // HRMS Matrix View State & Batch Sync
+  const [matrixDate, setMatrixDate] = useState(new Date().toISOString().split('T')[0]);
+  const [matrixDept, setMatrixDept] = useState('All Departments');
+  const [matrixSearch, setMatrixSearch] = useState('');
+  const [loadingMatrix, setLoadingMatrix] = useState(false);
+  const [syncingAllSheets, setSyncingAllSheets] = useState(false);
+  const [matrixData, setMatrixData] = useState({
+    slots: [
+      '09:30 - 10:30',
+      '10:30 - 11:30',
+      '11:30 - 12:30',
+      '12:30 - 01:30',
+      '01:30 - 02:30',
+      '02:30 - 03:30',
+      '03:00 - 04:00',
+      '04:00 - 04:50',
+      '05:00 - 06:30'
+    ],
+    matrix: [],
+    totalEmployees: 0,
+    employeesWithTasksCount: 0,
+    totalTasksToday: 0
+  });
+
+  const fetchMatrixData = useCallback(async (date = matrixDate, dept = matrixDept, q = matrixSearch) => {
+    setLoadingMatrix(true);
+    try {
+      const params = new URLSearchParams();
+      if (date) params.append('date', date);
+      if (dept && dept !== 'All Departments') params.append('department', dept);
+      if (q) params.append('search', q);
+      const res = await api.get(`/timesheets/today-matrix?${params.toString()}`);
+      if (res.data?.success) {
+        setMatrixData(res.data);
+      }
+    } catch (err) {
+      console.error('Error fetching today work matrix:', err);
+    } finally {
+      setLoadingMatrix(false);
+    }
+  }, [matrixDate, matrixDept, matrixSearch]);
+
+  const handleSyncAllDepartments = async () => {
+    if (syncingAllSheets) return;
+    setSyncingAllSheets(true);
+    try {
+      const res = await api.post('/timesheets/sync-all-departments', {
+        date: matrixDate || new Date().toISOString().split('T')[0]
+      });
+      if (res.data?.success) {
+        alert(`✅ ${res.data.message}\nTotal Tasks Synced into HRMS: ${res.data.totalSyncedTasks}`);
+        fetchMatrixData(matrixDate, matrixDept, matrixSearch);
+        fetchReports();
+      } else {
+        alert(res.data?.message || 'Sync completed with warnings.');
+      }
+    } catch (err) {
+      console.error('Error syncing all department sheets:', err);
+      alert(err.response?.data?.message || 'Failed to sync department sheets');
+    } finally {
+      setSyncingAllSheets(false);
+    }
+  };
+
+  const handleDownloadMatrixExcel = () => {
+    if (!matrixData.matrix || matrixData.matrix.length === 0) {
+      alert('No matrix data available to download');
+      return;
+    }
+
+    const headers = [
+      '#',
+      'Employee Name',
+      'Employee ID',
+      'Department',
+      'Date',
+      ...matrixData.slots,
+      'Tasks Count',
+      'Daily Remarks',
+      'Timesheet Status'
+    ];
+
+    const rows = matrixData.matrix.map((row, idx) => [
+      idx + 1,
+      row.fullName,
+      row.empCode,
+      row.department,
+      row.date,
+      ...matrixData.slots.map(s => row.slots?.[s] || ''),
+      row.taskCount,
+      row.dailyRemarks || '',
+      row.status
+    ]);
+
+    const ws = XLSX.utils.aoa_to_sheet([headers, ...rows]);
+    ws['!cols'] = [
+      { wch: 6 },
+      { wch: 22 },
+      { wch: 14 },
+      { wch: 18 },
+      { wch: 12 },
+      ...matrixData.slots.map(() => ({ wch: 28 })),
+      { wch: 12 },
+      { wch: 30 },
+      { wch: 14 }
+    ];
+
+    const wb = XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(wb, ws, 'HRMS_Daily_Matrix');
+    XLSX.writeFile(wb, `HRMS_Daily_Worksheet_Matrix_${matrixDate}.xlsx`);
+  };
 
   // Payroll Excel Export Modal
   const [isPayrollModalOpen, setIsPayrollModalOpen] = useState(false);
@@ -265,6 +377,12 @@ const AdminReports = () => {
   useEffect(() => {
     fetchReports();
   }, [filters.date, filters.department, filters.employeeId, filters.status, search]);
+
+  useEffect(() => {
+    if (activeViewTab === 'matrix') {
+      fetchMatrixData(matrixDate, matrixDept, matrixSearch);
+    }
+  }, [activeViewTab, matrixDate, matrixDept, matrixSearch, fetchMatrixData]);
 
   // IntersectionObserver for infinite scroll
   useEffect(() => {
@@ -548,9 +666,9 @@ const AdminReports = () => {
         
 
 
-        {/* Navigation Switcher: Hourly Reports vs Department Work Sheets (Excel View) */}
+        {/* Navigation Switcher: Hourly Reports vs HRMS Matrix Format vs Department Work Sheets (Excel View) */}
         <div className="flex flex-wrap items-center justify-between gap-4 border-b border-slate-200/80 pb-4">
-          <div className="flex items-center gap-3">
+          <div className="flex flex-wrap items-center gap-3">
             <button
               type="button"
               onClick={() => setActiveViewTab('hourly')}
@@ -562,6 +680,24 @@ const AdminReports = () => {
             >
               <Clock size={16} className={activeViewTab === 'hourly' ? 'text-blue-400' : 'text-slate-400'} />
               Hourly Log Reports
+            </button>
+
+            <button
+              type="button"
+              onClick={() => setActiveViewTab('matrix')}
+              className={`flex items-center gap-2.5 px-6 py-3 rounded-2xl text-xs font-black uppercase tracking-wider transition-all duration-200 ${
+                activeViewTab === 'matrix'
+                  ? 'bg-blue-600 text-white shadow-xl shadow-blue-600/25 scale-[1.02]'
+                  : 'bg-white text-blue-700 border border-blue-200 hover:bg-blue-50'
+              }`}
+            >
+              <LayoutGrid size={16} className={activeViewTab === 'matrix' ? 'text-blue-100' : 'text-blue-500'} />
+              HRMS Format Worksheet (All Employees)
+              <span className={`px-2 py-0.5 rounded-full text-[9px] font-black uppercase tracking-wider ${
+                activeViewTab === 'matrix' ? 'bg-white/20 text-white' : 'bg-blue-100 text-blue-700'
+              }`}>
+                Live Matrix
+              </span>
             </button>
 
             <button
@@ -578,8 +714,31 @@ const AdminReports = () => {
             </button>
           </div>
 
-          <div className="flex items-center gap-3">
-            {activeViewTab === 'hourly' ? (
+          <div className="flex flex-wrap items-center gap-3">
+            {/* Button 1: Sync All Department Sheets Today */}
+            <button
+              type="button"
+              onClick={handleSyncAllDepartments}
+              disabled={syncingAllSheets}
+              className="flex items-center gap-2 px-5 py-3 bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 text-white rounded-2xl text-xs font-black uppercase tracking-wider transition-all shadow-lg shadow-blue-500/25 active:scale-95 disabled:opacity-50"
+              title="Pull today's work reports from all department Google Sheets and save as HRMS worksheet drafts"
+            >
+              <RefreshCw size={15} className={syncingAllSheets ? 'animate-spin' : ''} />
+              {syncingAllSheets ? 'Syncing All Sheets...' : '⚡ Sync All Department Sheets Today'}
+            </button>
+
+            {/* Button 2: Quick switch to HRMS matrix view if in other tabs */}
+            {activeViewTab !== 'matrix' && (
+              <button
+                type="button"
+                onClick={() => setActiveViewTab('matrix')}
+                className="flex items-center gap-2 px-5 py-3 bg-white border border-blue-200 text-blue-700 hover:bg-blue-50 rounded-2xl text-xs font-black uppercase tracking-wider transition-all shadow-sm"
+              >
+                <LayoutGrid size={15} /> All Employees HRMS Format
+              </button>
+            )}
+
+            {activeViewTab === 'hourly' && (
               <button
                 type="button"
                 onClick={() => setIsPayrollModalOpen(true)}
@@ -587,22 +746,32 @@ const AdminReports = () => {
               >
                 <Download size={15} /> Export Payroll Excel
               </button>
-            ) : (
-              activeSheet.hasSheet && (
-                <a
-                  href={activeSheet.url}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="flex items-center gap-2 px-6 py-3 bg-emerald-600 hover:bg-emerald-700 text-white rounded-2xl text-xs font-black uppercase tracking-wider transition-all shadow-lg shadow-emerald-200 active:scale-95"
-                >
-                  <ExternalLink size={15} /> Open in Google Sheets
-                </a>
-              )
+            )}
+
+            {activeViewTab === 'matrix' && (
+              <button
+                type="button"
+                onClick={handleDownloadMatrixExcel}
+                className="flex items-center gap-2 px-5 py-3 bg-emerald-600 hover:bg-emerald-700 text-white rounded-2xl text-xs font-black uppercase tracking-wider transition-all shadow-lg shadow-emerald-600/20 active:scale-95"
+              >
+                <Download size={15} /> Export Matrix Excel
+              </button>
+            )}
+
+            {activeViewTab === 'sheets' && activeSheet.hasSheet && (
+              <a
+                href={activeSheet.url}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="flex items-center gap-2 px-6 py-3 bg-emerald-600 hover:bg-emerald-700 text-white rounded-2xl text-xs font-black uppercase tracking-wider transition-all shadow-lg shadow-emerald-200 active:scale-95"
+              >
+                <ExternalLink size={15} /> Open in Google Sheets
+              </a>
             )}
           </div>
         </div>
 
-        {activeViewTab === 'hourly' ? (
+        {activeViewTab === 'hourly' && (
           <>
             {/* Stats Grid */}
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
@@ -953,8 +1122,273 @@ const AdminReports = () => {
             </div>
         </div>
           </>
-        ) : (
-          /* Department Work Sheets (Excel View) */
+        )}
+
+        {/* HRMS Format Worksheet (All Employees) Matrix View */}
+        {activeViewTab === 'matrix' && (
+          <div className="space-y-6 animate-in fade-in duration-300">
+            {/* Matrix Stats Cards */}
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+              <StatCard 
+                icon={<Users size={24} className="text-blue-600" />} 
+                label="Total Employees" 
+                value={matrixData.totalEmployees || 0} 
+                subValue="Active in HRMS" 
+                colorClass="bg-blue-50"
+              />
+              <StatCard 
+                icon={<CheckCircle2 size={24} className="text-emerald-600" />} 
+                label="Reported Today" 
+                value={matrixData.employeesWithTasksCount || 0} 
+                subValue={`${matrixData.totalEmployees > 0 ? Math.round((matrixData.employeesWithTasksCount / matrixData.totalEmployees) * 100) : 0}% Active Today`} 
+                colorClass="bg-emerald-50"
+              />
+              <StatCard 
+                icon={<Clock size={24} className="text-violet-600" />} 
+                label="Total Tasks Logged" 
+                value={matrixData.totalTasksToday || 0} 
+                subValue="Across 9 Standard Slots" 
+                colorClass="bg-violet-50"
+              />
+              <StatCard 
+                icon={<Layers size={24} className="text-amber-500" />} 
+                label="Worksheet Date" 
+                value={matrixDate} 
+                subValue="HRMS Standard Format" 
+                colorClass="bg-amber-50"
+              />
+            </div>
+
+            {/* Matrix Filter & Action Bar */}
+            <div className="bg-white p-6 sm:p-8 rounded-[32px] border border-slate-100 shadow-sm flex flex-col lg:flex-row lg:items-center justify-between gap-6">
+              <div className="flex flex-wrap items-center gap-4">
+                {/* Date Picker */}
+                <div className="space-y-1.5">
+                  <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">Work Date</label>
+                  <div className="relative">
+                    <Calendar size={14} className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400" />
+                    <input 
+                      type="date" 
+                      value={matrixDate}
+                      onChange={(e) => setMatrixDate(e.target.value)}
+                      className="pl-11 pr-4 py-2.5 bg-slate-50 border border-slate-100 rounded-xl text-xs font-bold text-[#1e293b] focus:outline-none focus:ring-2 focus:ring-blue-500/10 cursor-pointer hover:bg-slate-100/80 transition-all" 
+                    />
+                  </div>
+                </div>
+
+                {/* Department Dropdown */}
+                <div className="space-y-1.5 min-w-[200px]">
+                  <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">Department</label>
+                  <CustomDropdown 
+                    name="matrixDept"
+                    value={matrixDept}
+                    options={departments}
+                    onChange={(e) => setMatrixDept(e.target.value)}
+                  />
+                </div>
+
+                {/* Search Bar */}
+                <div className="space-y-1.5 min-w-[220px]">
+                  <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">Search Employee</label>
+                  <div className="relative">
+                    <Search size={14} className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400" />
+                    <input 
+                      type="text" 
+                      placeholder="Name or Emp Code..." 
+                      value={matrixSearch}
+                      onChange={(e) => setMatrixSearch(e.target.value)}
+                      className="w-full pl-11 pr-4 py-2.5 bg-slate-50 border border-slate-100 rounded-xl text-xs font-bold text-[#1e293b] focus:outline-none focus:ring-2 focus:ring-blue-500/10" 
+                    />
+                  </div>
+                </div>
+              </div>
+
+              {/* Action Buttons */}
+              <div className="flex flex-wrap items-center gap-3">
+                <button
+                  type="button"
+                  onClick={() => fetchMatrixData(matrixDate, matrixDept, matrixSearch)}
+                  disabled={loadingMatrix}
+                  className="flex items-center gap-2 px-4 py-2.5 bg-slate-50 hover:bg-slate-100 text-slate-600 rounded-xl text-xs font-bold transition-all border border-slate-200"
+                  title="Reload today's matrix"
+                >
+                  <RefreshCw size={14} className={loadingMatrix ? 'animate-spin text-blue-600' : ''} />
+                  Refresh
+                </button>
+
+                <button
+                  type="button"
+                  onClick={handleSyncAllDepartments}
+                  disabled={syncingAllSheets}
+                  className="flex items-center gap-2 px-5 py-2.5 bg-blue-600 hover:bg-blue-700 text-white rounded-xl text-xs font-black uppercase tracking-wider transition-all shadow-md shadow-blue-500/20 active:scale-95 disabled:opacity-50"
+                  title="Sync all department sheets into database"
+                >
+                  <RefreshCw size={14} className={syncingAllSheets ? 'animate-spin' : ''} />
+                  {syncingAllSheets ? 'Syncing...' : '⚡ Sync Sheets'}
+                </button>
+
+                <button
+                  type="button"
+                  onClick={handleDownloadMatrixExcel}
+                  className="flex items-center gap-2 px-5 py-2.5 bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl text-xs font-black uppercase tracking-wider transition-all shadow-md shadow-emerald-500/20 active:scale-95"
+                >
+                  <Download size={14} /> Export Excel
+                </button>
+              </div>
+            </div>
+
+            {/* Matrix Table */}
+            <div className="bg-white rounded-[40px] border border-slate-100 shadow-sm overflow-hidden">
+              <div className="p-6 md:p-8 border-b border-slate-50 flex items-center justify-between">
+                <div>
+                  <h3 className="text-xl font-black text-[#1e293b]">HRMS Format Daily Worksheet</h3>
+                  <p className="text-xs font-bold text-slate-400 mt-1 uppercase tracking-widest">
+                    All employees mapped to 9 standard HRMS slots • Work Date: {matrixDate}
+                  </p>
+                </div>
+                <div className="flex items-center gap-3">
+                  <span className="text-[11px] font-black text-slate-500 uppercase tracking-widest bg-slate-100 px-3 py-1.5 rounded-full">
+                    {matrixData.matrix?.length || 0} Employees Listed
+                  </span>
+                </div>
+              </div>
+
+              {loadingMatrix ? (
+                <div className="py-24 flex flex-col items-center justify-center gap-4">
+                  <div className="w-10 h-10 border-4 border-slate-100 border-t-blue-500 rounded-full animate-spin"></div>
+                  <p className="text-xs font-black text-slate-400 uppercase tracking-widest">Fetching HRMS Worksheet Matrix...</p>
+                </div>
+              ) : matrixData.matrix?.length === 0 ? (
+                <div className="py-24 text-center">
+                  <AlertCircle size={40} className="mx-auto text-slate-300 mb-3" />
+                  <p className="text-sm font-bold text-slate-500 uppercase tracking-widest">No employee work records found</p>
+                  <p className="text-xs text-slate-400 mt-1">Try another filter or click "Sync Sheets" to pull updates from Google Sheets.</p>
+                </div>
+              ) : (
+                <div className="overflow-x-auto">
+                  <table className="w-full text-left border-collapse min-w-[1700px]">
+                    <thead>
+                      <tr className="bg-slate-50/80 border-b border-slate-100 text-[10px] font-black text-slate-500 uppercase tracking-wider">
+                        <th className="sticky left-0 z-20 bg-slate-50 px-6 py-4 border-r border-slate-100 shadow-[2px_0_5px_rgba(0,0,0,0.02)] min-w-[220px]">
+                          Employee
+                        </th>
+                        <th className="px-3 py-4 text-center min-w-[90px]">Status</th>
+                        <th className="px-3 py-4 text-center min-w-[90px]">Tasks</th>
+                        {matrixData.slots?.map((slot) => (
+                          <th key={slot} className="px-3 py-4 text-center min-w-[155px] border-r border-slate-100/60 font-black">
+                            <div className="text-[10px] text-blue-600 font-extrabold">{slot.split(' - ')[0]} - {slot.split(' - ')[1]}</div>
+                          </th>
+                        ))}
+                        <th className="px-4 py-4 min-w-[180px]">Daily Remarks</th>
+                        <th className="px-4 py-4 text-center min-w-[90px]">Action</th>
+                      </tr>
+                    </thead>
+                    <tbody className="divide-y divide-slate-100 text-xs">
+                      {matrixData.matrix.map((row) => {
+                        const hasAnyTask = row.taskCount > 0;
+                        const statusColor = 
+                          row.status === 'Completed' ? 'bg-emerald-50 text-emerald-700 border-emerald-200' :
+                          row.status === 'Submitted' ? 'bg-blue-50 text-blue-700 border-blue-200' :
+                          row.status === 'Pending' ? 'bg-amber-50 text-amber-700 border-amber-200' :
+                          'bg-slate-50 text-slate-400 border-slate-200';
+
+                        return (
+                          <tr key={row.id} className="hover:bg-blue-50/30 transition-colors">
+                            {/* Sticky Employee Info */}
+                            <td className="sticky left-0 z-10 bg-white hover:bg-slate-50 px-6 py-4 border-r border-slate-100 shadow-[2px_0_5px_rgba(0,0,0,0.02)]">
+                              <div className="flex items-center gap-3">
+                                <div className="w-10 h-10 rounded-xl bg-slate-100 flex items-center justify-center font-bold text-slate-600 text-xs overflow-hidden border border-slate-200 shrink-0">
+                                  {row.profileImage ? (
+                                    <img src={row.profileImage} alt="" className="w-full h-full object-cover" />
+                                  ) : (
+                                    row.fullName?.charAt(0) || 'E'
+                                  )}
+                                </div>
+                                <div className="min-w-0">
+                                  <p className="font-extrabold text-[#1e293b] text-xs truncate">{row.fullName}</p>
+                                  <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">{row.empCode || '--'}</p>
+                                  <span className="inline-block mt-0.5 text-[9px] font-black uppercase tracking-wider px-2 py-0.5 rounded-full bg-slate-100 text-slate-600">
+                                    {row.department}
+                                  </span>
+                                </div>
+                              </div>
+                            </td>
+
+                            {/* Status */}
+                            <td className="px-3 py-4 text-center">
+                              <span className={`inline-block px-2.5 py-1 rounded-full text-[9px] font-black uppercase tracking-wider border ${statusColor}`}>
+                                {row.status === 'Pending' ? 'Draft' : row.status}
+                              </span>
+                            </td>
+
+                            {/* Tasks Logged Count */}
+                            <td className="px-3 py-4 text-center">
+                              <span className={`inline-flex items-center justify-center px-2.5 py-1 rounded-xl text-xs font-black ${
+                                hasAnyTask ? 'bg-blue-50 text-blue-700 border border-blue-100' : 'bg-slate-100 text-slate-400'
+                              }`}>
+                                {row.taskCount} / {matrixData.slots?.length || 9}
+                              </span>
+                            </td>
+
+                            {/* 9 Standard Slots */}
+                            {matrixData.slots?.map((slot) => {
+                              const taskContent = row.slots?.[slot];
+                              return (
+                                <td key={slot} className="px-3 py-3 border-r border-slate-100/60 align-top">
+                                  {taskContent ? (
+                                    <div 
+                                      title={taskContent}
+                                      className="p-2.5 bg-slate-50 hover:bg-white rounded-xl border border-slate-200/80 hover:border-blue-300 hover:shadow-md transition-all text-[11px] font-medium text-slate-700 leading-snug line-clamp-3 group relative cursor-pointer"
+                                    >
+                                      <span className="text-[9px] font-bold text-blue-600 block mb-0.5">✓ Logged</span>
+                                      {taskContent}
+                                    </div>
+                                  ) : (
+                                    <div className="h-full py-4 text-center text-slate-300 font-bold text-xs select-none">
+                                      —
+                                    </div>
+                                  )}
+                                </td>
+                              );
+                            })}
+
+                            {/* Remarks */}
+                            <td className="px-4 py-3 align-top">
+                              {row.dailyRemarks ? (
+                                <div 
+                                  title={row.dailyRemarks}
+                                  className="text-xs text-slate-600 italic bg-slate-50 p-2.5 rounded-xl border border-slate-100 line-clamp-3"
+                                >
+                                  "{row.dailyRemarks}"
+                                </div>
+                              ) : (
+                                <span className="text-slate-300 text-xs italic">No remarks</span>
+                              )}
+                            </td>
+
+                            {/* Action */}
+                            <td className="px-4 py-3 text-center align-middle">
+                              <button
+                                type="button"
+                                onClick={() => fetchEmployeeTasks(row.id, row.date, row.status)}
+                                className="px-3 py-1.5 bg-slate-100 hover:bg-blue-50 hover:text-blue-600 text-slate-600 rounded-xl text-[10px] font-bold uppercase tracking-wider transition-all"
+                              >
+                                View
+                              </button>
+                            </td>
+                          </tr>
+                        );
+                      })}
+                    </tbody>
+                  </table>
+                </div>
+              )}
+            </div>
+          </div>
+        )}
+
+        {/* Department Work Sheets (Excel View) */}
+        {activeViewTab === 'sheets' && (
           <div className="space-y-6 animate-in fade-in duration-300">
             {/* Department Selector Cards */}
             <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-3">
