@@ -2,7 +2,7 @@ import React, { useState, useEffect, useCallback } from 'react';
 import {
   ArrowLeft, Download, CheckCircle2, User,
   Briefcase, Calendar, Clock, AlertCircle,
-  ChevronLeft, ChevronRight, Loader2
+  ChevronLeft, ChevronRight, Loader2, ExternalLink
 } from 'lucide-react';
 import { io } from 'socket.io-client';
 import api from '../services/api';
@@ -224,6 +224,14 @@ const AdminWeeklyTimesheet = ({ employee, onBack, initialTimesheet }) => {
           >
             <ArrowLeft size={16} /> Back to List
           </button>
+          <a
+            href="https://docs.google.com/spreadsheets/d/1sIlWWsipPxOrCQENj2E_EHI7XW2HD9S2n8xfaPVuzNs/edit?pli=1&gid=577942890#gid=577942890"
+            target="_blank"
+            rel="noopener noreferrer"
+            className="flex items-center gap-2 px-6 py-2.5 bg-emerald-500 text-white rounded-xl text-xs font-bold hover:bg-emerald-600 transition-all shadow-lg shadow-emerald-200"
+          >
+            <ExternalLink size={16} /> Work Report Sheet
+          </a>
           <button
             onClick={handleDownloadExcel}
             className="flex items-center gap-2 px-6 py-2.5 bg-[#3b82f6] text-white rounded-xl text-xs font-bold hover:bg-blue-600 transition-all shadow-lg shadow-blue-200"
