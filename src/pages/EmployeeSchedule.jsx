@@ -28,6 +28,59 @@ const EmployeeSchedule = ({ embedded = false, onBack }) => {
   const [isAutoSaving, setIsAutoSaving] = useState(false);
   const [timesheets, setTimesheets] = useState([]);
   const [toast, setToast] = useState(null);
+  const [employeeProfile, setEmployeeProfile] = useState(null);
+
+  useEffect(() => {
+    const fetchProfile = async () => {
+      try {
+        if (user.id) {
+          const res = await api.get(`/employee/profile/${user.id}`);
+          if (res.data?.success) {
+            setEmployeeProfile(res.data.employee);
+          }
+        }
+      } catch (err) {
+        console.error('Error fetching employee profile:', err);
+      }
+    };
+    fetchProfile();
+  }, [user.id]);
+
+  const getSheetDetails = () => {
+    let rawUrl = employeeProfile?.workReportSheetUrl?.trim();
+
+    // Default exclusively for Manas if not explicitly configured in profile
+    const isManas = (user.name || '').toLowerCase().includes('manas') || 
+                    (user.email || '').toLowerCase().includes('manas') ||
+                    (employeeProfile?.fullName || '').toLowerCase().includes('manas');
+
+    if (!rawUrl && isManas) {
+      rawUrl = 'https://docs.google.com/spreadsheets/d/1sIlWWsipPxOrCQENj2E_EHI7XW2HD9S2n8xfaPVuzNs/edit?pli=1&gid=577942890#gid=577942890';
+    }
+
+    if (!rawUrl) {
+      return { rawUrl: null, embedUrl: null, hasAccess: false };
+    }
+
+    // Convert to Google Sheets embed URL with widget=false and chrome=false
+    // This completely hides other sheets/tabs (DEBRAJ, ANMOL, SHREYA) from the view
+    let embedUrl = rawUrl;
+    if (rawUrl.includes('docs.google.com/spreadsheets')) {
+      const gidMatch = rawUrl.match(/gid=([0-9]+)/);
+      const gid = gidMatch ? gidMatch[1] : null;
+      const idMatch = rawUrl.match(/\/d\/([a-zA-Z0-9-_]+)/);
+      const docId = idMatch ? idMatch[1] : null;
+
+      if (docId) {
+        embedUrl = `https://docs.google.com/spreadsheets/d/${docId}/htmlembed?widget=false&chrome=false`;
+        if (gid) embedUrl += `&gid=${gid}&single=true`;
+      }
+    }
+
+    return { rawUrl, embedUrl, hasAccess: true };
+  };
+
+  const sheetDetails = getSheetDetails();
 
   const showToast = (msg, type = 'success') => {
     setToast({ msg, type });
@@ -462,15 +515,17 @@ const EmployeeSchedule = ({ embedded = false, onBack }) => {
           Excel Report
         </button>
 
-        <a
-          href="https://docs.google.com/spreadsheets/d/1sIlWWsipPxOrCQENj2E_EHI7XW2HD9S2n8xfaPVuzNs/edit?pli=1&gid=577942890#gid=577942890"
-          target="_blank"
-          rel="noopener noreferrer"
-          className="flex items-center gap-2 px-4 py-3 bg-white text-slate-500 border border-slate-200/80 rounded-2xl text-xs font-bold hover:text-emerald-600 hover:border-emerald-300 transition-all shadow-sm"
-          title="Open Google Sheet in new tab"
-        >
-          <ExternalLink size={15} />
-        </a>
+        {sheetDetails.hasAccess && (
+          <a
+            href={sheetDetails.rawUrl}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="flex items-center gap-2 px-4 py-3 bg-white text-slate-500 border border-slate-200/80 rounded-2xl text-xs font-bold hover:text-emerald-600 hover:border-emerald-300 transition-all shadow-sm"
+            title="Open Google Sheet in new tab"
+          >
+            <ExternalLink size={15} />
+          </a>
+        )}
       </div>
 
       {activeReportTab === 'hrms' ? (
@@ -638,28 +693,48 @@ const EmployeeSchedule = ({ embedded = false, onBack }) => {
                 <FileSpreadsheet size={24} />
               </div>
               <div>
-                <h3 className="text-base font-black text-slate-800 tracking-tight">Work Report — Google Sheet</h3>
-                <p className="text-xs font-semibold text-slate-400 mt-0.5">Live timesheet & work report spreadsheet</p>
+                <h3 className="text-base font-black text-slate-800 tracking-tight">
+                  Work Report — {employeeProfile?.fullName || user.name || 'Google Sheet'}
+                </h3>
+                <p className="text-xs font-semibold text-slate-400 mt-0.5">
+                  {sheetDetails.hasAccess ? 'Personal work report spreadsheet' : 'Work report sheet status'}
+                </p>
               </div>
             </div>
-            <a
-              href="https://docs.google.com/spreadsheets/d/1sIlWWsipPxOrCQENj2E_EHI7XW2HD9S2n8xfaPVuzNs/edit?pli=1&gid=577942890#gid=577942890"
-              target="_blank"
-              rel="noopener noreferrer"
-              className="flex items-center gap-2 px-6 py-3 bg-emerald-600 hover:bg-emerald-700 text-white rounded-2xl text-xs font-black uppercase tracking-wider transition-all shadow-lg shadow-emerald-200 active:scale-95"
-            >
-              <ExternalLink size={15} /> Open in Google Sheets
-            </a>
+            {sheetDetails.hasAccess && (
+              <a
+                href={sheetDetails.rawUrl}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="flex items-center gap-2 px-6 py-3 bg-emerald-600 hover:bg-emerald-700 text-white rounded-2xl text-xs font-black uppercase tracking-wider transition-all shadow-lg shadow-emerald-200 active:scale-95"
+              >
+                <ExternalLink size={15} /> Open in Google Sheets
+              </a>
+            )}
           </div>
 
-          <div className="w-full h-[750px] bg-slate-50 relative">
-            <iframe
-              src="https://docs.google.com/spreadsheets/d/1sIlWWsipPxOrCQENj2E_EHI7XW2HD9S2n8xfaPVuzNs/edit?pli=1&gid=577942890&rm=minimal#gid=577942890"
-              title="Work Report Google Sheet"
-              className="w-full h-full border-0"
-              allowFullScreen
-            />
-          </div>
+          {sheetDetails.hasAccess ? (
+            <div className="w-full h-[750px] bg-slate-50 relative">
+              <iframe
+                src={sheetDetails.embedUrl}
+                title="Work Report Google Sheet"
+                className="w-full h-full border-0"
+                allowFullScreen
+              />
+            </div>
+          ) : (
+            <div className="p-16 text-center flex flex-col items-center justify-center gap-4 bg-slate-50/40">
+              <div className="w-14 h-14 rounded-2xl bg-amber-50 border border-amber-100 text-amber-500 flex items-center justify-center font-bold shadow-sm">
+                <AlertCircle size={28} />
+              </div>
+              <div>
+                <h4 className="text-base font-black text-slate-800">No Personal Work Sheet Assigned</h4>
+                <p className="text-xs text-slate-400 max-w-md mt-1 font-medium">
+                  Your profile does not have a private Google Sheet linked yet. Please contact your Admin to assign your dedicated sheet link.
+                </p>
+              </div>
+            </div>
+          )}
         </div>
       )}
       
