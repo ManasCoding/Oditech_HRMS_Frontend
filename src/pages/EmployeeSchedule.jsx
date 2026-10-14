@@ -54,9 +54,19 @@ const EmployeeSchedule = ({ embedded = false, onBack }) => {
   const getDepartmentSheet = () => {
     const dept = employeeProfile?.department || user.department || 'Engineering';
     const isDev = ['engineering', 'developer', 'development', 'software', 'tech'].some(k => dept.toLowerCase().includes(k));
+    const isMarketing = dept.toLowerCase().includes('marketing') ||
+      /smruti|amit/i.test(employeeProfile?.fullName || '') ||
+      /smruti|amit/i.test(user.name || '') ||
+      /smruti|amit/i.test(user.email || '');
 
     const settingKey = `sheet_url_${dept}`;
     let sheetUrl = systemSettings[settingKey]?.trim();
+
+    // Default sheet specifically for Marketing Team (Smruti, Amit, Sanghamitra, etc.)
+    if (!sheetUrl && isMarketing) {
+      sheetUrl = systemSettings['sheet_url_Marketing']?.trim() || 
+        'https://docs.google.com/spreadsheets/d/1PF386DYQWbUHKuIeIixclNnG1hil4TzO/edit?gid=2082445647#gid=2082445647';
+    }
 
     // Default sheet specifically for Developer / Engineering Team (allows viewing total report across team tabs)
     if (!sheetUrl && isDev) {
@@ -66,7 +76,7 @@ const EmployeeSchedule = ({ embedded = false, onBack }) => {
 
     if (!sheetUrl) {
       return {
-        departmentName: isDev ? 'Developer Team' : dept,
+        departmentName: isMarketing ? 'Marketing Team' : (isDev ? 'Developer Team' : dept),
         hasSheet: false,
         url: null,
         embedUrl: null
@@ -82,7 +92,7 @@ const EmployeeSchedule = ({ embedded = false, onBack }) => {
     }
 
     return {
-      departmentName: isDev ? 'Developer Team' : `${dept} Team`,
+      departmentName: isMarketing ? 'Marketing Team' : (isDev ? 'Developer Team' : `${dept} Team`),
       hasSheet: true,
       url: sheetUrl,
       embedUrl
