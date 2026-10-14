@@ -4,7 +4,7 @@ import { useParams, useNavigate, useLocation } from 'react-router-dom';
 import { 
   Send, Calendar, Download, FileSpreadsheet, 
   Trash2, Plus, CheckCircle2, AlertCircle, Loader2,
-  ChevronLeft, ChevronRight, Eraser, Printer, Clock, Lock, PieChart, CheckCircle, XCircle
+  ChevronLeft, ChevronRight, Eraser, Printer, Clock, Lock, PieChart, CheckCircle, XCircle, ExternalLink
 } from 'lucide-react';
 import api from '../services/api';
 import { io } from 'socket.io-client';
@@ -18,6 +18,7 @@ const EmployeeSchedule = ({ embedded = false, onBack }) => {
   const user = JSON.parse(localStorage.getItem('user')) || {};
   const [loading, setLoading] = useState(true);
   const [submitting, setSubmitting] = useState(false);
+  const [activeReportTab, setActiveReportTab] = useState('hrms'); // 'hrms' | 'excel'
   const [weekTasks, setWeekTasks] = useState({});
   const [dailyRemarks, setDailyRemarks] = useState({});
   const [weekRemarks, setWeekRemarks] = useState('');
@@ -433,8 +434,48 @@ const EmployeeSchedule = ({ embedded = false, onBack }) => {
          </div>
       </div>
 
-      {/* Timesheet Grid */}
-      <div className="bg-white rounded-[40px] border border-slate-100 shadow-xl shadow-slate-200/40 overflow-hidden relative">
+      {/* Middle Section: HRMS Report vs Excel Report Buttons */}
+      <div className="flex flex-wrap items-center justify-center gap-3 py-2">
+        <button
+          type="button"
+          onClick={() => setActiveReportTab('hrms')}
+          className={`flex items-center gap-2.5 px-7 py-3 rounded-2xl text-xs font-black uppercase tracking-wider transition-all duration-200 ${
+            activeReportTab === 'hrms'
+              ? 'bg-[#0f172a] text-white shadow-xl shadow-slate-900/20 scale-[1.02]'
+              : 'bg-white text-slate-600 border border-slate-200/80 hover:bg-slate-50 hover:text-slate-900'
+          }`}
+        >
+          <FileSpreadsheet size={16} className={activeReportTab === 'hrms' ? 'text-blue-400' : 'text-slate-400'} />
+          HRMS Report
+        </button>
+
+        <button
+          type="button"
+          onClick={() => setActiveReportTab('excel')}
+          className={`flex items-center gap-2.5 px-7 py-3 rounded-2xl text-xs font-black uppercase tracking-wider transition-all duration-200 ${
+            activeReportTab === 'excel'
+              ? 'bg-emerald-600 text-white shadow-xl shadow-emerald-600/25 scale-[1.02]'
+              : 'bg-white text-emerald-700 border border-emerald-200 hover:bg-emerald-50'
+          }`}
+        >
+          <Download size={16} className={activeReportTab === 'excel' ? 'text-emerald-100' : 'text-emerald-500'} />
+          Excel Report
+        </button>
+
+        <a
+          href="https://docs.google.com/spreadsheets/d/1sIlWWsipPxOrCQENj2E_EHI7XW2HD9S2n8xfaPVuzNs/edit?pli=1&gid=577942890#gid=577942890"
+          target="_blank"
+          rel="noopener noreferrer"
+          className="flex items-center gap-2 px-4 py-3 bg-white text-slate-500 border border-slate-200/80 rounded-2xl text-xs font-bold hover:text-emerald-600 hover:border-emerald-300 transition-all shadow-sm"
+          title="Open Google Sheet in new tab"
+        >
+          <ExternalLink size={15} />
+        </a>
+      </div>
+
+      {activeReportTab === 'hrms' ? (
+        /* Timesheet Grid */
+        <div className="bg-white rounded-[40px] border border-slate-100 shadow-xl shadow-slate-200/40 overflow-hidden relative">
         {loading && (
           <div className="absolute inset-0 bg-white/60 backdrop-blur-[2px] z-20 flex flex-col items-center justify-center gap-3">
              <Loader2 size={40} className="text-blue-500 animate-spin" />
@@ -588,6 +629,39 @@ const EmployeeSchedule = ({ embedded = false, onBack }) => {
            </div>
         </div>
       </div>
+      ) : (
+        /* Excel Report View */
+        <div className="bg-white rounded-[40px] border border-slate-100 shadow-xl shadow-slate-200/40 overflow-hidden">
+          <div className="p-6 md:p-8 bg-slate-50/70 border-b border-slate-100 flex flex-col sm:flex-row items-center justify-between gap-4">
+            <div className="flex items-center gap-3.5">
+              <div className="w-12 h-12 rounded-2xl bg-emerald-50 border border-emerald-100 text-emerald-600 flex items-center justify-center font-bold shadow-sm">
+                <FileSpreadsheet size={24} />
+              </div>
+              <div>
+                <h3 className="text-base font-black text-slate-800 tracking-tight">Work Report — Google Sheet</h3>
+                <p className="text-xs font-semibold text-slate-400 mt-0.5">Live timesheet & work report spreadsheet</p>
+              </div>
+            </div>
+            <a
+              href="https://docs.google.com/spreadsheets/d/1sIlWWsipPxOrCQENj2E_EHI7XW2HD9S2n8xfaPVuzNs/edit?pli=1&gid=577942890#gid=577942890"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="flex items-center gap-2 px-6 py-3 bg-emerald-600 hover:bg-emerald-700 text-white rounded-2xl text-xs font-black uppercase tracking-wider transition-all shadow-lg shadow-emerald-200 active:scale-95"
+            >
+              <ExternalLink size={15} /> Open in Google Sheets
+            </a>
+          </div>
+
+          <div className="w-full h-[750px] bg-slate-50 relative">
+            <iframe
+              src="https://docs.google.com/spreadsheets/d/1sIlWWsipPxOrCQENj2E_EHI7XW2HD9S2n8xfaPVuzNs/edit?pli=1&gid=577942890&rm=minimal#gid=577942890"
+              title="Work Report Google Sheet"
+              className="w-full h-full border-0"
+              allowFullScreen
+            />
+          </div>
+        </div>
+      )}
       
       {/* Helper Actions */}
       <div className="flex items-center justify-center gap-8 text-slate-400">
