@@ -119,12 +119,12 @@ const AdminAttendance = () => {
   }, []);
 
   // ── Late Approvals Fetch ─────────────────────────────────────────────────────
-  const fetchLateApprovals = useCallback(async () => {
-    setLateApprovalsLoading(true);
+  const fetchLateApprovals = useCallback(async (showLoader = false) => {
+    if (showLoader) setLateApprovalsLoading(true);
     try {
       // Fetch all requests across all dates
       const res = await api.get(`/admin/attendance/late-approvals?date=all&status=All`);
-      if (res.data.success) {
+      if (res.data?.success) {
         const records = res.data.records || [];
         const grouped = {
           Pending: records.filter(r => r.checkInApprovalStatus === 'Pending'),
@@ -132,61 +132,108 @@ const AdminAttendance = () => {
           Rejected: records.filter(r => r.checkInApprovalStatus === 'Rejected')
         };
         setAllApprovals(grouped);
-        setLateApprovals(grouped[approvalTab]);
       }
     } catch (err) {
       console.error('Error fetching late approvals:', err);
     } finally {
-      setLateApprovalsLoading(false);
+      if (showLoader) setLateApprovalsLoading(false);
     }
-  }, [approvalTab]);
+  }, []);
 
   useEffect(() => {
     setLateApprovals(allApprovals[approvalTab] || []);
   }, [approvalTab, allApprovals]);
 
   useEffect(() => {
-    fetchLateApprovals();
+    fetchLateApprovals(true);
   }, [fetchLateApprovals, refreshKey]);
 
   const handleApprove = async (id) => {
+    // 1. Direct optimistic update: immediately update without waiting for page refresh
+    const target = (allApprovals.Pending || []).find(r => r._id === id);
+    if (target) {
+      const updated = {
+        ...target,
+        checkInApprovalStatus: 'Approved',
+        approvedAt: new Date().toISOString()
+      };
+      setAllApprovals(prev => ({
+        ...prev,
+        Pending: (prev.Pending || []).filter(r => r._id !== id),
+        Approved: [updated, ...(prev.Approved || [])]
+      }));
+    }
+    setRawRecords(prev => prev.map(r => r._id === id ? { ...r, checkInApprovalStatus: 'Approved' } : r));
+
     setApprovalProcessing(id);
     try {
       const adminUser = JSON.parse(localStorage.getItem('user') || '{}');
       const res = await api.put(`/admin/attendance/late-approvals/${id}/approve`, {
         adminId: adminUser._id
       });
-      if (res.data.success) {
-        await fetchLateApprovals();
+      if (res.data?.success) {
+        // Silently sync server state in background without showing loader or unmounting table
+        fetchLateApprovals(false);
         fetchStats(false);
+      } else {
+        // Revert on failure
+        await fetchLateApprovals(false);
+        alert(res.data?.message || 'Failed to approve');
       }
     } catch (err) {
       console.error('Approve failed:', err);
+      await fetchLateApprovals(false);
+      alert('Failed to approve request. Please try again.');
     } finally {
       setApprovalProcessing(null);
     }
   };
 
   const handleRejectConfirm = async () => {
-    if (!rejectReason.trim()) return;
-    setApprovalProcessing(rejectModal.id);
+    if (!rejectReason.trim() || !rejectModal?.id) return;
+    const id = rejectModal.id;
+    const reason = rejectReason.trim();
+
+    // 1. Direct optimistic update: immediately update without waiting for page refresh
+    const target = (allApprovals.Pending || []).find(r => r._id === id);
+    if (target) {
+      const updated = {
+        ...target,
+        checkInApprovalStatus: 'Rejected',
+        rejectionReason: reason
+      };
+      setAllApprovals(prev => ({
+        ...prev,
+        Pending: (prev.Pending || []).filter(r => r._id !== id),
+        Rejected: [updated, ...(prev.Rejected || [])]
+      }));
+    }
+    setRawRecords(prev => prev.map(r => r._id === id ? { ...r, checkInApprovalStatus: 'Rejected', rejectionReason: reason } : r));
+
+    setApprovalProcessing(id);
+    setRejectModal(null);
+    setRejectReason('');
+
     try {
       const adminUser = JSON.parse(localStorage.getItem('user') || '{}');
-      const res = await api.put(`/admin/attendance/late-approvals/${rejectModal.id}/reject`, {
-        rejectionReason: rejectReason,
+      const res = await api.put(`/admin/attendance/late-approvals/${id}/reject`, {
+        rejectionReason: reason,
         adminId: adminUser._id
       });
-      if (res.data.success) {
-        await fetchLateApprovals();
+      if (res.data?.success) {
+        // Silently sync in background
+        fetchLateApprovals(false);
         fetchStats(false);
-        setRejectModal(null);
+      } else {
+        await fetchLateApprovals(false);
+        alert(res.data?.message || 'Failed to reject');
       }
     } catch (err) {
       console.error('Reject failed:', err);
+      await fetchLateApprovals(false);
+      alert('Failed to reject request. Please try again.');
     } finally {
       setApprovalProcessing(null);
-      setRejectModal(null);
-      setRejectReason('');
     }
   };
   // ─────────────────────────────────────────────────────────────────────────────
@@ -201,7 +248,7 @@ const AdminAttendance = () => {
     } catch (err) {
       console.error('Error fetching stats and reports:', err);
     } finally {
-      setLoading(false);
+      if (showLoader) setLoading(false);
     }
   }, [filters.date]);
 
@@ -726,18 +773,26 @@ const AdminAttendance = () => {
                                   {record.checkInApprovalStatus === 'Pending' ? (
                                     <>
                                       <button
+                                        type="button"
                                         onClick={() => handleApprove(record._id)}
                                         disabled={isProcessing}
                                         className="flex items-center justify-center gap-1.5 px-3 py-1.5 bg-[#10b981] text-white rounded-md text-[11px] font-medium hover:bg-[#059669] transition-all disabled:opacity-50 min-w-[85px]"
                                       >
-                                        <CheckCircle2 size={13} /> Approve
+                                        {isProcessing ? (
+                                          <div className="w-3.5 h-3.5 border-2 border-white/30 border-t-white rounded-full animate-spin" />
+                                        ) : (
+                                          <CheckCircle2 size={13} />
+                                        )}
+                                        <span>Approve</span>
                                       </button>
                                       <button
+                                        type="button"
                                         onClick={() => { setRejectModal({ id: record._id, employeeName: emp?.fullName }); setRejectReason(''); }}
                                         disabled={isProcessing}
                                         className="flex items-center justify-center gap-1.5 px-3 py-1.5 bg-[#f43f5e] text-white rounded-md text-[11px] font-medium hover:bg-[#e11d48] transition-all disabled:opacity-50 min-w-[85px]"
                                       >
-                                        <XCircle size={13} /> Reject
+                                        <XCircle size={13} />
+                                        <span>Reject</span>
                                       </button>
                                     </>
                                   ) : (
