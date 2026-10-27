@@ -66,7 +66,7 @@ const AutoExpandingTextarea = ({
   );
 };
 
-const EmployeeSchedule = ({ embedded = false, onBack }) => {
+const EmployeeSchedule = ({ embedded = false, onBack, targetEmployeeId = null, targetEmployeeName = null, targetEmployee = null, readOnly = false }) => {
   const { employeeSlug } = useParams();
   const navigate = useNavigate();
   const location = useLocation();
@@ -83,7 +83,13 @@ const EmployeeSchedule = ({ embedded = false, onBack }) => {
   const [isAutoSaving, setIsAutoSaving] = useState(false);
   const [timesheets, setTimesheets] = useState([]);
   const [toast, setToast] = useState(null);
-  const [employeeProfile, setEmployeeProfile] = useState(null);
+  const [employeeProfile, setEmployeeProfile] = useState(targetEmployee || null);
+
+  useEffect(() => {
+    if (targetEmployee) {
+      setEmployeeProfile(targetEmployee);
+    }
+  }, [targetEmployee]);
   const [systemSettings, setSystemSettings] = useState({});
   const [showSyncModal, setShowSyncModal] = useState(false);
   const [syncingSheet, setSyncingSheet] = useState(false);

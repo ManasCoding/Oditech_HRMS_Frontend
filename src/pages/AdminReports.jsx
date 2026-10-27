@@ -12,6 +12,7 @@ import {
 import * as XLSX from 'xlsx';
 import api from '../services/api';
 import CustomDropdown from '../components/CustomDropdown';
+import EmployeeSchedule from './EmployeeSchedule';
 
 const COLORS = ['#3b82f6', '#10b981', '#a855f7', '#f43f5e', '#f59e0b', '#64748b'];
 
@@ -112,6 +113,17 @@ const AdminReports = () => {
   const [ratingLoading, setRatingLoading] = useState(false);
   const [departments, setDepartments] = useState(['All Departments', 'Digital Marketing', 'Web Development', 'SEO', 'HR', 'Others']);
   const [showFilterPanel, setShowFilterPanel] = useState(false);
+  const [employees, setEmployees] = useState([]);
+  const [selectedEmployeeCard, setSelectedEmployeeCard] = useState(null);
+  const [employeeCardSearch, setEmployeeCardSearch] = useState('');
+  const [employeeCardDept, setEmployeeCardDept] = useState('All');
+  const cardsScrollRef = useRef(null);
+
+  const scrollCards = (direction) => {
+    if (cardsScrollRef.current) {
+      cardsScrollRef.current.scrollBy({ left: direction * 280, behavior: 'smooth' });
+    }
+  };
 
   // HRMS Matrix View State & Batch Sync
   const [matrixDate, setMatrixDate] = useState(new Date().toISOString().split('T')[0]);
