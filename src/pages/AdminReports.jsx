@@ -114,15 +114,81 @@ const AdminReports = () => {
   const [departments, setDepartments] = useState(['All Departments', 'Digital Marketing', 'Web Development', 'SEO', 'HR', 'Others']);
   const [showFilterPanel, setShowFilterPanel] = useState(false);
   const [employees, setEmployees] = useState([]);
+  const [selectedDeptCard, setSelectedDeptCard] = useState('All');
   const [selectedEmployeeCard, setSelectedEmployeeCard] = useState(null);
   const [employeeCardSearch, setEmployeeCardSearch] = useState('');
-  const [employeeCardDept, setEmployeeCardDept] = useState('All');
-  const cardsScrollRef = useRef(null);
 
-  const scrollCards = (direction) => {
-    if (cardsScrollRef.current) {
-      cardsScrollRef.current.scrollBy({ left: direction * 280, behavior: 'smooth' });
-    }
+  const getDepartmentCardsList = () => {
+    const standardDepts = [
+      { id: 'All', name: 'All Departments', icon: '🏢' },
+      { id: 'Engineering', name: 'Developer Team', icon: '🛠️' },
+      { id: 'Design', name: 'Design Team', icon: '🎨' },
+      { id: 'Marketing', name: 'Marketing Team', icon: '📢' },
+      { id: 'Management', name: 'Management Team', icon: '⚙️' },
+      { id: 'Human Resources', name: 'Human Resources', icon: '👥' },
+      { id: 'Sales', name: 'Sales Team', icon: '💼' }
+    ];
+
+    return standardDepts.map(dept => {
+      let count = 0;
+      if (dept.id === 'All') {
+        count = employees.length;
+      } else {
+        count = employees.filter(e => {
+          const eDept = (e.department || '').toLowerCase();
+          const target = dept.id.toLowerCase();
+          if (target === 'engineering') {
+            return ['engineering', 'developer', 'development', 'software', 'tech', 'web development'].some(k => eDept.includes(k));
+          }
+          if (target === 'management') {
+            return eDept.includes('manage') || /jasmin/i.test(e.fullName || '');
+          }
+          if (target === 'human resources') {
+            return /human\s*resource|hr\b/i.test(eDept);
+          }
+          if (target === 'design') {
+            return eDept.includes('design') || /debashish|rashmi|mrinal|subas|suchismita/i.test(e.fullName || '');
+          }
+          if (target === 'marketing') {
+            return eDept.includes('marketing') || /smruti|amit/i.test(e.fullName || '');
+          }
+          return eDept.includes(target);
+        }).length;
+      }
+      return { ...dept, count };
+    });
+  };
+
+  const getFilteredEmployees = () => {
+    return employees.filter(e => {
+      let matchesDept = true;
+      if (selectedDeptCard !== 'All') {
+        const eDept = (e.department || '').toLowerCase();
+        const target = selectedDeptCard.toLowerCase();
+        if (target === 'engineering') {
+          matchesDept = ['engineering', 'developer', 'development', 'software', 'tech', 'web development'].some(k => eDept.includes(k));
+        } else if (target === 'management') {
+          matchesDept = eDept.includes('manage') || /jasmin/i.test(e.fullName || '');
+        } else if (target === 'human resources') {
+          matchesDept = /human\s*resource|hr\b/i.test(eDept);
+        } else if (target === 'design') {
+          matchesDept = eDept.includes('design') || /debashish|rashmi|mrinal|subas|suchismita/i.test(e.fullName || '');
+        } else if (target === 'marketing') {
+          matchesDept = eDept.includes('marketing') || /smruti|amit/i.test(e.fullName || '');
+        } else {
+          matchesDept = eDept.includes(target);
+        }
+      }
+
+      const q = employeeCardSearch.toLowerCase().trim();
+      const matchesSearch = !q ||
+        e.fullName?.toLowerCase().includes(q) ||
+        e.empCode?.toLowerCase().includes(q) ||
+        e.department?.toLowerCase().includes(q) ||
+        e.designation?.toLowerCase().includes(q);
+
+      return matchesDept && matchesSearch;
+    });
   };
 
   // HRMS Matrix View State & Batch Sync
@@ -785,7 +851,63 @@ const AdminReports = () => {
 
         {activeViewTab === 'hourly' && (
           <div className="space-y-8">
-            {/* Top Employee Work Cards Bar */}
+            {/* DEPARTMENT-WISE CARDS */}
+            <div className="bg-white rounded-[36px] border border-slate-100 shadow-sm p-6 space-y-4">
+              <div className="flex items-center justify-between pb-2 border-b border-slate-50">
+                <div className="flex items-center gap-3">
+                  <div className="w-10 h-10 rounded-2xl bg-gradient-to-br from-indigo-500 to-blue-600 text-white flex items-center justify-center shadow-md shadow-blue-500/20">
+                    <Briefcase size={20} />
+                  </div>
+                  <div>
+                    <h3 className="text-base font-black text-[#1e293b]">Department Work Reports</h3>
+                    <p className="text-xs font-semibold text-slate-400">
+                      Select a department below to view employees and their whole work reports
+                    </p>
+                  </div>
+                </div>
+              </div>
+
+              {/* Department Cards Grid */}
+              <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-7 gap-3">
+                {getDepartmentCardsList().map((dept) => {
+                  const isSelected = selectedDeptCard === dept.id;
+                  return (
+                    <div
+                      key={dept.id}
+                      onClick={() => {
+                        setSelectedDeptCard(dept.id);
+                        setSelectedEmployeeCard(null);
+                      }}
+                      className={`p-4 rounded-2xl border transition-all cursor-pointer flex flex-col justify-between select-none group ${
+                        isSelected
+                          ? 'bg-gradient-to-br from-[#0f172a] to-blue-950 text-white border-blue-500/40 shadow-lg shadow-slate-900/15 ring-2 ring-blue-500/30 -translate-y-0.5'
+                          : 'bg-slate-50/70 border-slate-200/80 text-slate-700 hover:bg-white hover:border-blue-300 hover:shadow-md hover:-translate-y-0.5'
+                      }`}
+                    >
+                      <div className="flex items-center justify-between gap-1">
+                        <span className="text-2xl">{dept.icon}</span>
+                        <span className={`px-2 py-0.5 rounded-full text-[10px] font-black ${
+                          isSelected ? 'bg-white/20 text-white' : 'bg-blue-50 text-blue-600'
+                        }`}>
+                          {dept.count} Staff
+                        </span>
+                      </div>
+
+                      <div className="mt-3">
+                        <h4 className="text-xs font-black truncate leading-snug">
+                          {dept.name}
+                        </h4>
+                        <p className={`text-[10px] font-semibold mt-0.5 ${isSelected ? 'text-blue-200' : 'text-slate-400'}`}>
+                          {isSelected ? '● Viewing Dept' : 'Click to View'}
+                        </p>
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+            </div>
+
+            {/* EMPLOYEE CARDS SECTION FOR SELECTED DEPARTMENT */}
             <div className="bg-white rounded-[36px] border border-slate-100 shadow-sm p-6 space-y-4">
               <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 pb-2 border-b border-slate-50">
                 <div className="flex items-center gap-3">
@@ -794,148 +916,81 @@ const AdminReports = () => {
                   </div>
                   <div>
                     <div className="flex items-center gap-2">
-                      <h3 className="text-base font-black text-[#1e293b]">Employee Work Profiles</h3>
+                      <h3 className="text-base font-black text-[#1e293b]">
+                        {selectedDeptCard === 'All' ? 'All Employees' : `${selectedDeptCard} Team`}
+                      </h3>
                       <span className="px-2.5 py-0.5 rounded-full text-[10px] font-black uppercase tracking-wider bg-blue-50 text-blue-600">
-                        {employees.length} Employees
+                        {getFilteredEmployees().length} Active
                       </span>
                     </div>
                     <p className="text-xs font-semibold text-slate-400">
-                      Click any employee card to view their exact work report (read-only mode)
+                      Click any employee card or button to view their whole work report (timesheet & schedule)
                     </p>
                   </div>
                 </div>
 
-                {/* Search & Navigation Controls */}
-                <div className="flex items-center gap-3">
-                  <div className="relative">
-                    <Search size={14} className="absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-400" />
-                    <input
-                      type="text"
-                      placeholder="Search employee..."
-                      value={employeeCardSearch}
-                      onChange={(e) => setEmployeeCardSearch(e.target.value)}
-                      className="pl-9 pr-6 py-2 bg-slate-50 border border-slate-100 rounded-xl text-xs font-semibold text-[#1e293b] outline-none w-44 sm:w-56 focus:bg-white focus:border-blue-400 focus:ring-2 focus:ring-blue-500/10 transition-all"
-                    />
-                    {employeeCardSearch && (
-                      <button 
-                        type="button"
-                        onClick={() => setEmployeeCardSearch('')}
-                        className="absolute right-2.5 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 font-bold"
-                      >
-                        ×
-                      </button>
-                    )}
-                  </div>
-
-                  <div className="flex items-center gap-1.5">
-                    <button
+                {/* Search Box */}
+                <div className="relative">
+                  <Search size={14} className="absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-400" />
+                  <input
+                    type="text"
+                    placeholder="Search by name, ID or role..."
+                    value={employeeCardSearch}
+                    onChange={(e) => setEmployeeCardSearch(e.target.value)}
+                    className="pl-9 pr-6 py-2 bg-slate-50 border border-slate-100 rounded-xl text-xs font-semibold text-[#1e293b] outline-none w-56 sm:w-64 focus:bg-white focus:border-blue-400 focus:ring-2 focus:ring-blue-500/10 transition-all"
+                  />
+                  {employeeCardSearch && (
+                    <button 
                       type="button"
-                      onClick={() => scrollCards(-1)}
-                      className="p-2 rounded-xl bg-slate-50 hover:bg-slate-100 border border-slate-100 text-slate-600 transition-colors cursor-pointer"
-                      title="Scroll Left"
+                      onClick={() => setEmployeeCardSearch('')}
+                      className="absolute right-2.5 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 font-bold"
                     >
-                      <ChevronLeft size={16} />
+                      ×
                     </button>
-                    <button
-                      type="button"
-                      onClick={() => scrollCards(1)}
-                      className="p-2 rounded-xl bg-slate-50 hover:bg-slate-100 border border-slate-100 text-slate-600 transition-colors cursor-pointer"
-                      title="Scroll Right"
-                    >
-                      <ChevronRight size={16} />
-                    </button>
-                  </div>
+                  )}
                 </div>
               </div>
 
-              {/* Cards Scrollable Row */}
-              <div 
-                ref={cardsScrollRef}
-                className="flex items-center gap-4 overflow-x-auto pb-2 scroll-smooth"
-                style={{ scrollbarWidth: 'thin' }}
-              >
-                {/* All Reports / Overview Card */}
-                <div
-                  onClick={() => setSelectedEmployeeCard(null)}
-                  className={`min-w-[210px] max-w-[210px] p-4 rounded-2xl border transition-all cursor-pointer flex flex-col justify-between shrink-0 select-none ${
-                    selectedEmployeeCard === null
-                      ? 'bg-gradient-to-br from-[#0f172a] to-blue-950 text-white border-blue-500/40 shadow-lg shadow-slate-900/15 ring-2 ring-blue-500/30'
-                      : 'bg-slate-50/70 border-slate-200/80 text-slate-700 hover:bg-slate-100 hover:border-slate-300'
-                  }`}
-                >
-                  <div className="flex items-center gap-3">
-                    <div className={`w-11 h-11 rounded-2xl flex items-center justify-center font-black ${
-                      selectedEmployeeCard === null ? 'bg-white/10 text-white' : 'bg-white text-blue-600 shadow-sm'
-                    }`}>
-                      <LayoutGrid size={20} />
-                    </div>
-                    <div className="flex-1 min-w-0">
-                      <h4 className="text-xs font-black truncate">All Reports List</h4>
-                      <p className={`text-[10px] font-bold ${selectedEmployeeCard === null ? 'text-blue-200' : 'text-slate-400'}`}>
-                        Overview Table
-                      </p>
-                    </div>
-                  </div>
-                  <div className="mt-4 pt-3 border-t border-white/10 flex items-center justify-between">
-                    <span className="text-[10px] font-black uppercase tracking-wider">
-                      {selectedEmployeeCard === null ? '● Viewing All' : 'Switch to All'}
-                    </span>
-                    <Eye size={13} className={selectedEmployeeCard === null ? 'text-blue-300' : 'text-slate-400'} />
-                  </div>
-                </div>
-
-                {/* Individual Employee Cards */}
-                {employees
-                  .filter(emp => {
-                    const q = employeeCardSearch.toLowerCase().trim();
-                    if (!q) return true;
-                    return (
-                      emp.fullName?.toLowerCase().includes(q) ||
-                      emp.empCode?.toLowerCase().includes(q) ||
-                      emp.department?.toLowerCase().includes(q)
-                    );
-                  })
-                  .map((emp) => {
-                    const isSelected = selectedEmployeeCard?._id === emp._id;
-                    return (
-                      <div
-                        key={emp._id}
-                        onClick={() => setSelectedEmployeeCard(isSelected ? null : emp)}
-                        className={`min-w-[220px] max-w-[220px] p-4 rounded-2xl border transition-all cursor-pointer flex flex-col justify-between shrink-0 select-none group ${
-                          isSelected
-                            ? 'bg-blue-50/90 border-blue-500 shadow-lg shadow-blue-500/15 ring-2 ring-blue-500/30'
-                            : 'bg-white border-slate-150 hover:border-blue-300 hover:shadow-md hover:-translate-y-0.5'
-                        }`}
-                      >
-                        <div className="flex items-center gap-3">
-                          <div className={`w-11 h-11 rounded-2xl flex items-center justify-center font-black text-xs border overflow-hidden shrink-0 transition-transform group-hover:scale-105 ${
-                            isSelected 
-                              ? 'bg-blue-600 text-white border-blue-400 shadow-sm' 
-                              : 'bg-slate-100 text-slate-700 border-white shadow-sm'
-                          }`}>
-                            {emp.profileImage ? (
-                              <img 
-                                src={emp.profileImage} 
-                                alt={emp.fullName} 
-                                className="w-full h-full object-cover"
-                                onError={(e) => { e.target.onerror = null; e.target.style.display = 'none'; }}
-                              />
-                            ) : (
-                              emp.fullName?.charAt(0) || 'E'
-                            )}
-                          </div>
-                          <div className="flex-1 min-w-0">
-                            <h4 className={`text-xs font-black truncate ${isSelected ? 'text-blue-900' : 'text-[#1e293b]'}`} title={emp.fullName}>
-                              {emp.fullName}
-                            </h4>
-                            <p className="text-[10px] font-bold text-slate-400 truncate">
-                              {emp.empCode || 'EMP'}
-                            </p>
-                          </div>
+              {/* Employee Cards Grid */}
+              <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
+                {getFilteredEmployees().map((emp) => {
+                  const isSelected = selectedEmployeeCard?._id === emp._id;
+                  return (
+                    <div
+                      key={emp._id}
+                      onClick={() => setSelectedEmployeeCard(isSelected ? null : emp)}
+                      className={`p-5 rounded-2xl border transition-all cursor-pointer flex flex-col justify-between group ${
+                        isSelected
+                          ? 'bg-blue-50/90 border-blue-500 shadow-lg shadow-blue-500/15 ring-2 ring-blue-500/30 -translate-y-0.5'
+                          : 'bg-white border-slate-150 hover:border-blue-300 hover:shadow-md hover:-translate-y-0.5'
+                      }`}
+                    >
+                      <div className="flex items-start gap-3.5">
+                        <div className={`w-12 h-12 rounded-2xl flex items-center justify-center font-black text-sm border overflow-hidden shrink-0 transition-transform group-hover:scale-105 ${
+                          isSelected 
+                            ? 'bg-blue-600 text-white border-blue-400 shadow-md' 
+                            : 'bg-slate-100 text-slate-700 border-white shadow-sm'
+                        }`}>
+                          {emp.profileImage ? (
+                            <img 
+                              src={emp.profileImage} 
+                              alt={emp.fullName} 
+                              className="w-full h-full object-cover"
+                              onError={(e) => { e.target.onerror = null; e.target.style.display = 'none'; }}
+                            />
+                          ) : (
+                            emp.fullName?.charAt(0) || 'E'
+                          )}
                         </div>
 
-                        <div className="mt-3.5 space-y-2">
-                          <div className="flex items-center justify-between gap-1">
+                        <div className="flex-1 min-w-0">
+                          <h4 className={`text-sm font-black truncate ${isSelected ? 'text-blue-900' : 'text-[#1e293b]'}`} title={emp.fullName}>
+                            {emp.fullName}
+                          </h4>
+                          <p className="text-[11px] font-bold text-slate-400 truncate">
+                            {emp.empCode || 'EMP'}
+                          </p>
+                          <div className="mt-1 flex items-center gap-1.5">
                             <span className={`px-2 py-0.5 rounded-md text-[9px] font-black uppercase tracking-wider truncate max-w-[130px] ${
                               isSelected 
                                 ? 'bg-blue-600 text-white' 
@@ -945,21 +1000,40 @@ const AdminReports = () => {
                             </span>
                             <span className="w-2 h-2 rounded-full bg-emerald-500 shrink-0" title="Active Employee" />
                           </div>
-
-                          <div className={`pt-2.5 border-t flex items-center justify-between text-[10px] font-black uppercase tracking-wider ${
-                            isSelected ? 'border-blue-200 text-blue-700' : 'border-slate-50 text-slate-400 group-hover:text-blue-600'
-                          }`}>
-                            <span>{isSelected ? 'Viewing Report' : 'View Report'}</span>
-                            <Eye size={13} className={isSelected ? 'text-blue-600' : 'text-slate-400 group-hover:text-blue-600'} />
-                          </div>
                         </div>
                       </div>
-                    );
-                  })}
+
+                      {/* View Report Button on Card */}
+                      <div className="mt-4 pt-3 border-t border-slate-100">
+                        <button
+                          type="button"
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            setSelectedEmployeeCard(isSelected ? null : emp);
+                          }}
+                          className={`w-full py-2 px-3 rounded-xl text-xs font-black uppercase tracking-wider transition-all flex items-center justify-center gap-2 cursor-pointer ${
+                            isSelected 
+                              ? 'bg-blue-600 text-white shadow-sm' 
+                              : 'bg-slate-50 text-slate-700 hover:bg-blue-600 hover:text-white group-hover:bg-blue-50 group-hover:text-blue-600'
+                          }`}
+                        >
+                          <Eye size={13} />
+                          <span>{isSelected ? 'Viewing Work Report' : 'View Whole Work Report'}</span>
+                        </button>
+                      </div>
+                    </div>
+                  );
+                })}
+
+                {getFilteredEmployees().length === 0 && (
+                  <div className="col-span-full py-10 text-center text-xs font-bold text-slate-400 italic bg-slate-50/50 rounded-2xl border border-dashed border-slate-200">
+                    No employees found for this department or search query.
+                  </div>
+                )}
               </div>
             </div>
 
-            {/* If an employee card is selected, render EmployeeSchedule in Read-Only mode */}
+            {/* If an employee card is selected, render their whole work report like employee side */}
             {selectedEmployeeCard ? (
               <div className="space-y-4 animate-in fade-in duration-300">
                 <EmployeeSchedule 
@@ -975,97 +1049,37 @@ const AdminReports = () => {
               <>
             {/* Stats Grid */}
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-          <StatCard 
-            icon={<Users size={24} className="text-blue-600" />} 
-            label="Total Employees" 
-            value={data.stats.totalEmployees} 
-            subValue="Active Employees" 
-            colorClass="bg-blue-50"
-          />
-          <StatCard 
-            icon={<Clock size={24} className="text-emerald-600" />} 
-            label="Total Hours Today" 
-            value={data.stats.totalHoursToday} 
-            subValue="Logged Hours" 
-            colorClass="bg-emerald-50"
-          />
-          <StatCard 
-            icon={<TrendingUp size={24} className="text-violet-600" />} 
-            label="Average Hours" 
-            value={data.stats.averageHours} 
-            subValue="Per Employee" 
-            colorClass="bg-violet-50"
-          />
-          <StatCard 
-            icon={<Clock size={24} className="text-orange-500" />} 
-            label="Overtime Hours" 
-            value={data.stats.totalOvertimeToday} 
-            subValue="Total Overtime" 
-            colorClass="bg-orange-50"
-          />
-        </div>
+              <StatCard 
+                icon={<Users size={24} className="text-blue-600" />} 
+                label="Total Employees" 
+                value={data.stats.totalEmployees || employees.length} 
+                subValue="Active Employees" 
+                colorClass="bg-blue-50"
+              />
+              <StatCard 
+                icon={<Clock size={24} className="text-emerald-600" />} 
+                label="Total Hours Today" 
+                value={data.stats.totalHoursToday} 
+                subValue="Logged Hours" 
+                colorClass="bg-emerald-50"
+              />
+              <StatCard 
+                icon={<TrendingUp size={24} className="text-violet-600" />} 
+                label="Average Hours" 
+                value={data.stats.averageHours} 
+                subValue="Per Employee" 
+                colorClass="bg-violet-50"
+              />
+              <StatCard 
+                icon={<Clock size={24} className="text-orange-500" />} 
+                label="Overtime Hours" 
+                value={data.stats.totalOvertimeToday} 
+                subValue="Total Overtime" 
+                colorClass="bg-orange-50"
+              />
+            </div>
 
-        {/* Filters Bar */}
-        <div className="bg-white p-8 rounded-[32px] border border-slate-100 shadow-sm">
-           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-6">
-              <div className="space-y-2">
-                <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">Date</label>
-                <div className="relative">
-                  <Calendar size={14} className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400" />
-                  <input 
-                    type="date" 
-                    name="date"
-                    value={filters.date}
-                    onChange={handleFilterChange}
-                    className="w-full pl-11 pr-4 py-3 bg-slate-50 border border-slate-100 rounded-xl text-sm font-bold text-[#1e293b] focus:outline-none focus:ring-2 focus:ring-blue-500/10" 
-                  />
-                </div>
-              </div>
-              <div className="space-y-2">
-                <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">Department</label>
-                <div className="w-full">
-                  <CustomDropdown 
-                    name="department"
-                    value={filters.department}
-                    options={departments}
-                    onChange={handleFilterChange}
-                  />
-                </div>
-              </div>
-              <div className="space-y-2">
-                <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">Employee</label>
-                <div className="w-full">
-                  <CustomDropdown 
-                    name="employeeId"
-                    value={filters.employeeId}
-                    options={['All Employees']}
-                    onChange={handleFilterChange}
-                  />
-                </div>
-              </div>
-              <div className="space-y-2">
-                <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">Status</label>
-                <div className="w-full">
-                  <CustomDropdown 
-                    name="status"
-                    value={filters.status}
-                    options={['Completed']}
-                    onChange={handleFilterChange}
-                  />
-                </div>
-              </div>
-              {/* <div className="flex items-end gap-3">
-                 <button onClick={fetchReports} className="flex-1 py-3 bg-[#3b82f6] text-white rounded-xl text-xs font-bold hover:bg-blue-600 transition-all flex items-center justify-center gap-2">
-                   <Search size={14} /> Apply Filters
-                 </button>
-                 <button onClick={resetFilters} className="p-3 bg-slate-100 text-slate-500 rounded-xl hover:bg-slate-200 transition-all">
-                   <TrendingUp size={16} />
-                 </button>
-              </div> */}
-           </div>
-        </div>
-
-        {/* Main Content Area */}
+            {/* Main Content Area */}
         {/* Today's Stats Row */}
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
            {/* Today's Summary (Donut) */}
