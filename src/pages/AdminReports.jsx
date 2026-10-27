@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useCallback, useRef } from 'react';
 import AdminLayout from '../layouts/AdminLayout';
 import { 
-  Users, Clock, Filter, Download, Search, 
+  Users, Clock, Filter, Download, Search, ChevronLeft, ChevronRight, 
   Eye, Calendar,
   Briefcase, FileText, PieChart, TrendingUp, Star, Info, Send,
   FileSpreadsheet, ExternalLink, AlertCircle, RefreshCw, CheckCircle2, LayoutGrid, Layers
