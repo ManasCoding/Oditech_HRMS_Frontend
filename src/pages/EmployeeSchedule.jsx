@@ -1192,26 +1192,19 @@ const EmployeeSchedule = ({ embedded = false, onBack, targetEmployeeId = null, t
                )}
              </div>
            ) : (
-             <div className="flex flex-col sm:flex-row items-center justify-end gap-4">
-                <button 
-                   onClick={handleClear}
-                   className="w-full sm:w-auto px-10 py-4 bg-white text-slate-500 border border-slate-200 rounded-2xl text-xs font-black uppercase tracking-widest hover:bg-slate-50 transition-all active:scale-95 flex items-center justify-center gap-2"
-                >
-                   <Eraser size={16} /> Clear
-                </button>
-                <button 
-                   onClick={handleSubmit}
-                   disabled={submitting}
-                   className="w-full sm:w-auto px-12 py-4 bg-blue-600 text-white rounded-2xl text-xs font-black uppercase tracking-widest shadow-xl shadow-blue-200 hover:bg-blue-700 transition-all active:scale-95 flex items-center justify-center gap-3 disabled:opacity-50"
-                >
-                   {submitting ? (
-                     <Loader2 size={18} className="animate-spin" />
-                   ) : (
-                     <><Send size={18} /> Submit Report</>
-                   )}
-                </button>
-             </div>
-           )}
+              <div className="flex flex-col sm:flex-row items-center justify-between gap-3 p-4 bg-emerald-50/70 border border-emerald-100 rounded-2xl">
+                <div className="flex items-center gap-2.5 text-xs font-bold text-emerald-800">
+                  <span className="relative flex h-2.5 w-2.5">
+                    <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>
+                    <span className="relative inline-flex rounded-full h-2.5 w-2.5 bg-emerald-500"></span>
+                  </span>
+                  <span>Auto-Save Enabled</span>
+                </div>
+                <p className="text-[11px] font-semibold text-emerald-700">
+                  All work updates and remarks are saved automatically in real time — no manual submission required.
+                </p>
+              </div>
+            )}
         </div>
       </div>
       ) : (
