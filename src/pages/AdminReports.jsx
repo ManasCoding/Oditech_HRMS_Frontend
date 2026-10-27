@@ -784,7 +784,195 @@ const AdminReports = () => {
         </div>
 
         {activeViewTab === 'hourly' && (
-          <>
+          <div className="space-y-8">
+            {/* Top Employee Work Cards Bar */}
+            <div className="bg-white rounded-[36px] border border-slate-100 shadow-sm p-6 space-y-4">
+              <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 pb-2 border-b border-slate-50">
+                <div className="flex items-center gap-3">
+                  <div className="w-10 h-10 rounded-2xl bg-gradient-to-br from-blue-500 to-indigo-600 text-white flex items-center justify-center shadow-md shadow-blue-500/20">
+                    <Users size={20} />
+                  </div>
+                  <div>
+                    <div className="flex items-center gap-2">
+                      <h3 className="text-base font-black text-[#1e293b]">Employee Work Profiles</h3>
+                      <span className="px-2.5 py-0.5 rounded-full text-[10px] font-black uppercase tracking-wider bg-blue-50 text-blue-600">
+                        {employees.length} Employees
+                      </span>
+                    </div>
+                    <p className="text-xs font-semibold text-slate-400">
+                      Click any employee card to view their exact work report (read-only mode)
+                    </p>
+                  </div>
+                </div>
+
+                {/* Search & Navigation Controls */}
+                <div className="flex items-center gap-3">
+                  <div className="relative">
+                    <Search size={14} className="absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-400" />
+                    <input
+                      type="text"
+                      placeholder="Search employee..."
+                      value={employeeCardSearch}
+                      onChange={(e) => setEmployeeCardSearch(e.target.value)}
+                      className="pl-9 pr-6 py-2 bg-slate-50 border border-slate-100 rounded-xl text-xs font-semibold text-[#1e293b] outline-none w-44 sm:w-56 focus:bg-white focus:border-blue-400 focus:ring-2 focus:ring-blue-500/10 transition-all"
+                    />
+                    {employeeCardSearch && (
+                      <button 
+                        type="button"
+                        onClick={() => setEmployeeCardSearch('')}
+                        className="absolute right-2.5 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 font-bold"
+                      >
+                        ×
+                      </button>
+                    )}
+                  </div>
+
+                  <div className="flex items-center gap-1.5">
+                    <button
+                      type="button"
+                      onClick={() => scrollCards(-1)}
+                      className="p-2 rounded-xl bg-slate-50 hover:bg-slate-100 border border-slate-100 text-slate-600 transition-colors cursor-pointer"
+                      title="Scroll Left"
+                    >
+                      <ChevronLeft size={16} />
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => scrollCards(1)}
+                      className="p-2 rounded-xl bg-slate-50 hover:bg-slate-100 border border-slate-100 text-slate-600 transition-colors cursor-pointer"
+                      title="Scroll Right"
+                    >
+                      <ChevronRight size={16} />
+                    </button>
+                  </div>
+                </div>
+              </div>
+
+              {/* Cards Scrollable Row */}
+              <div 
+                ref={cardsScrollRef}
+                className="flex items-center gap-4 overflow-x-auto pb-2 scroll-smooth"
+                style={{ scrollbarWidth: 'thin' }}
+              >
+                {/* All Reports / Overview Card */}
+                <div
+                  onClick={() => setSelectedEmployeeCard(null)}
+                  className={`min-w-[210px] max-w-[210px] p-4 rounded-2xl border transition-all cursor-pointer flex flex-col justify-between shrink-0 select-none ${
+                    selectedEmployeeCard === null
+                      ? 'bg-gradient-to-br from-[#0f172a] to-blue-950 text-white border-blue-500/40 shadow-lg shadow-slate-900/15 ring-2 ring-blue-500/30'
+                      : 'bg-slate-50/70 border-slate-200/80 text-slate-700 hover:bg-slate-100 hover:border-slate-300'
+                  }`}
+                >
+                  <div className="flex items-center gap-3">
+                    <div className={`w-11 h-11 rounded-2xl flex items-center justify-center font-black ${
+                      selectedEmployeeCard === null ? 'bg-white/10 text-white' : 'bg-white text-blue-600 shadow-sm'
+                    }`}>
+                      <LayoutGrid size={20} />
+                    </div>
+                    <div className="flex-1 min-w-0">
+                      <h4 className="text-xs font-black truncate">All Reports List</h4>
+                      <p className={`text-[10px] font-bold ${selectedEmployeeCard === null ? 'text-blue-200' : 'text-slate-400'}`}>
+                        Overview Table
+                      </p>
+                    </div>
+                  </div>
+                  <div className="mt-4 pt-3 border-t border-white/10 flex items-center justify-between">
+                    <span className="text-[10px] font-black uppercase tracking-wider">
+                      {selectedEmployeeCard === null ? '● Viewing All' : 'Switch to All'}
+                    </span>
+                    <Eye size={13} className={selectedEmployeeCard === null ? 'text-blue-300' : 'text-slate-400'} />
+                  </div>
+                </div>
+
+                {/* Individual Employee Cards */}
+                {employees
+                  .filter(emp => {
+                    const q = employeeCardSearch.toLowerCase().trim();
+                    if (!q) return true;
+                    return (
+                      emp.fullName?.toLowerCase().includes(q) ||
+                      emp.empCode?.toLowerCase().includes(q) ||
+                      emp.department?.toLowerCase().includes(q)
+                    );
+                  })
+                  .map((emp) => {
+                    const isSelected = selectedEmployeeCard?._id === emp._id;
+                    return (
+                      <div
+                        key={emp._id}
+                        onClick={() => setSelectedEmployeeCard(isSelected ? null : emp)}
+                        className={`min-w-[220px] max-w-[220px] p-4 rounded-2xl border transition-all cursor-pointer flex flex-col justify-between shrink-0 select-none group ${
+                          isSelected
+                            ? 'bg-blue-50/90 border-blue-500 shadow-lg shadow-blue-500/15 ring-2 ring-blue-500/30'
+                            : 'bg-white border-slate-150 hover:border-blue-300 hover:shadow-md hover:-translate-y-0.5'
+                        }`}
+                      >
+                        <div className="flex items-center gap-3">
+                          <div className={`w-11 h-11 rounded-2xl flex items-center justify-center font-black text-xs border overflow-hidden shrink-0 transition-transform group-hover:scale-105 ${
+                            isSelected 
+                              ? 'bg-blue-600 text-white border-blue-400 shadow-sm' 
+                              : 'bg-slate-100 text-slate-700 border-white shadow-sm'
+                          }`}>
+                            {emp.profileImage ? (
+                              <img 
+                                src={emp.profileImage} 
+                                alt={emp.fullName} 
+                                className="w-full h-full object-cover"
+                                onError={(e) => { e.target.onerror = null; e.target.style.display = 'none'; }}
+                              />
+                            ) : (
+                              emp.fullName?.charAt(0) || 'E'
+                            )}
+                          </div>
+                          <div className="flex-1 min-w-0">
+                            <h4 className={`text-xs font-black truncate ${isSelected ? 'text-blue-900' : 'text-[#1e293b]'}`} title={emp.fullName}>
+                              {emp.fullName}
+                            </h4>
+                            <p className="text-[10px] font-bold text-slate-400 truncate">
+                              {emp.empCode || 'EMP'}
+                            </p>
+                          </div>
+                        </div>
+
+                        <div className="mt-3.5 space-y-2">
+                          <div className="flex items-center justify-between gap-1">
+                            <span className={`px-2 py-0.5 rounded-md text-[9px] font-black uppercase tracking-wider truncate max-w-[130px] ${
+                              isSelected 
+                                ? 'bg-blue-600 text-white' 
+                                : 'bg-slate-100 text-slate-600 group-hover:bg-blue-50 group-hover:text-blue-600'
+                            }`}>
+                              {emp.department || 'General'}
+                            </span>
+                            <span className="w-2 h-2 rounded-full bg-emerald-500 shrink-0" title="Active Employee" />
+                          </div>
+
+                          <div className={`pt-2.5 border-t flex items-center justify-between text-[10px] font-black uppercase tracking-wider ${
+                            isSelected ? 'border-blue-200 text-blue-700' : 'border-slate-50 text-slate-400 group-hover:text-blue-600'
+                          }`}>
+                            <span>{isSelected ? 'Viewing Report' : 'View Report'}</span>
+                            <Eye size={13} className={isSelected ? 'text-blue-600' : 'text-slate-400 group-hover:text-blue-600'} />
+                          </div>
+                        </div>
+                      </div>
+                    );
+                  })}
+              </div>
+            </div>
+
+            {/* If an employee card is selected, render EmployeeSchedule in Read-Only mode */}
+            {selectedEmployeeCard ? (
+              <div className="space-y-4 animate-in fade-in duration-300">
+                <EmployeeSchedule 
+                  embedded={true} 
+                  readOnly={true} 
+                  targetEmployeeId={selectedEmployeeCard._id} 
+                  targetEmployeeName={selectedEmployeeCard.fullName} 
+                  targetEmployee={selectedEmployeeCard} 
+                  onBack={() => setSelectedEmployeeCard(null)} 
+                />
+              </div>
+            ) : (
+              <>
             {/* Stats Grid */}
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
           <StatCard 
@@ -1133,7 +1321,9 @@ const AdminReports = () => {
                </p>
             </div>
         </div>
-          </>
+              </>
+            )}
+          </div>
         )}
 
         {/* HRMS Format Worksheet (All Employees) Matrix View */}
