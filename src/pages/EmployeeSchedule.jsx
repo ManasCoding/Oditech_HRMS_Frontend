@@ -5,7 +5,7 @@ import {
   Send, Calendar, Download, FileSpreadsheet, 
   Trash2, Plus, CheckCircle2, AlertCircle, Loader2,
   ChevronLeft, ChevronRight, Eraser, Printer, Clock, Lock, PieChart, CheckCircle, XCircle, ExternalLink,
-  RefreshCw, UploadCloud, Check, X, Sparkles
+  RefreshCw, UploadCloud, Check, X, Sparkles, Maximize2, Edit3
 } from 'lucide-react';
 import api from '../services/api';
 import { io } from 'socket.io-client';
@@ -71,6 +71,8 @@ const EmployeeSchedule = ({ embedded = false, onBack, targetEmployeeId = null, t
   const navigate = useNavigate();
   const location = useLocation();
   const user = JSON.parse(localStorage.getItem('user')) || {};
+  const effectiveUserId = targetEmployeeId || user.id;
+  const isReadOnly = readOnly;
   const [loading, setLoading] = useState(true);
   const [submitting, setSubmitting] = useState(false);
   const [activeReportTab, setActiveReportTab] = useState('hrms'); // 'hrms' | 'excel'
@@ -99,12 +101,162 @@ const EmployeeSchedule = ({ embedded = false, onBack, targetEmployeeId = null, t
   const [syncDate, setSyncDate] = useState(new Date().toISOString().split('T')[0]);
   const [syncText, setSyncText] = useState('');
   const [syncRemarks, setSyncRemarks] = useState('');
+  const [activeModalSlot, setActiveModalSlot] = useState(null);
+  const [modalText, setModalText] = useState('');
+  const modalTextareaRef = useRef(null);
+
+  useEffect(() => {
+    if (activeModalSlot && modalTextareaRef.current) {
+      setTimeout(() => {
+        modalTextareaRef.current?.focus();
+      }, 60);
+    }
+  }, [activeModalSlot]);
+
+  const handleOpenSlotModal = (date, slot, isLocked, slotState) => {
+    if (slotState.status === 'FUTURE' && !isReadOnly) {
+      showToast('This timeslot is not yet available to edit.', 'error');
+      return;
+    }
+
+    const currentVal = weekTasks[`${date}_${slot}`] || '';
+    const canEdit = !isReadOnly && !isLocked;
+
+    setActiveModalSlot({
+      type: 'slot',
+      date,
+      slotKey: slot,
+      dayLabel: formatDateLabel(date),
+      canEdit,
+      status: slotState.status,
+      countdown: slotState.countdown
+    });
+    setModalText(currentVal);
+  };
+
+  const handleOpenDailyRemarksModal = (date, isLocked, remarksState) => {
+    if (remarksState === 'FUTURE' && !isReadOnly) {
+      showToast('This remarks field is not yet available to edit.', 'error');
+      return;
+    }
+
+    const currentVal = dailyRemarks[date] || '';
+    const canEdit = !isReadOnly && !isLocked;
+
+    setActiveModalSlot({
+      type: 'dailyRemarks',
+      date,
+      slotKey: 'Daily Remarks',
+      dayLabel: formatDateLabel(date),
+      canEdit,
+      status: remarksState
+    });
+    setModalText(currentVal);
+  };
+
+  const handleOpenWeeklyRemarksModal = () => {
+    setActiveModalSlot({
+      type: 'weekRemarks',
+      date: null,
+      slotKey: 'Weekly Remarks',
+      dayLabel: `${formatDateLabel(weekDates[0])} - ${formatDateLabel(weekDates[6])}`,
+      canEdit: !isReadOnly,
+      status: 'ACTIVE'
+    });
+    setModalText(weekRemarks || '');
+  };
+
+  const handleSaveModalSlot = async () => {
+    if (!activeModalSlot) return;
+    const { type, date, slotKey, canEdit } = activeModalSlot;
+
+    if (canEdit) {
+      if (type === 'slot') {
+        const updated = {
+          ...weekTasks,
+          [`${date}_${slotKey}`]: modalText
+        };
+        setWeekTasks(updated);
+
+        try {
+          const tasksToSubmit = [];
+          Object.entries(updated).forEach(([k, t]) => {
+            if (t && t.trim()) {
+              const [d, s] = k.split('_');
+              tasksToSubmit.push({ date: d, slotKey: s, title: t, status: 'Completed' });
+            }
+          });
+          await api.post('/employee/tasks/bulk', {
+            employeeId: effectiveUserId,
+            tasks: tasksToSubmit,
+            dates: weekDates,
+            dailyRemarks,
+            weeklyRemarks: weekRemarks
+          });
+          showToast('Work update saved successfully!', 'success');
+        } catch (err) {
+          console.error('Error auto-saving task from modal:', err);
+        }
+      } else if (type === 'dailyRemarks') {
+        const updatedRemarks = {
+          ...dailyRemarks,
+          [date]: modalText
+        };
+        setDailyRemarks(updatedRemarks);
+
+        try {
+          const tasksToSubmit = [];
+          Object.entries(weekTasks).forEach(([k, t]) => {
+            if (t && t.trim()) {
+              const [d, s] = k.split('_');
+              tasksToSubmit.push({ date: d, slotKey: s, title: t, status: 'Completed' });
+            }
+          });
+          await api.post('/employee/tasks/bulk', {
+            employeeId: effectiveUserId,
+            tasks: tasksToSubmit,
+            dates: weekDates,
+            dailyRemarks: updatedRemarks,
+            weeklyRemarks: weekRemarks
+          });
+          showToast('Daily remarks saved!', 'success');
+        } catch (err) {
+          console.error('Error auto-saving remarks from modal:', err);
+        }
+      } else if (type === 'weekRemarks') {
+        setWeekRemarks(modalText);
+
+        try {
+          const tasksToSubmit = [];
+          Object.entries(weekTasks).forEach(([k, t]) => {
+            if (t && t.trim()) {
+              const [d, s] = k.split('_');
+              tasksToSubmit.push({ date: d, slotKey: s, title: t, status: 'Completed' });
+            }
+          });
+          await api.post('/employee/tasks/bulk', {
+            employeeId: effectiveUserId,
+            tasks: tasksToSubmit,
+            dates: weekDates,
+            dailyRemarks,
+            weeklyRemarks: modalText
+          });
+          showToast('Weekly remarks saved!', 'success');
+        } catch (err) {
+          console.error('Error auto-saving weekly remarks from modal:', err);
+        }
+      }
+    }
+
+    setActiveModalSlot(null);
+    setModalText('');
+  };
 
   useEffect(() => {
     const fetchContext = async () => {
       try {
-        if (user.id) {
-          const profileRes = await api.get(`/employee/profile/${user.id}`);
+        if (effectiveUserId) {
+          const profileRes = await api.get(`/employee/profile/${effectiveUserId}`);
           if (profileRes.data?.success) {
             setEmployeeProfile(profileRes.data.employee);
           }
@@ -118,7 +270,7 @@ const EmployeeSchedule = ({ embedded = false, onBack, targetEmployeeId = null, t
       }
     };
     fetchContext();
-  }, [user.id]);
+  }, [effectiveUserId]);
 
   const getDepartmentSheet = () => {
     const dept = employeeProfile?.department || user.department || 'Engineering';
@@ -205,8 +357,34 @@ const EmployeeSchedule = ({ embedded = false, onBack, targetEmployeeId = null, t
 
   const fetchTimesheets = async () => {
     try {
-      const res = await api.get(`/timesheets/${user.id}?month=${selectedDate.getMonth() + 1}&year=${selectedDate.getFullYear()}`);
-      if (res.data.success) setTimesheets(res.data.timesheets);
+      const res = await api.get(`/timesheets/${effectiveUserId}?month=${selectedDate.getMonth() + 1}&year=${selectedDate.getFullYear()}`);
+      if (res.data.success) {
+        const tsList = res.data.timesheets || [];
+        setTimesheets(tsList);
+        const remarksMap = {};
+        const fallbackTasksMap = {};
+        let latestWeeklyRemark = '';
+        tsList.forEach(ts => {
+          if (ts.dailyRemarks) remarksMap[ts.date] = ts.dailyRemarks;
+          if (ts.weeklyRemarks) latestWeeklyRemark = ts.weeklyRemarks;
+          if (Array.isArray(ts.hourlyTasks)) {
+            ts.hourlyTasks.forEach(ht => {
+              if (ht.date && ht.slotKey && ht.title) {
+                fallbackTasksMap[`${ht.date}_${ht.slotKey}`] = ht.title;
+              }
+            });
+          }
+        });
+        if (Object.keys(remarksMap).length > 0) {
+          setDailyRemarks(prev => ({ ...remarksMap, ...prev }));
+        }
+        if (latestWeeklyRemark) {
+          setWeekRemarks(prev => prev || latestWeeklyRemark);
+        }
+        if (Object.keys(fallbackTasksMap).length > 0) {
+          setWeekTasks(prev => ({ ...fallbackTasksMap, ...prev }));
+        }
+      }
     } catch (err) {
       console.error('Error fetching timesheets:', err);
     }
@@ -216,13 +394,13 @@ const EmployeeSchedule = ({ embedded = false, onBack, targetEmployeeId = null, t
     fetchTimesheets();
     const socket = io(SOCKET_URL);
     socket.on('timesheetSubmitted', (data) => {
-      if (data.employeeId === user.id) fetchTimesheets();
+      if (data.employeeId === effectiveUserId) fetchTimesheets();
     });
     socket.on('timesheetUpdated', (data) => {
-      if (data.employeeId === user.id) fetchTimesheets();
+      if (data.employeeId === effectiveUserId) fetchTimesheets();
     });
     return () => socket.disconnect();
-  }, [selectedDate, user.id]);
+  }, [selectedDate, effectiveUserId]);
 
   useEffect(() => {
     const timer = setInterval(() => setCurrentTime(new Date()), 1000);
@@ -311,14 +489,21 @@ const EmployeeSchedule = ({ embedded = false, onBack, targetEmployeeId = null, t
   const fetchWeeklyTasks = async () => {
     setLoading(true);
     try {
-      const res = await api.get(`/employee/tasks/weekly/${user.id}?startDate=${weekDates[0]}&endDate=${weekDates[6]}`);
+      const res = await api.get(`/employee/tasks/weekly/${effectiveUserId}?startDate=${weekDates[0]}&endDate=${weekDates[6]}`);
       if (res.data.success) {
         const tasksMap = {};
-        res.data.tasks.forEach(task => {
+        const remarksMap = {};
+        (res.data.tasks || []).forEach(task => {
           const key = `${task.date}_${task.slotKey}`;
           tasksMap[key] = task.title;
+          if (task.dailyRemarks) {
+            remarksMap[task.date] = task.dailyRemarks;
+          }
         });
-        setWeekTasks(tasksMap);
+        setWeekTasks(prev => ({ ...prev, ...tasksMap }));
+        if (Object.keys(remarksMap).length > 0) {
+          setDailyRemarks(prev => ({ ...remarksMap, ...prev }));
+        }
       }
     } catch (err) {
       console.error('Error fetching tasks:', err);
@@ -339,7 +524,7 @@ const EmployeeSchedule = ({ embedded = false, onBack, targetEmployeeId = null, t
     try {
       socket = io(SOCKET_URL);
       socket.on('timesheetUpdated', (data) => {
-        if (!data?.employeeId || data.employeeId === user.id || data.employeeId === employeeProfile?._id) {
+        if (!data?.employeeId || data.employeeId === effectiveUserId || data.employeeId === employeeProfile?._id) {
           fetchWeeklyTasks();
         }
       });
@@ -349,7 +534,7 @@ const EmployeeSchedule = ({ embedded = false, onBack, targetEmployeeId = null, t
     return () => {
       if (socket) socket.disconnect();
     };
-  }, [user.id, employeeProfile?._id, weekDates]);
+  }, [effectiveUserId, employeeProfile?._id, weekDates]);
 
   const handleAutoPullFromSheet = async (targetDateToPull = syncDate, autoSave = true) => {
     setPullingSheet(true);
@@ -457,6 +642,7 @@ const EmployeeSchedule = ({ embedded = false, onBack, targetEmployeeId = null, t
   };
 
   const handleInputChange = (date, slot, value) => {
+    if (isReadOnly) return;
     setWeekTasks(prev => ({
       ...prev,
       [`${date}_${slot}`]: value
@@ -464,6 +650,7 @@ const EmployeeSchedule = ({ embedded = false, onBack, targetEmployeeId = null, t
   };
 
   const handleAutoSave = async () => {
+    if (isReadOnly) return;
     setIsAutoSaving(true);
     try {
       const tasksToSubmit = [];
@@ -475,7 +662,7 @@ const EmployeeSchedule = ({ embedded = false, onBack, targetEmployeeId = null, t
       });
 
       await api.post('/employee/tasks/bulk', {
-        employeeId: user.id,
+        employeeId: effectiveUserId,
         tasks: tasksToSubmit,
         dates: weekDates,
         dailyRemarks,
@@ -489,6 +676,7 @@ const EmployeeSchedule = ({ embedded = false, onBack, targetEmployeeId = null, t
   };
 
   const handleSubmit = async () => {
+    if (isReadOnly) return;
     setSubmitting(true);
     try {
       await handleAutoSave();
@@ -526,7 +714,7 @@ const EmployeeSchedule = ({ embedded = false, onBack, targetEmployeeId = null, t
       });
       
       await api.post('/timesheets/submit', {
-        employeeId: user.id,
+        employeeId: effectiveUserId,
         date: dateStr,
         weekStart: weekDates[0],
         weekEnd: weekDates[6],
@@ -546,6 +734,7 @@ const EmployeeSchedule = ({ embedded = false, onBack, targetEmployeeId = null, t
   };
 
   const handleClear = () => {
+    if (isReadOnly) return;
     if (window.confirm('Are you sure you want to clear all inputs for this week?')) {
       setWeekTasks({});
       setWeekRemarks('');
@@ -565,7 +754,59 @@ const EmployeeSchedule = ({ embedded = false, onBack, targetEmployeeId = null, t
 
   const renderContent = () => (
     <div className="space-y-6 pb-20 animate-in fade-in duration-500">
-      
+      {/* Top Banner when in Admin Read-Only Mode */}
+      {isReadOnly && (
+        <div className="bg-gradient-to-r from-slate-900 via-blue-950 to-slate-900 text-white p-5 rounded-3xl shadow-xl flex flex-wrap items-center justify-between gap-4 border border-blue-500/20">
+          <div className="flex items-center gap-4">
+            {onBack && (
+              <button
+                type="button"
+                onClick={onBack}
+                className="flex items-center gap-2 px-4 py-2.5 bg-white/10 hover:bg-white/20 text-white rounded-xl text-xs font-black uppercase tracking-wider transition-all border border-white/15 active:scale-95 cursor-pointer shadow-sm"
+              >
+                <ChevronLeft size={16} /> Back to All Reports
+              </button>
+            )}
+            <div className="w-12 h-12 rounded-2xl bg-gradient-to-br from-blue-600 to-indigo-600 border border-blue-400/30 flex items-center justify-center font-black text-base text-white shadow-md overflow-hidden shrink-0">
+              {employeeProfile?.profileImage ? (
+                <img src={employeeProfile.profileImage} alt="" className="w-full h-full object-cover" onError={(e) => { e.target.onerror = null; e.target.style.display = 'none'; }} />
+              ) : (
+                (employeeProfile?.fullName || targetEmployeeName || 'E').charAt(0)
+              )}
+            </div>
+            <div>
+              <div className="flex flex-wrap items-center gap-2">
+                <h3 className="text-lg font-black text-white">
+                  {employeeProfile?.fullName || targetEmployeeName || 'Employee Work Report'}
+                </h3>
+                <span className="px-2.5 py-0.5 rounded-full text-[10px] font-black uppercase tracking-wider bg-blue-500/30 text-blue-200 border border-blue-400/30">
+                  {employeeProfile?.empCode || 'EMP'}
+                </span>
+                <span className="px-2.5 py-0.5 rounded-full text-[10px] font-black uppercase tracking-wider bg-emerald-500/20 text-emerald-300 border border-emerald-400/20">
+                  {employeeProfile?.department || 'Department'}
+                </span>
+                <span className="px-2.5 py-0.5 rounded-full text-[10px] font-black uppercase tracking-wider bg-amber-500/20 text-amber-300 border border-amber-400/20 flex items-center gap-1">
+                  <Lock size={10} /> View Only
+                </span>
+              </div>
+              <p className="text-[11px] text-slate-300 mt-0.5">
+                Viewing live employee schedule and daily timesheet. Edits and auto-saves are disabled.
+              </p>
+            </div>
+          </div>
+          <div className="flex items-center gap-2">
+            {onBack && (
+              <button
+                type="button"
+                onClick={onBack}
+                className="px-5 py-2.5 bg-blue-600 hover:bg-blue-500 text-white rounded-xl text-xs font-black uppercase tracking-wider transition-all shadow-md active:scale-95 cursor-pointer"
+              >
+                Close View
+              </button>
+            )}
+          </div>
+        </div>
+      )}
 
       {/* Header Section */}
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
@@ -798,47 +1039,69 @@ const EmployeeSchedule = ({ embedded = false, onBack, targetEmployeeId = null, t
                      <td className="p-6 text-xs font-black text-slate-500 border-r border-slate-50 sticky left-0 bg-white group-hover:bg-slate-50/30 z-10 align-top">{slot}</td>
                      {weekDates.map((date, dIdx) => {
                        const slotState = getSlotState(date, slot);
-                       const isLocked = slotState.status === 'LOCKED' || slotState.status === 'FUTURE';
+                       const isLocked = isReadOnly || slotState.status === 'LOCKED' || slotState.status === 'FUTURE';
+                       const taskVal = weekTasks[`${date}_${slot}`] || '';
+                       const isFuture = slotState.status === 'FUTURE' && !isReadOnly;
                        
                        return (
-                         <td key={`${date}-${slot}`} className="p-3 border-r border-slate-50 relative align-top">
-                           <div className="relative w-full group/input">
-                             <AutoExpandingTextarea 
-                               value={weekTasks[`${date}_${slot}`] || ''}
-                               onChange={(val) => handleInputChange(date, slot, val)}
-                               onBlur={handleAutoSave}
-                               placeholder={slotState.status === 'FUTURE' ? "Not available" : "-"}
-                               disabled={isLocked}
-                               minHeight={44}
-                               maxHeight={280}
-                               className={`w-full px-4 py-3 border rounded-xl text-xs font-medium text-[#1e293b] outline-none transition-[border-color,box-shadow,background-color] duration-150 leading-relaxed break-words whitespace-pre-wrap
-                                 ${isLocked 
-                                   ? 'bg-slate-100 border-transparent text-slate-500 cursor-not-allowed select-none' 
-                                   : 'bg-transparent border-transparent hover:border-slate-200 focus:bg-white focus:border-blue-500 focus:shadow-lg focus:shadow-blue-500/10'
-                                 }
-                                 ${slotState.status === 'LOCKED' ? 'pr-9' : ''}
-                                 ${slotState.status === 'GRACE' ? 'pr-28' : ''}
-                               `}
-                               title={
-                                 slotState.status === 'LOCKED' 
-                                   ? "This timeslot has been locked because the editing window has expired." 
-                                   : slotState.status === 'FUTURE'
-                                     ? "This timeslot is not yet available."
-                                     : ""
-                               }
-                             />
-                             {slotState.status === 'LOCKED' && (
-                               <div className="absolute right-3 top-3 text-slate-400 pointer-events-none">
-                                 <Lock size={14} />
-                               </div>
-                             )}
-                             {slotState.status === 'GRACE' && (
-                               <div className="absolute right-2.5 top-2.5 pointer-events-none z-10">
-                                 <span className="text-[10px] font-black text-orange-500 bg-orange-50/95 border border-orange-200/50 px-2 py-0.5 rounded-md whitespace-nowrap shadow-sm">
-                                   Editing ends in {slotState.countdown}
+                         <td key={`${date}-${slot}`} className="p-2.5 border-r border-slate-50 relative align-top">
+                           <div 
+                             onClick={() => !isFuture && handleOpenSlotModal(date, slot, isLocked, slotState)}
+                             className={`relative w-full min-h-[58px] p-3 rounded-2xl border text-xs font-medium transition-all group/cell select-none flex flex-col justify-between ${
+                               isFuture 
+                                 ? 'bg-slate-50/50 border-slate-100 text-slate-400 cursor-not-allowed opacity-60' 
+                                 : isLocked
+                                   ? 'bg-slate-100/80 border-slate-200/60 text-slate-600 cursor-pointer hover:border-slate-300 hover:bg-slate-100'
+                                   : 'bg-white border-slate-200/80 text-[#1e293b] cursor-pointer hover:border-blue-500 hover:shadow-md hover:bg-blue-50/15'
+                             }`}
+                             title={
+                               isFuture 
+                                 ? "This timeslot is not yet available."
+                                 : isLocked
+                                   ? "Locked timeslot. Click to view full text on big screen."
+                                   : "Click to write work update on big screen"
+                             }
+                           >
+                             {/* Task Content Preview */}
+                             <div className="leading-relaxed break-words whitespace-pre-wrap line-clamp-3">
+                               {taskVal ? (
+                                 taskVal
+                               ) : (
+                                 <span className="text-slate-300 font-normal italic flex items-center gap-1">
+                                   {isFuture ? 'Not available' : 'Click to write...'}
                                  </span>
-                               </div>
-                             )}
+                               )}
+                             </div>
+
+                             {/* Bottom cell badges & expand icon */}
+                             <div className="mt-2.5 pt-1.5 border-t border-slate-100/70 flex items-center justify-between text-[10px]">
+                               {slotState.status === 'LOCKED' && (
+                                 <span className="text-slate-400 flex items-center gap-1 font-bold">
+                                   <Lock size={10} /> Locked
+                                 </span>
+                               )}
+                               {slotState.status === 'GRACE' && (
+                                 <span className="font-black text-orange-600 bg-orange-100/90 px-1.5 py-0.5 rounded-md">
+                                   {slotState.countdown}
+                                 </span>
+                               )}
+                               {slotState.status === 'ACTIVE' && (
+                                 <span className="font-bold text-emerald-600 flex items-center gap-1">
+                                   <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse"></span>
+                                   Active
+                                 </span>
+                               )}
+                               {isFuture && (
+                                 <span className="text-slate-400 font-medium">Future</span>
+                               )}
+
+                               {!isFuture && (
+                                 <div className="opacity-0 group-hover/cell:opacity-100 transition-opacity ml-auto text-blue-500 flex items-center gap-1">
+                                   <span className="text-[9px] font-bold text-blue-500">Edit</span>
+                                   <Maximize2 size={11} />
+                                 </div>
+                               )}
+                             </div>
                            </div>
                          </td>
                        );
@@ -851,39 +1114,54 @@ const EmployeeSchedule = ({ embedded = false, onBack, targetEmployeeId = null, t
                    <td className="p-6 text-[10px] font-black text-slate-400 uppercase tracking-widest border-r border-slate-100 sticky left-0 bg-slate-50 z-10 align-top">Daily Remarks</td>
                    {weekDates.map((date) => {
                      const remarksState = getRemarksState(date);
-                     const isLocked = remarksState === 'LOCKED' || remarksState === 'FUTURE';
+                     const isLocked = isReadOnly || remarksState === 'LOCKED' || remarksState === 'FUTURE';
+                     const remarkVal = dailyRemarks[date] || '';
+                     const isFuture = remarksState === 'FUTURE' && !isReadOnly;
                      
                      return (
-                       <td key={`remark-${date}`} className="p-3 border-r border-slate-50 relative align-top">
-                          <div className="relative w-full">
-                            <AutoExpandingTextarea 
-                              value={dailyRemarks[date] || ''}
-                              onChange={(val) => setDailyRemarks(prev => ({ ...prev, [date]: val }))}
-                              onBlur={handleAutoSave}
-                              placeholder={remarksState === 'FUTURE' ? "Not available" : "Daily notes..."}
-                              disabled={isLocked}
-                              minHeight={50}
-                              maxHeight={280}
-                              className={`w-full px-4 py-3 border rounded-xl text-[11px] font-medium text-slate-600 outline-none transition-[border-color,box-shadow,background-color] duration-150 leading-relaxed break-words whitespace-pre-wrap
-                                ${isLocked
-                                  ? 'bg-slate-100 border-transparent text-slate-500 cursor-not-allowed select-none'
-                                  : 'bg-white/50 border-transparent hover:border-slate-200 focus:bg-white focus:border-blue-500 focus:shadow-md'
-                                }
-                                ${remarksState === 'LOCKED' ? 'pr-9' : ''}
-                              `}
-                              title={
-                                remarksState === 'LOCKED'
-                                  ? "This field has been locked because the editing window has expired."
-                                  : remarksState === 'FUTURE'
-                                    ? "This field is not yet available."
-                                    : ""
-                              }
-                            />
-                            {remarksState === 'LOCKED' && (
-                              <div className="absolute right-3 top-3 text-slate-400 pointer-events-none">
-                                <Lock size={14} />
-                              </div>
-                            )}
+                       <td key={`remark-${date}`} className="p-2.5 border-r border-slate-50 relative align-top">
+                          <div 
+                            onClick={() => !isFuture && handleOpenDailyRemarksModal(date, isLocked, remarksState)}
+                            className={`relative w-full min-h-[50px] p-3 rounded-2xl border text-[11px] font-medium transition-all group/cell select-none flex flex-col justify-between ${
+                              isFuture 
+                                ? 'bg-slate-50/50 border-slate-100 text-slate-400 cursor-not-allowed opacity-60' 
+                                : isLocked
+                                  ? 'bg-slate-100/80 border-slate-200/60 text-slate-600 cursor-pointer hover:border-slate-300 hover:bg-slate-100'
+                                  : 'bg-white border-slate-200/80 text-slate-700 cursor-pointer hover:border-blue-500 hover:shadow-md hover:bg-blue-50/15'
+                            }`}
+                            title={
+                              isFuture 
+                                ? "This field is not yet available." 
+                                : isLocked
+                                  ? "Locked daily remarks. Click to view on big screen."
+                                  : "Click to write daily remarks on big screen"
+                            }
+                          >
+                            <div className="leading-relaxed break-words whitespace-pre-wrap line-clamp-2">
+                              {remarkVal ? (
+                                remarkVal
+                              ) : (
+                                <span className="text-slate-300 font-normal italic">
+                                  {isFuture ? 'Not available' : 'Daily notes...'}
+                                </span>
+                              )}
+                            </div>
+
+                            <div className="mt-2 pt-1 border-t border-slate-100/70 flex items-center justify-between text-[10px]">
+                              {remarksState === 'LOCKED' ? (
+                                <span className="text-slate-400 flex items-center gap-1 font-bold">
+                                  <Lock size={10} /> Locked
+                                </span>
+                              ) : (
+                                <span className="text-slate-400 font-bold">Notes</span>
+                              )}
+                              {!isFuture && (
+                                <div className="opacity-0 group-hover/cell:opacity-100 transition-opacity ml-auto text-blue-500 flex items-center gap-1">
+                                  <span className="text-[9px] font-bold">Expand</span>
+                                  <Maximize2 size={11} />
+                                </div>
+                              )}
+                            </div>
                           </div>
                        </td>
                      );
@@ -896,36 +1174,76 @@ const EmployeeSchedule = ({ embedded = false, onBack, targetEmployeeId = null, t
         {/* Footer Remarks */}
         <div className="p-10 bg-slate-50/50 border-t border-slate-100 space-y-6">
            <div className="space-y-3">
-              <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">Remarks for the Week</label>
+              <div className="flex items-center justify-between">
+                <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">Remarks for the Week</label>
+                <button
+                  type="button"
+                  onClick={handleOpenWeeklyRemarksModal}
+                  className="flex items-center gap-1.5 text-xs font-bold text-blue-600 hover:text-blue-700 cursor-pointer"
+                >
+                  <Maximize2 size={13} /> Open in Big Screen
+                </button>
+              </div>
               <textarea 
                  value={weekRemarks}
-                 onChange={(e) => setWeekRemarks(e.target.value)}
-                 onBlur={handleAutoSave}
-                 placeholder="Overall productive week. Completed major tasks and updated reports."
+                 onChange={(e) => !isReadOnly && setWeekRemarks(e.target.value)}
+                 onBlur={isReadOnly ? undefined : handleAutoSave}
+                 placeholder={isReadOnly ? (weekRemarks ? "" : "No weekly remarks recorded.") : "Click or type overall productive week notes..."}
                  rows="3"
-                 className="w-full p-6 bg-white border border-slate-100 rounded-[24px] text-sm font-medium text-[#1e293b] outline-none shadow-sm focus:ring-4 focus:ring-blue-500/5 transition-all resize-none"
+                 disabled={isReadOnly}
+                 readOnly={isReadOnly}
+                 className={`w-full p-6 border rounded-[24px] text-sm font-medium outline-none shadow-sm transition-all resize-none ${
+                   isReadOnly 
+                     ? 'bg-slate-50/70 border-slate-100 text-slate-700 cursor-default select-text' 
+                     : 'bg-white border-slate-100 text-[#1e293b] focus:ring-4 focus:ring-blue-500/5'
+                 }`}
               ></textarea>
            </div>
 
-           <div className="flex flex-col sm:flex-row items-center justify-end gap-4">
-              <button 
-                 onClick={handleClear}
-                 className="w-full sm:w-auto px-10 py-4 bg-white text-slate-500 border border-slate-200 rounded-2xl text-xs font-black uppercase tracking-widest hover:bg-slate-50 transition-all active:scale-95 flex items-center justify-center gap-2"
-              >
-                 <Eraser size={16} /> Clear
-              </button>
-              <button 
-                 onClick={handleSubmit}
-                 disabled={submitting}
-                 className="w-full sm:w-auto px-12 py-4 bg-blue-600 text-white rounded-2xl text-xs font-black uppercase tracking-widest shadow-xl shadow-blue-200 hover:bg-blue-700 transition-all active:scale-95 flex items-center justify-center gap-3 disabled:opacity-50"
-              >
-                 {submitting ? (
-                   <Loader2 size={18} className="animate-spin" />
-                 ) : (
-                   <><Send size={18} /> Submit Report</>
-                 )}
-              </button>
-           </div>
+           {isReadOnly ? (
+             <div className="flex flex-col sm:flex-row items-center justify-between gap-4 p-5 bg-gradient-to-r from-slate-900 to-blue-950 text-white rounded-2xl shadow-lg border border-blue-500/20">
+               <div className="flex items-center gap-3">
+                 <div className="w-9 h-9 rounded-xl bg-blue-500/20 border border-blue-400/30 flex items-center justify-center text-blue-300">
+                   <Lock size={18} />
+                 </div>
+                 <div>
+                   <p className="text-xs font-black uppercase tracking-wider text-blue-200">Admin Read-Only Preview</p>
+                   <p className="text-[11px] text-slate-300">
+                     Viewing timesheet for {employeeProfile?.fullName || targetEmployeeName || 'Employee'}. Edits, auto-save, and submissions are disabled.
+                   </p>
+                 </div>
+               </div>
+               {onBack && (
+                 <button 
+                   type="button"
+                   onClick={onBack}
+                   className="px-6 py-2.5 bg-blue-600 hover:bg-blue-500 text-white rounded-xl text-xs font-black uppercase tracking-wider transition-all shadow-md active:scale-95 cursor-pointer flex items-center gap-2"
+                 >
+                   <ChevronLeft size={16} /> Back to Hourly Reports
+                 </button>
+               )}
+             </div>
+           ) : (
+             <div className="flex flex-col sm:flex-row items-center justify-end gap-4">
+                <button 
+                   onClick={handleClear}
+                   className="w-full sm:w-auto px-10 py-4 bg-white text-slate-500 border border-slate-200 rounded-2xl text-xs font-black uppercase tracking-widest hover:bg-slate-50 transition-all active:scale-95 flex items-center justify-center gap-2"
+                >
+                   <Eraser size={16} /> Clear
+                </button>
+                <button 
+                   onClick={handleSubmit}
+                   disabled={submitting}
+                   className="w-full sm:w-auto px-12 py-4 bg-blue-600 text-white rounded-2xl text-xs font-black uppercase tracking-widest shadow-xl shadow-blue-200 hover:bg-blue-700 transition-all active:scale-95 flex items-center justify-center gap-3 disabled:opacity-50"
+                >
+                   {submitting ? (
+                     <Loader2 size={18} className="animate-spin" />
+                   ) : (
+                     <><Send size={18} /> Submit Report</>
+                   )}
+                </button>
+             </div>
+           )}
         </div>
       </div>
       ) : (
@@ -946,35 +1264,39 @@ const EmployeeSchedule = ({ embedded = false, onBack, targetEmployeeId = null, t
               </div>
             </div>
             <div className="flex flex-wrap items-center gap-3">
-              <button
-                type="button"
-                disabled={pullingSheet}
-                onClick={() => handleAutoPullFromSheet(selectedDate.toISOString().split('T')[0], true)}
-                className="flex items-center gap-2 px-5 py-3 bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-700 hover:to-teal-700 text-white rounded-2xl text-xs font-black uppercase tracking-wider transition-all shadow-lg shadow-emerald-200 active:scale-95 disabled:opacity-50 cursor-pointer"
-              >
-                {pullingSheet ? (
-                  <>
-                    <Loader2 size={15} className="animate-spin" />
-                    <span>Pulling from Sheet...</span>
-                  </>
-                ) : (
-                  <>
-                    <RefreshCw size={15} />
-                    <span>⚡ 1-Click Sync from Sheet</span>
-                  </>
-                )}
-              </button>
-              <button
-                type="button"
-                onClick={() => {
-                  setShowSyncModal(true);
-                  handleAutoPullFromSheet(syncDate, false);
-                }}
-                className="flex items-center gap-2 px-4 py-3 bg-white border border-slate-200 hover:bg-slate-50 text-slate-700 rounded-2xl text-xs font-black uppercase tracking-wider transition-all shadow-sm active:scale-95 cursor-pointer"
-              >
-                <UploadCloud size={15} className="text-blue-600" />
-                <span>Sync Options / Preview</span>
-              </button>
+              {!isReadOnly && (
+                <>
+                  <button
+                    type="button"
+                    disabled={pullingSheet}
+                    onClick={() => handleAutoPullFromSheet(selectedDate.toISOString().split('T')[0], true)}
+                    className="flex items-center gap-2 px-5 py-3 bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-700 hover:to-teal-700 text-white rounded-2xl text-xs font-black uppercase tracking-wider transition-all shadow-lg shadow-emerald-200 active:scale-95 disabled:opacity-50 cursor-pointer"
+                  >
+                    {pullingSheet ? (
+                      <>
+                        <Loader2 size={15} className="animate-spin" />
+                        <span>Pulling from Sheet...</span>
+                      </>
+                    ) : (
+                      <>
+                        <RefreshCw size={15} />
+                        <span>⚡ 1-Click Sync from Sheet</span>
+                      </>
+                    )}
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setShowSyncModal(true);
+                      handleAutoPullFromSheet(syncDate, false);
+                    }}
+                    className="flex items-center gap-2 px-4 py-3 bg-white border border-slate-200 hover:bg-slate-50 text-slate-700 rounded-2xl text-xs font-black uppercase tracking-wider transition-all shadow-sm active:scale-95 cursor-pointer"
+                  >
+                    <UploadCloud size={15} className="text-blue-600" />
+                    <span>Sync Options / Preview</span>
+                  </button>
+                </>
+              )}
               {deptSheet.hasSheet && (
                 <a
                   href={deptSheet.url}
@@ -1229,6 +1551,146 @@ const EmployeeSchedule = ({ embedded = false, onBack, targetEmployeeId = null, t
         </div>
       )}
       
+      {/* BIG SCREEN WORK REPORT EDITOR MODAL */}
+      {activeModalSlot && (
+        <div 
+          className="fixed inset-0 bg-slate-900/75 backdrop-blur-sm z-50 flex items-center justify-center p-4 sm:p-6 animate-in fade-in duration-200"
+          onClick={() => setActiveModalSlot(null)}
+        >
+          <div 
+            className="w-full max-w-3xl bg-white rounded-[32px] shadow-2xl border border-slate-100 overflow-hidden flex flex-col max-h-[92vh] animate-in zoom-in-95 duration-200"
+            onClick={(e) => e.stopPropagation()}
+          >
+            {/* Modal Header */}
+            <div className="p-6 sm:p-7 bg-slate-50/80 border-b border-slate-100 flex items-center justify-between gap-4">
+              <div className="flex items-center gap-3.5">
+                <div className="w-12 h-12 rounded-2xl bg-gradient-to-br from-blue-600 to-indigo-600 text-white flex items-center justify-center shadow-lg shadow-blue-500/20 shrink-0">
+                  <Edit3 size={22} />
+                </div>
+                <div>
+                  <div className="flex flex-wrap items-center gap-2">
+                    <h3 className="text-lg font-black text-[#1e293b]">
+                      {activeModalSlot.slotKey}
+                    </h3>
+                    <span className="px-3 py-1 bg-white border border-slate-200 rounded-xl text-xs font-bold text-slate-600 shadow-sm flex items-center gap-1.5">
+                      <Calendar size={13} className="text-blue-500" />
+                      {activeModalSlot.dayLabel}
+                    </span>
+                    {activeModalSlot.canEdit ? (
+                      <span className="px-2.5 py-1 bg-emerald-50 text-emerald-700 border border-emerald-200 rounded-xl text-[10px] font-black uppercase tracking-wider flex items-center gap-1">
+                        <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse"></span>
+                        {activeModalSlot.status === 'GRACE' ? `Grace (${activeModalSlot.countdown} left)` : 'Editable'}
+                      </span>
+                    ) : (
+                      <span className="px-2.5 py-1 bg-slate-100 text-slate-600 border border-slate-200 rounded-xl text-[10px] font-black uppercase tracking-wider flex items-center gap-1">
+                        <Lock size={11} />
+                        {isReadOnly ? 'Admin View Only' : 'Locked'}
+                      </span>
+                    )}
+                  </div>
+                  <p className="text-xs font-semibold text-slate-400 mt-1">
+                    {activeModalSlot.canEdit 
+                      ? 'Type your detailed hourly work report, deliverables, or progress below.'
+                      : 'This timeslot is locked or in view-only mode. All text is visible below.'}
+                  </p>
+                </div>
+              </div>
+
+              <button
+                type="button"
+                onClick={() => setActiveModalSlot(null)}
+                className="w-10 h-10 rounded-2xl bg-white hover:bg-slate-100 text-slate-400 hover:text-slate-600 flex items-center justify-center border border-slate-200 transition-colors shadow-sm cursor-pointer"
+                title="Close (Esc)"
+              >
+                <X size={20} />
+              </button>
+            </div>
+
+            {/* Modal Body: Spacious Big Screen Textarea */}
+            <div className="p-6 sm:p-8 flex-1 overflow-y-auto space-y-4">
+              <div className="relative">
+                <textarea
+                  ref={modalTextareaRef}
+                  value={modalText}
+                  onChange={(e) => activeModalSlot.canEdit && setModalText(e.target.value)}
+                  onKeyDown={(e) => {
+                    if ((e.ctrlKey || e.metaKey) && e.key === 'Enter') {
+                      e.preventDefault();
+                      handleSaveModalSlot();
+                    } else if (e.key === 'Escape') {
+                      setActiveModalSlot(null);
+                    }
+                  }}
+                  readOnly={!activeModalSlot.canEdit}
+                  disabled={!activeModalSlot.canEdit}
+                  rows={10}
+                  placeholder={
+                    activeModalSlot.canEdit
+                      ? "Write detailed tasks, bullet points, meetings, code changes, or client updates for this hour...\n\nExample:\n• Finished API endpoints for user reports\n• Reviewed team pull requests\n• Coordinated sprint tasks on Slack"
+                      : "No work update was recorded for this slot."
+                  }
+                  className={`w-full p-6 text-sm sm:text-base leading-relaxed font-medium rounded-2xl outline-none transition-all resize-none shadow-sm min-h-[260px] sm:min-h-[320px] ${
+                    activeModalSlot.canEdit
+                      ? 'bg-slate-50/70 border-2 border-slate-200 focus:bg-white focus:border-blue-500 focus:ring-4 focus:ring-blue-500/10 text-slate-800'
+                      : 'bg-slate-50 border border-slate-200 text-slate-700 cursor-default select-text'
+                  }`}
+                />
+              </div>
+            </div>
+
+            {/* Modal Footer */}
+            <div className="p-6 bg-slate-50/80 border-t border-slate-100 flex flex-col sm:flex-row items-center justify-between gap-4">
+              <div className="flex items-center gap-4 text-xs font-semibold text-slate-400">
+                <span>
+                  {modalText.trim() ? modalText.trim().split(/\s+/).length : 0} words
+                </span>
+                <span>•</span>
+                <span>{modalText.length} characters</span>
+                {activeModalSlot.canEdit && (
+                  <>
+                    <span className="hidden sm:inline">•</span>
+                    <span className="hidden sm:inline text-slate-400">
+                      Press <kbd className="px-1.5 py-0.5 bg-white border border-slate-200 rounded text-[10px] font-mono text-slate-600 shadow-xs">Ctrl</kbd> + <kbd className="px-1.5 py-0.5 bg-white border border-slate-200 rounded text-[10px] font-mono text-slate-600 shadow-xs">Enter</kbd> to save
+                    </span>
+                  </>
+                )}
+              </div>
+
+              <div className="flex items-center gap-3 w-full sm:w-auto justify-end">
+                <button
+                  type="button"
+                  onClick={() => setActiveModalSlot(null)}
+                  className="px-6 py-3 rounded-2xl text-xs font-bold text-slate-500 hover:bg-slate-200/80 transition-colors cursor-pointer"
+                >
+                  {activeModalSlot.canEdit ? 'Cancel' : 'Close'}
+                </button>
+
+                {activeModalSlot.canEdit && (
+                  <>
+                    {modalText.trim() && (
+                      <button
+                        type="button"
+                        onClick={() => setModalText('')}
+                        className="px-4 py-3 rounded-2xl text-xs font-bold text-rose-500 hover:bg-rose-50 transition-colors cursor-pointer flex items-center gap-1.5"
+                      >
+                        <Eraser size={15} /> Clear
+                      </button>
+                    )}
+                    <button
+                      type="button"
+                      onClick={handleSaveModalSlot}
+                      className="flex items-center gap-2 px-8 py-3 bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 text-white rounded-2xl text-xs font-black uppercase tracking-wider transition-all shadow-lg shadow-blue-500/25 active:scale-95 cursor-pointer"
+                    >
+                      <Check size={16} /> Save & Update Task
+                    </button>
+                  </>
+                )}
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
       {/* Helper Actions */}
       <div className="flex items-center justify-center gap-8 text-slate-400">
          <button className="flex items-center gap-2 text-[10px] font-black uppercase tracking-widest hover:text-[#1e293b] transition-colors">
