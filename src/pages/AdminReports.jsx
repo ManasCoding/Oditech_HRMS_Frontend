@@ -10,9 +10,12 @@ import {
   PieChart as RePieChart, Pie, Cell, ResponsiveContainer, Tooltip 
 } from 'recharts';
 import * as XLSX from 'xlsx';
+import { io } from 'socket.io-client';
 import api from '../services/api';
 import CustomDropdown from '../components/CustomDropdown';
 import EmployeeSchedule from './EmployeeSchedule';
+
+const SOCKET_URL = (import.meta.env.VITE_API_BASE_URL || 'https://oditech-hrms-backend-2.onrender.com/api').replace('/api', '');
 
 const COLORS = ['#3b82f6', '#10b981', '#a855f7', '#f43f5e', '#f59e0b', '#64748b'];
 
@@ -485,6 +488,25 @@ const AdminReports = () => {
   useEffect(() => {
     fetchReports();
   }, [filters.date, filters.department, filters.employeeId, filters.status, search]);
+
+  // Real-time socket listener for employee report updates
+  useEffect(() => {
+    let socket;
+    try {
+      socket = io(SOCKET_URL);
+      const handleTimesheetEvent = () => {
+        fetchReports();
+        fetchDepartments();
+      };
+      socket.on('timesheetUpdated', handleTimesheetEvent);
+      socket.on('timesheetSubmitted', handleTimesheetEvent);
+    } catch (err) {
+      console.error('Socket connection error in AdminReports:', err);
+    }
+    return () => {
+      if (socket) socket.disconnect();
+    };
+  }, []);
 
   useEffect(() => {
     if (activeViewTab === 'matrix') {

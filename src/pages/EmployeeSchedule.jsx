@@ -500,7 +500,7 @@ const EmployeeSchedule = ({ embedded = false, onBack, targetEmployeeId = null, t
       const res = await api.get(`/employee/tasks/weekly/${effectiveUserId}?startDate=${weekDates[0]}&endDate=${weekDates[6]}`);
       if (res.data.success) {
         const tasksMap = {};
-        const remarksMap = {};
+        const remarksMap = { ...(res.data.dailyRemarks || {}) };
         (res.data.tasks || []).forEach(task => {
           const key = `${task.date}_${task.slotKey}`;
           tasksMap[key] = task.title;
@@ -510,6 +510,9 @@ const EmployeeSchedule = ({ embedded = false, onBack, targetEmployeeId = null, t
         });
         setWeekTasks(tasksMap);
         setDailyRemarks(remarksMap);
+        if (res.data.weeklyRemarks !== undefined) {
+          setWeekRemarks(res.data.weeklyRemarks || '');
+        }
       }
     } catch (err) {
       console.error('Error fetching tasks:', err);
@@ -529,10 +532,20 @@ const EmployeeSchedule = ({ embedded = false, onBack, targetEmployeeId = null, t
     let socket;
     try {
       socket = io(SOCKET_URL);
-      socket.on('timesheetUpdated', (data) => {
-        if (!data?.employeeId || data.employeeId === effectiveUserId || data.employeeId === employeeProfile?._id) {
+      const handleTimesheetUpdate = (data) => {
+        const targetIdStr = String(effectiveUserId || '');
+        const profileIdStr = String(employeeProfile?._id || '');
+        const dataEmpId = String(data?.employeeId || '');
+
+        if (!data?.employeeId || dataEmpId === targetIdStr || dataEmpId === profileIdStr) {
           fetchWeeklyTasks();
         }
+      };
+
+      socket.on('timesheetUpdated', handleTimesheetUpdate);
+      socket.on('timesheetSubmitted', handleTimesheetUpdate);
+      socket.on('googleSheetSynced', () => {
+        fetchWeeklyTasks();
       });
     } catch (err) {
       console.error('Socket connection error:', err);
