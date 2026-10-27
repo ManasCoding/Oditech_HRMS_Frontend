@@ -115,8 +115,9 @@ const EmployeeSchedule = ({ embedded = false, onBack, targetEmployeeId = null, t
 
   const handleOpenSlotModal = (date, slot, isLocked, slotState) => {
     const currentVal = weekTasks[`${date}_${slot}`] || '';
-    // ONLY active timeslot is not locked (editable). All past (LOCKED) and future (FUTURE) slots are locked.
-    const isActive = slotState.status === 'ACTIVE' || slotState.status === 'GRACE';
+    // If admin is viewing (isReadOnly), admin can only see, not update!
+    // In employee view, only active timeslot is unlocked for editing.
+    const isActive = !isReadOnly && (slotState.status === 'ACTIVE' || slotState.status === 'GRACE');
     const canEdit = isActive;
 
     setActiveModalSlot({
@@ -125,7 +126,7 @@ const EmployeeSchedule = ({ embedded = false, onBack, targetEmployeeId = null, t
       slotKey: slot,
       dayLabel: formatDateLabel(date),
       canEdit,
-      status: slotState.status,
+      status: isReadOnly ? 'READONLY' : slotState.status,
       countdown: slotState.countdown
     });
     setModalText(currentVal);
@@ -133,8 +134,8 @@ const EmployeeSchedule = ({ embedded = false, onBack, targetEmployeeId = null, t
 
   const handleOpenDailyRemarksModal = (date, isLocked, remarksState) => {
     const currentVal = dailyRemarks[date] || '';
-    // Only today's remarks (ACTIVE) is not locked. Past and future are locked.
-    const canEdit = remarksState === 'ACTIVE';
+    // Only today's remarks (ACTIVE) is not locked when not in readOnly mode.
+    const canEdit = !isReadOnly && remarksState === 'ACTIVE';
 
     setActiveModalSlot({
       type: 'dailyRemarks',
@@ -142,7 +143,7 @@ const EmployeeSchedule = ({ embedded = false, onBack, targetEmployeeId = null, t
       slotKey: 'Daily Remarks',
       dayLabel: formatDateLabel(date),
       canEdit,
-      status: remarksState
+      status: isReadOnly ? 'READONLY' : remarksState
     });
     setModalText(currentVal);
   };
@@ -153,8 +154,8 @@ const EmployeeSchedule = ({ embedded = false, onBack, targetEmployeeId = null, t
       date: null,
       slotKey: 'Weekly Remarks',
       dayLabel: `${formatDateLabel(weekDates[0])} - ${formatDateLabel(weekDates[6])}`,
-      canEdit: true,
-      status: 'ACTIVE'
+      canEdit: !isReadOnly,
+      status: isReadOnly ? 'READONLY' : 'ACTIVE'
     });
     setModalText(weekRemarks || '');
   };
@@ -986,7 +987,7 @@ const EmployeeSchedule = ({ embedded = false, onBack, targetEmployeeId = null, t
                      <td className="p-6 text-xs font-black text-slate-500 border-r border-slate-50 sticky left-0 bg-white group-hover:bg-slate-50/30 z-10 align-top">{slot}</td>
                      {weekDates.map((date, dIdx) => {
                        const slotState = getSlotState(date, slot);
-                       const isActive = slotState.status === 'ACTIVE' || slotState.status === 'GRACE';
+                       const isActive = !isReadOnly && (slotState.status === 'ACTIVE' || slotState.status === 'GRACE');
                        const isLocked = !isActive;
                        const taskVal = weekTasks[`${date}_${slot}`] || '';
                        const isFuture = slotState.status === 'FUTURE';
@@ -1065,7 +1066,7 @@ const EmployeeSchedule = ({ embedded = false, onBack, targetEmployeeId = null, t
                    <td className="p-6 text-[10px] font-black text-slate-400 uppercase tracking-widest border-r border-slate-100 sticky left-0 bg-slate-50 z-10 align-top">Daily Remarks</td>
                    {weekDates.map((date) => {
                      const remarksState = getRemarksState(date);
-                     const isActive = remarksState === 'ACTIVE';
+                     const isActive = !isReadOnly && remarksState === 'ACTIVE';
                      const isLocked = !isActive;
                      const remarkVal = dailyRemarks[date] || '';
                      const isFuture = remarksState === 'FUTURE';
@@ -1539,14 +1540,16 @@ const EmployeeSchedule = ({ embedded = false, onBack, targetEmployeeId = null, t
                     ) : (
                       <span className="px-2.5 py-1 bg-slate-100 text-slate-600 border border-slate-200 rounded-xl text-[10px] font-black uppercase tracking-wider flex items-center gap-1">
                         <Lock size={11} />
-                        Locked (Editing Closed)
+                        {isReadOnly ? 'Admin View Only' : 'Locked (Editing Closed)'}
                       </span>
                     )}
                   </div>
                   <p className="text-xs font-semibold text-slate-400 mt-1">
                     {activeModalSlot.canEdit 
                       ? 'Type your detailed hourly work report, deliverables, or progress below.'
-                      : 'This timeslot is locked or in view-only mode. All text is visible below.'}
+                      : isReadOnly 
+                        ? 'Admin view-only mode. All recorded work text is visible below.' 
+                        : 'This timeslot is locked. Only the currently active timeslot can be edited.'}
                   </p>
                 </div>
               </div>

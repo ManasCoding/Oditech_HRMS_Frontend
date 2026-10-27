@@ -129,7 +129,23 @@ const AdminReports = () => {
       { id: 'Sales', name: 'Sales Team', icon: '💼' }
     ];
 
-    return standardDepts.map(dept => {
+    const extraDepts = [];
+    employees.forEach(e => {
+      const d = (e.department || '').trim();
+      if (!d) return;
+      const lower = d.toLowerCase();
+      const isCovered = ['engineering', 'developer', 'development', 'software', 'tech', 'web development', 'manage', 'human', 'hr', 'design', 'marketing', 'sale'].some(k => lower.includes(k));
+      if (!isCovered && !extraDepts.some(x => x.toLowerCase() === lower)) {
+        extraDepts.push(d);
+      }
+    });
+
+    const allDeptsList = [
+      ...standardDepts,
+      ...extraDepts.map(d => ({ id: d, name: d, icon: '📁' }))
+    ];
+
+    return allDeptsList.map(dept => {
       let count = 0;
       if (dept.id === 'All') {
         count = employees.length;
@@ -152,7 +168,7 @@ const AdminReports = () => {
           if (target === 'marketing') {
             return eDept.includes('marketing') || /smruti|amit/i.test(e.fullName || '');
           }
-          return eDept.includes(target);
+          return eDept.includes(target) || eDept === target;
         }).length;
       }
       return { ...dept, count };
@@ -176,7 +192,7 @@ const AdminReports = () => {
         } else if (target === 'marketing') {
           matchesDept = eDept.includes('marketing') || /smruti|amit/i.test(e.fullName || '');
         } else {
-          matchesDept = eDept.includes(target);
+          matchesDept = eDept.includes(target) || eDept === target;
         }
       }
 
@@ -313,8 +329,10 @@ const AdminReports = () => {
   const fetchDepartments = async () => {
     try {
       const res = await api.get('/admin/employees');
-      if (res.data.success) {
-        const uniqueDepts = [...new Set(res.data.employees.map(e => e.department).filter(Boolean))];
+      if (res.data.success && Array.isArray(res.data.employees)) {
+        const empList = res.data.employees;
+        setEmployees(empList);
+        const uniqueDepts = [...new Set(empList.map(e => e.department).filter(Boolean))];
         setDepartments(['All Departments', ...uniqueDepts]);
       }
     } catch (err) {
@@ -339,6 +357,18 @@ const AdminReports = () => {
           ...res.data,
           reports: firstSlice,
           totalEntries: validReports.length
+        });
+
+        // Also merge employees from reports so no staff is ever missed
+        setEmployees(prev => {
+          const map = new Map();
+          (prev || []).forEach(e => { if (e && e._id) map.set(e._id, e); });
+          validReports.forEach(r => {
+            if (r.employeeId && r.employeeId._id && !map.has(r.employeeId._id)) {
+              map.set(r.employeeId._id, r.employeeId);
+            }
+          });
+          return Array.from(map.values());
         });
       }
     } catch (err) {
@@ -1038,7 +1068,7 @@ const AdminReports = () => {
               <div className="space-y-4 animate-in fade-in duration-300">
                 <EmployeeSchedule 
                   embedded={true} 
-                  readOnly={false} 
+                  readOnly={true} 
                   targetEmployeeId={selectedEmployeeCard._id} 
                   targetEmployeeName={selectedEmployeeCard.fullName} 
                   targetEmployee={selectedEmployeeCard} 
