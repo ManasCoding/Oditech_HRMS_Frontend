@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef, useCallback } from 'react';
 import EmployeeLayout from '../layouts/EmployeeLayout';
 import { useParams, useNavigate, useLocation } from 'react-router-dom';
 import { 
@@ -11,6 +11,60 @@ import api from '../services/api';
 import { io } from 'socket.io-client';
 
 const SOCKET_URL = (import.meta.env.VITE_API_BASE_URL || 'https://oditech-hrms-backend-2.onrender.com/api').replace('/api', '');
+
+// Auto-expanding textarea component that automatically grows in size as an employee types
+// so the employee can always see what they write in full without text clipping
+const AutoExpandingTextarea = ({
+  value = '',
+  onChange,
+  onBlur,
+  placeholder = '-',
+  disabled = false,
+  className = '',
+  title = '',
+  minHeight = 44,
+  maxHeight = 280,
+}) => {
+  const textareaRef = useRef(null);
+
+  const adjustHeight = useCallback(() => {
+    const el = textareaRef.current;
+    if (!el) return;
+    el.style.height = 'auto';
+    const scrollH = el.scrollHeight;
+    const targetH = Math.min(Math.max(scrollH, minHeight), maxHeight);
+    el.style.height = `${targetH}px`;
+    el.style.overflowY = scrollH > maxHeight ? 'auto' : 'hidden';
+  }, [minHeight, maxHeight]);
+
+  useEffect(() => {
+    adjustHeight();
+  }, [value, adjustHeight]);
+
+  useEffect(() => {
+    const handleResize = () => adjustHeight();
+    window.addEventListener('resize', handleResize);
+    return () => window.removeEventListener('resize', handleResize);
+  }, [adjustHeight]);
+
+  return (
+    <textarea
+      ref={textareaRef}
+      value={value}
+      onChange={(e) => {
+        onChange?.(e.target.value);
+        adjustHeight();
+      }}
+      onFocus={adjustHeight}
+      onBlur={onBlur}
+      placeholder={placeholder}
+      disabled={disabled}
+      rows={1}
+      className={className}
+      title={title}
+    />
+  );
+};
 
 const EmployeeSchedule = ({ embedded = false, onBack }) => {
   const { employeeSlug } = useParams();
@@ -735,26 +789,29 @@ const EmployeeSchedule = ({ embedded = false, onBack }) => {
              <tbody className="divide-y divide-slate-100">
                 {timeSlots.map((slot, sIdx) => (
                   <tr key={slot} className="group hover:bg-slate-50/30 transition-colors">
-                     <td className="p-6 text-xs font-black text-slate-500 border-r border-slate-50 sticky left-0 bg-white group-hover:bg-slate-50/30 z-10">{slot}</td>
+                     <td className="p-6 text-xs font-black text-slate-500 border-r border-slate-50 sticky left-0 bg-white group-hover:bg-slate-50/30 z-10 align-top">{slot}</td>
                      {weekDates.map((date, dIdx) => {
                        const slotState = getSlotState(date, slot);
                        const isLocked = slotState.status === 'LOCKED' || slotState.status === 'FUTURE';
                        
                        return (
-                         <td key={`${date}-${slot}`} className="p-3 border-r border-slate-50 relative">
+                         <td key={`${date}-${slot}`} className="p-3 border-r border-slate-50 relative align-top">
                            <div className="relative w-full group/input">
-                             <input 
-                               type="text"
+                             <AutoExpandingTextarea 
                                value={weekTasks[`${date}_${slot}`] || ''}
-                               onChange={(e) => handleInputChange(date, slot, e.target.value)}
+                               onChange={(val) => handleInputChange(date, slot, val)}
                                onBlur={handleAutoSave}
                                placeholder={slotState.status === 'FUTURE' ? "Not available" : "-"}
                                disabled={isLocked}
-                               className={`w-full px-4 py-3.5 border rounded-xl text-xs font-medium text-[#1e293b] outline-none transition-all
+                               minHeight={44}
+                               maxHeight={280}
+                               className={`w-full px-4 py-3 border rounded-xl text-xs font-medium text-[#1e293b] outline-none transition-[border-color,box-shadow,background-color] duration-150 leading-relaxed break-words whitespace-pre-wrap
                                  ${isLocked 
-                                   ? 'bg-slate-100 border-transparent text-slate-500 cursor-not-allowed' 
-                                   : 'bg-transparent border-transparent hover:border-slate-200 focus:bg-white focus:border-blue-500 focus:shadow-lg focus:shadow-blue-500/5'
+                                   ? 'bg-slate-100 border-transparent text-slate-500 cursor-not-allowed select-none' 
+                                   : 'bg-transparent border-transparent hover:border-slate-200 focus:bg-white focus:border-blue-500 focus:shadow-lg focus:shadow-blue-500/10'
                                  }
+                                 ${slotState.status === 'LOCKED' ? 'pr-9' : ''}
+                                 ${slotState.status === 'GRACE' ? 'pr-28' : ''}
                                `}
                                title={
                                  slotState.status === 'LOCKED' 
@@ -765,13 +822,13 @@ const EmployeeSchedule = ({ embedded = false, onBack }) => {
                                }
                              />
                              {slotState.status === 'LOCKED' && (
-                               <div className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400">
+                               <div className="absolute right-3 top-3 text-slate-400 pointer-events-none">
                                  <Lock size={14} />
                                </div>
                              )}
                              {slotState.status === 'GRACE' && (
-                               <div className="absolute right-3 top-1/2 -translate-y-1/2">
-                                 <span className="text-[10px] font-black text-orange-500 bg-orange-50 px-2 py-1 rounded-md whitespace-nowrap">
+                               <div className="absolute right-2.5 top-2.5 pointer-events-none z-10">
+                                 <span className="text-[10px] font-black text-orange-500 bg-orange-50/95 border border-orange-200/50 px-2 py-0.5 rounded-md whitespace-nowrap shadow-sm">
                                    Editing ends in {slotState.countdown}
                                  </span>
                                </div>
@@ -785,26 +842,28 @@ const EmployeeSchedule = ({ embedded = false, onBack }) => {
                 
                 {/* Daily Remarks Row */}
                 <tr className="bg-slate-50/30">
-                   <td className="p-6 text-[10px] font-black text-slate-400 uppercase tracking-widest border-r border-slate-100 sticky left-0 bg-slate-50 z-10">Daily Remarks</td>
+                   <td className="p-6 text-[10px] font-black text-slate-400 uppercase tracking-widest border-r border-slate-100 sticky left-0 bg-slate-50 z-10 align-top">Daily Remarks</td>
                    {weekDates.map((date) => {
                      const remarksState = getRemarksState(date);
                      const isLocked = remarksState === 'LOCKED' || remarksState === 'FUTURE';
                      
                      return (
-                       <td key={`remark-${date}`} className="p-3 border-r border-slate-50 relative">
+                       <td key={`remark-${date}`} className="p-3 border-r border-slate-50 relative align-top">
                           <div className="relative w-full">
-                            <textarea 
+                            <AutoExpandingTextarea 
                               value={dailyRemarks[date] || ''}
-                              onChange={(e) => setDailyRemarks(prev => ({ ...prev, [date]: e.target.value }))}
+                              onChange={(val) => setDailyRemarks(prev => ({ ...prev, [date]: val }))}
                               onBlur={handleAutoSave}
                               placeholder={remarksState === 'FUTURE' ? "Not available" : "Daily notes..."}
                               disabled={isLocked}
-                              rows="2"
-                              className={`w-full px-4 py-3 border rounded-xl text-[11px] font-medium text-slate-500 outline-none transition-all resize-none
+                              minHeight={50}
+                              maxHeight={280}
+                              className={`w-full px-4 py-3 border rounded-xl text-[11px] font-medium text-slate-600 outline-none transition-[border-color,box-shadow,background-color] duration-150 leading-relaxed break-words whitespace-pre-wrap
                                 ${isLocked
-                                  ? 'bg-slate-100 border-transparent text-slate-500 cursor-not-allowed'
-                                  : 'bg-white/50 border-transparent hover:border-slate-200 focus:bg-white focus:border-blue-500'
+                                  ? 'bg-slate-100 border-transparent text-slate-500 cursor-not-allowed select-none'
+                                  : 'bg-white/50 border-transparent hover:border-slate-200 focus:bg-white focus:border-blue-500 focus:shadow-md'
                                 }
+                                ${remarksState === 'LOCKED' ? 'pr-9' : ''}
                               `}
                               title={
                                 remarksState === 'LOCKED'
@@ -813,9 +872,9 @@ const EmployeeSchedule = ({ embedded = false, onBack }) => {
                                     ? "This field is not yet available."
                                     : ""
                               }
-                            ></textarea>
+                            />
                             {remarksState === 'LOCKED' && (
-                              <div className="absolute right-3 top-4 text-slate-400">
+                              <div className="absolute right-3 top-3 text-slate-400 pointer-events-none">
                                 <Lock size={14} />
                               </div>
                             )}

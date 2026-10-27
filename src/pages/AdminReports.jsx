@@ -1338,7 +1338,7 @@ const AdminReports = () => {
                                   {taskContent ? (
                                     <div 
                                       title={taskContent}
-                                      className="p-2.5 bg-slate-50 hover:bg-white rounded-xl border border-slate-200/80 hover:border-blue-300 hover:shadow-md transition-all text-[11px] font-medium text-slate-700 leading-snug line-clamp-3 group relative cursor-pointer"
+                                      className="p-2.5 bg-slate-50 hover:bg-white rounded-xl border border-slate-200/80 hover:border-blue-300 hover:shadow-md transition-all text-[11px] font-medium text-slate-700 leading-snug line-clamp-3 whitespace-pre-wrap break-words group relative cursor-pointer"
                                     >
                                       <span className="text-[9px] font-bold text-blue-600 block mb-0.5">✓ Logged</span>
                                       {taskContent}
