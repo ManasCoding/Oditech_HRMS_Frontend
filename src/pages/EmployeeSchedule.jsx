@@ -175,10 +175,8 @@ const EmployeeSchedule = ({ embedded = false, onBack, targetEmployeeId = null, t
         try {
           const tasksToSubmit = [];
           Object.entries(updated).forEach(([k, t]) => {
-            if (t && t.trim()) {
-              const [d, s] = k.split('_');
-              tasksToSubmit.push({ date: d, slotKey: s, title: t, status: 'Completed' });
-            }
+            const [d, s] = k.split('_');
+            tasksToSubmit.push({ date: d, slotKey: s, title: t || '', status: 'Completed' });
           });
           const res = await api.post('/employee/tasks/bulk', {
             employeeId: effectiveUserId,
@@ -207,10 +205,8 @@ const EmployeeSchedule = ({ embedded = false, onBack, targetEmployeeId = null, t
         try {
           const tasksToSubmit = [];
           Object.entries(weekTasks).forEach(([k, t]) => {
-            if (t && t.trim()) {
-              const [d, s] = k.split('_');
-              tasksToSubmit.push({ date: d, slotKey: s, title: t, status: 'Completed' });
-            }
+            const [d, s] = k.split('_');
+            tasksToSubmit.push({ date: d, slotKey: s, title: t || '', status: 'Completed' });
           });
           const res = await api.post('/employee/tasks/bulk', {
             employeeId: effectiveUserId,
@@ -233,10 +229,8 @@ const EmployeeSchedule = ({ embedded = false, onBack, targetEmployeeId = null, t
         try {
           const tasksToSubmit = [];
           Object.entries(weekTasks).forEach(([k, t]) => {
-            if (t && t.trim()) {
-              const [d, s] = k.split('_');
-              tasksToSubmit.push({ date: d, slotKey: s, title: t, status: 'Completed' });
-            }
+            const [d, s] = k.split('_');
+            tasksToSubmit.push({ date: d, slotKey: s, title: t || '', status: 'Completed' });
           });
           const res = await api.post('/employee/tasks/bulk', {
             employeeId: effectiveUserId,
@@ -674,10 +668,8 @@ const EmployeeSchedule = ({ embedded = false, onBack, targetEmployeeId = null, t
     try {
       const tasksToSubmit = [];
       Object.entries(weekTasks).forEach(([key, title]) => {
-        if (title.trim()) {
-          const [date, slotKey] = key.split('_');
-          tasksToSubmit.push({ date, slotKey, title, status: 'Completed' });
-        }
+        const [date, slotKey] = key.split('_');
+        tasksToSubmit.push({ date, slotKey, title: title || '', status: 'Completed' });
       });
 
       await api.post('/employee/tasks/bulk', {
