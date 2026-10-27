@@ -71,7 +71,7 @@ const EmployeeSchedule = ({ embedded = false, onBack, targetEmployeeId = null, t
   const navigate = useNavigate();
   const location = useLocation();
   const user = JSON.parse(localStorage.getItem('user')) || {};
-  const effectiveUserId = targetEmployeeId || user.id;
+  const effectiveUserId = targetEmployeeId || user._id || user.id;
   const isReadOnly = readOnly;
   const [loading, setLoading] = useState(true);
   const [submitting, setSubmitting] = useState(false);
@@ -180,16 +180,22 @@ const EmployeeSchedule = ({ embedded = false, onBack, targetEmployeeId = null, t
               tasksToSubmit.push({ date: d, slotKey: s, title: t, status: 'Completed' });
             }
           });
-          await api.post('/employee/tasks/bulk', {
+          const res = await api.post('/employee/tasks/bulk', {
             employeeId: effectiveUserId,
             tasks: tasksToSubmit,
             dates: weekDates,
             dailyRemarks,
             weeklyRemarks: weekRemarks
           });
-          showToast('Work update saved successfully!', 'success');
+          if (res.data?.success) {
+            showToast('Work update saved successfully!', 'success');
+            await fetchWeeklyTasks();
+          } else {
+            showToast(res.data?.message || 'Failed to save work update', 'error');
+          }
         } catch (err) {
           console.error('Error auto-saving task from modal:', err);
+          showToast(err.response?.data?.message || 'Failed to save update', 'error');
         }
       } else if (type === 'dailyRemarks') {
         const updatedRemarks = {
@@ -206,16 +212,20 @@ const EmployeeSchedule = ({ embedded = false, onBack, targetEmployeeId = null, t
               tasksToSubmit.push({ date: d, slotKey: s, title: t, status: 'Completed' });
             }
           });
-          await api.post('/employee/tasks/bulk', {
+          const res = await api.post('/employee/tasks/bulk', {
             employeeId: effectiveUserId,
             tasks: tasksToSubmit,
             dates: weekDates,
             dailyRemarks: updatedRemarks,
             weeklyRemarks: weekRemarks
           });
-          showToast('Daily remarks saved!', 'success');
+          if (res.data?.success) {
+            showToast('Daily remarks saved!', 'success');
+            await fetchWeeklyTasks();
+          }
         } catch (err) {
           console.error('Error auto-saving remarks from modal:', err);
+          showToast(err.response?.data?.message || 'Failed to save remarks', 'error');
         }
       } else if (type === 'weekRemarks') {
         setWeekRemarks(modalText);
@@ -228,16 +238,20 @@ const EmployeeSchedule = ({ embedded = false, onBack, targetEmployeeId = null, t
               tasksToSubmit.push({ date: d, slotKey: s, title: t, status: 'Completed' });
             }
           });
-          await api.post('/employee/tasks/bulk', {
+          const res = await api.post('/employee/tasks/bulk', {
             employeeId: effectiveUserId,
             tasks: tasksToSubmit,
             dates: weekDates,
             dailyRemarks,
             weeklyRemarks: modalText
           });
-          showToast('Weekly remarks saved!', 'success');
+          if (res.data?.success) {
+            showToast('Weekly remarks saved!', 'success');
+            await fetchWeeklyTasks();
+          }
         } catch (err) {
           console.error('Error auto-saving weekly remarks from modal:', err);
+          showToast(err.response?.data?.message || 'Failed to save weekly remarks', 'error');
         }
       }
     }
@@ -494,10 +508,8 @@ const EmployeeSchedule = ({ embedded = false, onBack, targetEmployeeId = null, t
             remarksMap[task.date] = task.dailyRemarks;
           }
         });
-        setWeekTasks(prev => ({ ...prev, ...tasksMap }));
-        if (Object.keys(remarksMap).length > 0) {
-          setDailyRemarks(prev => ({ ...remarksMap, ...prev }));
-        }
+        setWeekTasks(tasksMap);
+        setDailyRemarks(remarksMap);
       }
     } catch (err) {
       console.error('Error fetching tasks:', err);
@@ -507,10 +519,10 @@ const EmployeeSchedule = ({ embedded = false, onBack, targetEmployeeId = null, t
   };
 
   useEffect(() => {
-    if (weekDates.length > 0) {
+    if (weekDates.length > 0 && effectiveUserId) {
       fetchWeeklyTasks();
     }
-  }, [weekDates]);
+  }, [weekDates, effectiveUserId]);
 
   // Real-time socket listener for sheet updates
   useEffect(() => {
