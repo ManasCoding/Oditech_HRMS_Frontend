@@ -1038,7 +1038,7 @@ const AdminReports = () => {
               <div className="space-y-4 animate-in fade-in duration-300">
                 <EmployeeSchedule 
                   embedded={true} 
-                  readOnly={true} 
+                  readOnly={false} 
                   targetEmployeeId={selectedEmployeeCard._id} 
                   targetEmployeeName={selectedEmployeeCard.fullName} 
                   targetEmployee={selectedEmployeeCard} 

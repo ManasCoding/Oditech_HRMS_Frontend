@@ -114,13 +114,10 @@ const EmployeeSchedule = ({ embedded = false, onBack, targetEmployeeId = null, t
   }, [activeModalSlot]);
 
   const handleOpenSlotModal = (date, slot, isLocked, slotState) => {
-    if (slotState.status === 'FUTURE' && !isReadOnly) {
-      showToast('This timeslot is not yet available to edit.', 'error');
-      return;
-    }
-
     const currentVal = weekTasks[`${date}_${slot}`] || '';
-    const canEdit = !isReadOnly && !isLocked;
+    // ONLY active timeslot is not locked (editable). All past (LOCKED) and future (FUTURE) slots are locked.
+    const isActive = slotState.status === 'ACTIVE' || slotState.status === 'GRACE';
+    const canEdit = isActive;
 
     setActiveModalSlot({
       type: 'slot',
@@ -135,13 +132,9 @@ const EmployeeSchedule = ({ embedded = false, onBack, targetEmployeeId = null, t
   };
 
   const handleOpenDailyRemarksModal = (date, isLocked, remarksState) => {
-    if (remarksState === 'FUTURE' && !isReadOnly) {
-      showToast('This remarks field is not yet available to edit.', 'error');
-      return;
-    }
-
     const currentVal = dailyRemarks[date] || '';
-    const canEdit = !isReadOnly && !isLocked;
+    // Only today's remarks (ACTIVE) is not locked. Past and future are locked.
+    const canEdit = remarksState === 'ACTIVE';
 
     setActiveModalSlot({
       type: 'dailyRemarks',
@@ -160,7 +153,7 @@ const EmployeeSchedule = ({ embedded = false, onBack, targetEmployeeId = null, t
       date: null,
       slotKey: 'Weekly Remarks',
       dayLabel: `${formatDateLabel(weekDates[0])} - ${formatDateLabel(weekDates[6])}`,
-      canEdit: !isReadOnly,
+      canEdit: true,
       status: 'ACTIVE'
     });
     setModalText(weekRemarks || '');
@@ -420,12 +413,11 @@ const EmployeeSchedule = ({ embedded = false, onBack, targetEmployeeId = null, t
     const startT = parseTime(startStr);
     const endT = parseTime(endStr);
 
-    const slotStart = new Date(dateStr);
-    slotStart.setHours(startT.h, startT.m, 0, 0);
+    const [year, month, day] = (dateStr || '').split('-').map(Number);
+    if (!year || !month || !day) return { status: 'LOCKED' };
 
-    const slotEnd = new Date(dateStr);
-    slotEnd.setHours(endT.h, endT.m, 0, 0);
-
+    const slotStart = new Date(year, month - 1, day, startT.h, startT.m, 0, 0);
+    const slotEnd = new Date(year, month - 1, day, endT.h, endT.m, 0, 0);
     const graceEnd = new Date(slotEnd.getTime() + 15 * 60000);
 
     if (currentTime < slotStart) return { status: 'FUTURE' };
@@ -441,10 +433,11 @@ const EmployeeSchedule = ({ embedded = false, onBack, targetEmployeeId = null, t
   };
 
   const getRemarksState = (dateStr) => {
-    const startOfDay = new Date(dateStr);
-    startOfDay.setHours(0, 0, 0, 0);
-    const endOfDay = new Date(dateStr);
-    endOfDay.setHours(23, 59, 59, 999);
+    const [year, month, day] = (dateStr || '').split('-').map(Number);
+    if (!year || !month || !day) return 'LOCKED';
+
+    const startOfDay = new Date(year, month - 1, day, 0, 0, 0, 0);
+    const endOfDay = new Date(year, month - 1, day, 23, 59, 59, 999);
     
     if (currentTime < startOfDay) return 'FUTURE';
     if (currentTime > endOfDay) return 'LOCKED';
@@ -754,8 +747,8 @@ const EmployeeSchedule = ({ embedded = false, onBack, targetEmployeeId = null, t
 
   const renderContent = () => (
     <div className="space-y-6 pb-20 animate-in fade-in duration-500">
-      {/* Top Banner when in Admin Read-Only Mode */}
-      {isReadOnly && (
+      {/* Top Banner when viewing an employee schedule */}
+      {(isReadOnly || targetEmployeeId || embedded) && (
         <div className="bg-gradient-to-r from-slate-900 via-blue-950 to-slate-900 text-white p-5 rounded-3xl shadow-xl flex flex-wrap items-center justify-between gap-4 border border-blue-500/20">
           <div className="flex items-center gap-4">
             {onBack && (
@@ -785,12 +778,15 @@ const EmployeeSchedule = ({ embedded = false, onBack, targetEmployeeId = null, t
                 <span className="px-2.5 py-0.5 rounded-full text-[10px] font-black uppercase tracking-wider bg-emerald-500/20 text-emerald-300 border border-emerald-400/20">
                   {employeeProfile?.department || 'Department'}
                 </span>
-                <span className="px-2.5 py-0.5 rounded-full text-[10px] font-black uppercase tracking-wider bg-amber-500/20 text-amber-300 border border-amber-400/20 flex items-center gap-1">
-                  <Lock size={10} /> View Only
+                <span className="px-2.5 py-0.5 rounded-full text-[10px] font-black uppercase tracking-wider bg-emerald-500/20 text-emerald-300 border border-emerald-400/20 flex items-center gap-1">
+                  <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse"></span> Active Slot Unlocked
+                </span>
+                <span className="px-2.5 py-0.5 rounded-full text-[10px] font-black uppercase tracking-wider bg-slate-500/20 text-slate-300 border border-slate-400/20 flex items-center gap-1">
+                  <Lock size={10} /> Past Slots Locked
                 </span>
               </div>
               <p className="text-[11px] text-slate-300 mt-0.5">
-                Viewing live employee schedule and daily timesheet. Edits and auto-saves are disabled.
+                Viewing employee work timesheet. Only the currently active timeslot is unlocked for editing; all other slots remain locked.
               </p>
             </div>
           </div>
@@ -1039,70 +1035,74 @@ const EmployeeSchedule = ({ embedded = false, onBack, targetEmployeeId = null, t
                      <td className="p-6 text-xs font-black text-slate-500 border-r border-slate-50 sticky left-0 bg-white group-hover:bg-slate-50/30 z-10 align-top">{slot}</td>
                      {weekDates.map((date, dIdx) => {
                        const slotState = getSlotState(date, slot);
-                       const isLocked = isReadOnly || slotState.status === 'LOCKED' || slotState.status === 'FUTURE';
+                       const isActive = slotState.status === 'ACTIVE' || slotState.status === 'GRACE';
+                       const isLocked = !isActive;
                        const taskVal = weekTasks[`${date}_${slot}`] || '';
-                       const isFuture = slotState.status === 'FUTURE' && !isReadOnly;
+                       const isFuture = slotState.status === 'FUTURE';
                        
                        return (
                          <td key={`${date}-${slot}`} className="p-2.5 border-r border-slate-50 relative align-top">
-                           <div 
-                             onClick={() => !isFuture && handleOpenSlotModal(date, slot, isLocked, slotState)}
-                             className={`relative w-full min-h-[58px] p-3 rounded-2xl border text-xs font-medium transition-all group/cell select-none flex flex-col justify-between ${
-                               isFuture 
-                                 ? 'bg-slate-50/50 border-slate-100 text-slate-400 cursor-not-allowed opacity-60' 
-                                 : isLocked
-                                   ? 'bg-slate-100/80 border-slate-200/60 text-slate-600 cursor-pointer hover:border-slate-300 hover:bg-slate-100'
-                                   : 'bg-white border-slate-200/80 text-[#1e293b] cursor-pointer hover:border-blue-500 hover:shadow-md hover:bg-blue-50/15'
-                             }`}
-                             title={
-                               isFuture 
-                                 ? "This timeslot is not yet available."
-                                 : isLocked
-                                   ? "Locked timeslot. Click to view full text on big screen."
-                                   : "Click to write work update on big screen"
-                             }
-                           >
-                             {/* Task Content Preview */}
-                             <div className="leading-relaxed break-words whitespace-pre-wrap line-clamp-3">
-                               {taskVal ? (
-                                 taskVal
-                               ) : (
-                                 <span className="text-slate-300 font-normal italic flex items-center gap-1">
-                                   {isFuture ? 'Not available' : 'Click to write...'}
-                                 </span>
-                               )}
-                             </div>
+                            <div 
+                              onClick={() => handleOpenSlotModal(date, slot, isLocked, slotState)}
+                              className={`relative w-full min-h-[58px] p-3 rounded-2xl border text-xs font-medium transition-all group/cell select-none flex flex-col justify-between ${
+                                isActive 
+                                  ? 'bg-emerald-50/25 border-emerald-400 text-slate-800 cursor-pointer hover:border-emerald-500 hover:shadow-md ring-2 ring-emerald-500/15' 
+                                  : isFuture 
+                                    ? 'bg-slate-50/50 border-slate-100 text-slate-400 cursor-pointer opacity-70 hover:border-slate-200' 
+                                    : 'bg-slate-100/80 border-slate-200/60 text-slate-600 cursor-pointer hover:border-slate-300 hover:bg-slate-100'
+                              }`}
+                              title={
+                                isActive 
+                                  ? "Active timeslot! Click to type or update on big screen." 
+                                  : isLocked
+                                    ? "Locked timeslot. Click to view on big screen."
+                                    : "Future timeslot. Click to view on big screen."
+                              }
+                            >
+                              {/* Task Content Preview */}
+                              <div className="leading-relaxed break-words whitespace-pre-wrap line-clamp-3">
+                                {taskVal ? (
+                                  taskVal
+                                ) : (
+                                  <span className="text-slate-300 font-normal italic flex items-center gap-1">
+                                    {isActive ? 'Click to type...' : isFuture ? 'Future slot' : 'No report'}
+                                  </span>
+                                )}
+                              </div>
 
-                             {/* Bottom cell badges & expand icon */}
-                             <div className="mt-2.5 pt-1.5 border-t border-slate-100/70 flex items-center justify-between text-[10px]">
-                               {slotState.status === 'LOCKED' && (
-                                 <span className="text-slate-400 flex items-center gap-1 font-bold">
-                                   <Lock size={10} /> Locked
-                                 </span>
-                               )}
-                               {slotState.status === 'GRACE' && (
-                                 <span className="font-black text-orange-600 bg-orange-100/90 px-1.5 py-0.5 rounded-md">
-                                   {slotState.countdown}
-                                 </span>
-                               )}
-                               {slotState.status === 'ACTIVE' && (
-                                 <span className="font-bold text-emerald-600 flex items-center gap-1">
-                                   <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse"></span>
-                                   Active
-                                 </span>
-                               )}
-                               {isFuture && (
-                                 <span className="text-slate-400 font-medium">Future</span>
-                               )}
+                              {/* Bottom cell badges & expand icon */}
+                              <div className="mt-2.5 pt-1.5 border-t border-slate-100/70 flex items-center justify-between text-[10px]">
+                                {slotState.status === 'LOCKED' && (
+                                  <span className="text-slate-400 flex items-center gap-1 font-bold">
+                                    <Lock size={10} /> Locked
+                                  </span>
+                                )}
+                                {slotState.status === 'GRACE' && (
+                                  <span className="font-black text-orange-600 bg-orange-100/90 px-1.5 py-0.5 rounded-md flex items-center gap-1">
+                                    <span className="w-1.5 h-1.5 rounded-full bg-orange-500 animate-pulse"></span>
+                                    {slotState.countdown} left
+                                  </span>
+                                )}
+                                {slotState.status === 'ACTIVE' && (
+                                  <span className="font-bold text-emerald-600 flex items-center gap-1">
+                                    <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse"></span>
+                                    Active (Unlocked)
+                                  </span>
+                                )}
+                                {isFuture && (
+                                  <span className="text-slate-400 font-medium flex items-center gap-1">
+                                    <Lock size={10} /> Future
+                                  </span>
+                                )}
 
-                               {!isFuture && (
-                                 <div className="opacity-0 group-hover/cell:opacity-100 transition-opacity ml-auto text-blue-500 flex items-center gap-1">
-                                   <span className="text-[9px] font-bold text-blue-500">Edit</span>
-                                   <Maximize2 size={11} />
-                                 </div>
-                               )}
-                             </div>
-                           </div>
+                                <div className="opacity-0 group-hover/cell:opacity-100 transition-opacity ml-auto flex items-center gap-1">
+                                  <span className={`text-[9px] font-bold ${isActive ? 'text-emerald-600' : 'text-slate-400'}`}>
+                                    {isActive ? 'Type / Edit' : 'View (Locked)'}
+                                  </span>
+                                  <Maximize2 size={11} className={isActive ? 'text-emerald-600' : 'text-slate-400'} />
+                                </div>
+                              </div>
+                            </div>
                          </td>
                        );
                      })}
@@ -1114,27 +1114,28 @@ const EmployeeSchedule = ({ embedded = false, onBack, targetEmployeeId = null, t
                    <td className="p-6 text-[10px] font-black text-slate-400 uppercase tracking-widest border-r border-slate-100 sticky left-0 bg-slate-50 z-10 align-top">Daily Remarks</td>
                    {weekDates.map((date) => {
                      const remarksState = getRemarksState(date);
-                     const isLocked = isReadOnly || remarksState === 'LOCKED' || remarksState === 'FUTURE';
+                     const isActive = remarksState === 'ACTIVE';
+                     const isLocked = !isActive;
                      const remarkVal = dailyRemarks[date] || '';
-                     const isFuture = remarksState === 'FUTURE' && !isReadOnly;
+                     const isFuture = remarksState === 'FUTURE';
                      
                      return (
                        <td key={`remark-${date}`} className="p-2.5 border-r border-slate-50 relative align-top">
                           <div 
-                            onClick={() => !isFuture && handleOpenDailyRemarksModal(date, isLocked, remarksState)}
+                            onClick={() => handleOpenDailyRemarksModal(date, isLocked, remarksState)}
                             className={`relative w-full min-h-[50px] p-3 rounded-2xl border text-[11px] font-medium transition-all group/cell select-none flex flex-col justify-between ${
-                              isFuture 
-                                ? 'bg-slate-50/50 border-slate-100 text-slate-400 cursor-not-allowed opacity-60' 
-                                : isLocked
-                                  ? 'bg-slate-100/80 border-slate-200/60 text-slate-600 cursor-pointer hover:border-slate-300 hover:bg-slate-100'
-                                  : 'bg-white border-slate-200/80 text-slate-700 cursor-pointer hover:border-blue-500 hover:shadow-md hover:bg-blue-50/15'
+                              isActive
+                                ? 'bg-emerald-50/25 border-emerald-400 text-slate-800 cursor-pointer hover:border-emerald-500 hover:shadow-md ring-2 ring-emerald-500/15'
+                                : isFuture 
+                                  ? 'bg-slate-50/50 border-slate-100 text-slate-400 cursor-pointer opacity-70 hover:border-slate-200' 
+                                  : 'bg-slate-100/80 border-slate-200/60 text-slate-600 cursor-pointer hover:border-slate-300 hover:bg-slate-100'
                             }`}
                             title={
-                              isFuture 
-                                ? "This field is not yet available." 
+                              isActive
+                                ? "Today's daily remarks! Click to write or edit on big screen." 
                                 : isLocked
                                   ? "Locked daily remarks. Click to view on big screen."
-                                  : "Click to write daily remarks on big screen"
+                                  : "Future daily remarks. Click to view on big screen."
                             }
                           >
                             <div className="leading-relaxed break-words whitespace-pre-wrap line-clamp-2">
@@ -1142,25 +1143,28 @@ const EmployeeSchedule = ({ embedded = false, onBack, targetEmployeeId = null, t
                                 remarkVal
                               ) : (
                                 <span className="text-slate-300 font-normal italic">
-                                  {isFuture ? 'Not available' : 'Daily notes...'}
+                                  {isActive ? 'Click to write daily notes...' : isFuture ? 'Future date' : 'No notes'}
                                 </span>
                               )}
                             </div>
 
                             <div className="mt-2 pt-1 border-t border-slate-100/70 flex items-center justify-between text-[10px]">
-                              {remarksState === 'LOCKED' ? (
+                              {isActive ? (
+                                <span className="font-bold text-emerald-600 flex items-center gap-1">
+                                  <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse"></span>
+                                  Active (Unlocked)
+                                </span>
+                              ) : (
                                 <span className="text-slate-400 flex items-center gap-1 font-bold">
                                   <Lock size={10} /> Locked
                                 </span>
-                              ) : (
-                                <span className="text-slate-400 font-bold">Notes</span>
                               )}
-                              {!isFuture && (
-                                <div className="opacity-0 group-hover/cell:opacity-100 transition-opacity ml-auto text-blue-500 flex items-center gap-1">
-                                  <span className="text-[9px] font-bold">Expand</span>
-                                  <Maximize2 size={11} />
-                                </div>
-                              )}
+                              <div className="opacity-0 group-hover/cell:opacity-100 transition-opacity ml-auto flex items-center gap-1">
+                                <span className={`text-[9px] font-bold ${isActive ? 'text-emerald-600' : 'text-slate-400'}`}>
+                                  {isActive ? 'Type / Edit' : 'View (Locked)'}
+                                </span>
+                                <Maximize2 size={11} className={isActive ? 'text-emerald-600' : 'text-slate-400'} />
+                              </div>
                             </div>
                           </div>
                        </td>
@@ -1579,12 +1583,12 @@ const EmployeeSchedule = ({ embedded = false, onBack, targetEmployeeId = null, t
                     {activeModalSlot.canEdit ? (
                       <span className="px-2.5 py-1 bg-emerald-50 text-emerald-700 border border-emerald-200 rounded-xl text-[10px] font-black uppercase tracking-wider flex items-center gap-1">
                         <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse"></span>
-                        {activeModalSlot.status === 'GRACE' ? `Grace (${activeModalSlot.countdown} left)` : 'Editable'}
+                        {activeModalSlot.status === 'GRACE' ? `Grace (${activeModalSlot.countdown} left)` : 'Active • Unlocked'}
                       </span>
                     ) : (
                       <span className="px-2.5 py-1 bg-slate-100 text-slate-600 border border-slate-200 rounded-xl text-[10px] font-black uppercase tracking-wider flex items-center gap-1">
                         <Lock size={11} />
-                        {isReadOnly ? 'Admin View Only' : 'Locked'}
+                        Locked (Editing Closed)
                       </span>
                     )}
                   </div>
@@ -1614,7 +1618,7 @@ const EmployeeSchedule = ({ embedded = false, onBack, targetEmployeeId = null, t
                   value={modalText}
                   onChange={(e) => activeModalSlot.canEdit && setModalText(e.target.value)}
                   onKeyDown={(e) => {
-                    if ((e.ctrlKey || e.metaKey) && e.key === 'Enter') {
+                    if (activeModalSlot.canEdit && (e.ctrlKey || e.metaKey) && e.key === 'Enter') {
                       e.preventDefault();
                       handleSaveModalSlot();
                     } else if (e.key === 'Escape') {
@@ -1622,17 +1626,16 @@ const EmployeeSchedule = ({ embedded = false, onBack, targetEmployeeId = null, t
                     }
                   }}
                   readOnly={!activeModalSlot.canEdit}
-                  disabled={!activeModalSlot.canEdit}
                   rows={10}
                   placeholder={
                     activeModalSlot.canEdit
-                      ? "Write detailed tasks, bullet points, meetings, code changes, or client updates for this hour...\n\nExample:\n• Finished API endpoints for user reports\n• Reviewed team pull requests\n• Coordinated sprint tasks on Slack"
-                      : "No work update was recorded for this slot."
+                      ? "Write detailed tasks, bullet points, meetings, code changes, or client updates for this active hour...\n\nExample:\n• Finished API endpoints for user reports\n• Reviewed team pull requests\n• Coordinated sprint tasks on Slack"
+                      : "No work update was recorded for this slot. This timeslot is locked."
                   }
                   className={`w-full p-6 text-sm sm:text-base leading-relaxed font-medium rounded-2xl outline-none transition-all resize-none shadow-sm min-h-[260px] sm:min-h-[320px] ${
                     activeModalSlot.canEdit
-                      ? 'bg-slate-50/70 border-2 border-slate-200 focus:bg-white focus:border-blue-500 focus:ring-4 focus:ring-blue-500/10 text-slate-800'
-                      : 'bg-slate-50 border border-slate-200 text-slate-700 cursor-default select-text'
+                      ? 'bg-white border-2 border-emerald-400 focus:border-emerald-500 focus:ring-4 focus:ring-emerald-500/15 text-slate-800'
+                      : 'bg-slate-100/70 border border-slate-200 text-slate-600 cursor-not-allowed select-text'
                   }`}
                 />
               </div>
